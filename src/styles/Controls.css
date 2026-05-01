@@ -1,0 +1,217 @@
+.controls-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  width: 320px;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+
+.control-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.control-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.control-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #667eea;
+}
+
+.control-section h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-group {
+  margin-bottom: 1.25rem;
+}
+
+.control-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #E5E7EB;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+}
+
+.difficulty-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.difficulty-btn,
+.district-btn,
+.challenge-btn {
+  padding: 0.625rem 0.75rem;
+  border: 2px solid #E5E7EB;
+  background: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #6B7280;
+}
+
+.difficulty-btn:hover,
+.district-btn:hover,
+.challenge-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.difficulty-btn.active,
+.district-btn.active,
+.challenge-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.district-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  gap: 0.5rem;
+}
+
+.challenges-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.challenge-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.challenge-icon {
+  font-size: 1.5rem;
+  min-width: 30px;
+}
+
+.challenge-name {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 1400px) {
+  .controls-panel {
+    width: 100%;
+    max-height: none;
+  }
+
+  .control-section h3 {
+    font-size: 1.1rem;
+  }
+
+  .difficulty-buttons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Scrollbar styling */
+.controls-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.controls-panel::-webkit-scrollbar-track {
+  background: #F3F4F6;
+  border-radius: 3px;
+}
+
+.controls-panel::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 3px;
+}
+
+.controls-panel::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}

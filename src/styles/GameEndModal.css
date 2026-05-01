@@ -1,0 +1,353 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  padding: 2rem;
+  border-bottom: 4px solid #667eea;
+  text-align: center;
+}
+
+.modal-header h2 {
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+}
+
+.modal-header p {
+  font-size: 1.1rem;
+  color: #6B7280;
+  margin: 0;
+}
+
+.modal-body {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-body h3 {
+  font-size: 1.5rem;
+  color: #1F2937;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.result-card {
+  padding: 1.5rem;
+  background: #F9FAFB;
+  border-radius: 12px;
+  text-align: center;
+  border: 2px solid #E5E7EB;
+  transition: all 0.3s;
+}
+
+.result-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.result-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.result-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.result-percentage {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #9CA3AF;
+}
+
+.challenge-summary {
+  background: linear-gradient(135deg, #FFF5E6 0%, #FFE8CC 100%);
+  border: 2px solid #FFD699;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.challenge-summary h4 {
+  font-size: 1.125rem;
+  color: #1F2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.challenge-summary p {
+  color: #6B7280;
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+}
+
+.challenge-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.challenge-badge.won {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.challenge-badge.lost {
+  background: #FEE2E2;
+  color: #7F1D1D;
+}
+
+.modal-footer {
+  padding: 1.5rem 2rem;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Scrollbar styling */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #F3F4F6;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+.modal-footer .btn-primary {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.modal-footer .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.modal-footer .btn-primary:active {
+  transform: translateY(0);
+}
+
+.modal-footer .btn-secondary {
+  padding: 0.875rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 2px solid #667eea;
+  background: white;
+  color: #667eea;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.modal-footer .btn-secondary:hover {
+  background: #F3F4F6;
+}
+
+.detailed-stats {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #E5E7EB;
+}
+
+.detailed-stats h3 {
+  font-size: 1.25rem;
+  color: #1F2937;
+  margin: 0 0 1.5rem 0;
+}
+
+.stats-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #F9FAFB;
+  border-radius: 8px;
+}
+
+.stats-section h4 {
+  font-size: 0.95rem;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+}
+
+.stat-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #6B7280;
+}
+
+.stat-line span:first-child {
+  font-weight: 500;
+}
+
+.stat-line strong {
+  color: #1F2937;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.districts-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.district-breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+}
+
+.district-num {
+  font-weight: 700;
+  color: #1F2937;
+  min-width: 35px;
+}
+
+.district-bar {
+  flex: 1;
+  display: flex;
+  height: 24px;
+  background: #E5E7EB;
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.bar-blue {
+  background: #3B82F6;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.3s;
+}
+
+.bar-red {
+  background: #EF4444;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.3s;
+}
+
+.district-winner {
+  min-width: 45px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .modal-content {
+    width: 95%;
+  }
+
+  .modal-header {
+    padding: 1.5rem;
+  }
+
+  .modal-header h2 {
+    font-size: 2rem;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+  }
+}
