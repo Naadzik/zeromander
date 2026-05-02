@@ -12,9 +12,9 @@
 }
 
 .modal-content.challenge-modal {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
@@ -24,24 +24,24 @@
 }
 
 .modal-header {
-  padding: 2rem;
-  border-bottom: 2px solid #E5E7EB;
+  padding: var(--spacing-2xl);
+  border-bottom: 2px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--spacing-lg);
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 1.5rem;
-  color: #1F2937;
+  font-size: var(--font-size-2xl);
+  color: var(--text-dark);
 }
 
 .modal-header p {
-  margin: 0.5rem 0 0 0;
-  color: #6B7280;
-  font-size: 0.95rem;
+  margin: var(--spacing-sm) 0 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
 }
 
 .close-btn {
@@ -56,96 +56,96 @@
   border: none;
   background: none;
   font-size: 1.5rem;
-  color: #9CA3AF;
-  transition: color 0.2s;
+  color: var(--text-tertiary);
+  transition: color var(--transition-base);
 }
 
 .close-btn:hover {
-  color: #6B7280;
+  color: var(--text-secondary);
 }
 
 .modal-body {
-  padding: 2rem;
+  padding: var(--spacing-2xl);
   overflow-y: auto;
   flex: 1;
 }
 
 .rules-section {
-  margin-bottom: 2rem;
+  margin-bottom: var(--spacing-2xl);
 }
 
 .rules-section h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  color: #1F2937;
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: var(--font-size-lg);
+  color: var(--text-dark);
 }
 
 .rules-section p {
   margin: 0;
-  line-height: 1.6;
-  color: #4B5563;
-  font-size: 0.95rem;
+  line-height: var(--line-height-relaxed);
+  color: var(--text-dark);
+  font-size: var(--font-size-base);
 }
 
 .goal-section {
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-lg);
 }
 
 .goal-section h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  color: #1F2937;
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: var(--font-size-lg);
+  color: var(--text-dark);
 }
 
 .goal-box {
-  background: #F3F4F6;
-  border-left: 4px solid #667eea;
-  padding: 1rem;
-  border-radius: 6px;
+  background: var(--bg-light);
+  border-left: 4px solid var(--primary-color);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
 }
 
 .goal-box p {
   margin: 0;
-  color: #1F2937;
-  font-weight: 600;
-  font-size: 0.95rem;
+  color: var(--text-dark);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
 }
 
 .modal-footer {
-  padding: 1.5rem 2rem;
-  border-top: 1px solid #E5E7EB;
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  border-top: 1px solid var(--border-color);
   display: flex;
-  gap: 1rem;
+  gap: var(--spacing-lg);
   justify-content: flex-end;
-  background: #F9FAFB;
+  background: var(--bg-light);
 }
 
 .btn-primary, .btn-secondary {
-  padding: 0.75rem 1.5rem;
+  padding: var(--spacing-md) var(--spacing-xl);
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  font-size: 0.95rem;
-  transition: all 0.2s;
+  font-size: var(--font-size-base);
+  transition: all var(--transition-base);
 }
 
 .btn-primary {
-  background: #667eea;
+  background: var(--primary-color);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #5568d3;
+  background: var(--primary-hover);
 }
 
 .btn-secondary {
-  background: white;
-  color: #6B7280;
-  border: 1px solid #D1D5DB;
+  background: var(--bg-white);
+  color: var(--text-secondary);
+  border: 1px solid var(--divider-color);
 }
 
 .btn-secondary:hover {
-  background: #F3F4F6;
-  border-color: #9CA3AF;
+  background: var(--bg-light);
+  border-color: var(--text-tertiary);
 }

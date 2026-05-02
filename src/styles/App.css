@@ -5,10 +5,10 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: var(--font-family);
+  background: var(--bg-lighter);
   min-height: 100vh;
-  color: #333;
+  color: var(--text-dark);
 }
 
 #root {
@@ -19,35 +19,35 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #F8F9FA;
+  background: var(--bg-lighter);
 }
 
 .app-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: var(--primary-color);
   color: white;
   padding: 2rem;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-header);
 }
 
 .app-header h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--spacing-sm);
   letter-spacing: -0.5px;
 }
 
 .app-header p {
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   opacity: 0.95;
-  font-weight: 300;
+  font-weight: var(--font-weight-light);
 }
 
 .app-container {
   display: flex;
   flex: 1;
-  gap: 1.5rem;
-  padding: 2rem;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-2xl);
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
@@ -58,9 +58,9 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -68,7 +68,7 @@ body {
 @media (max-width: 1400px) {
   .app-container {
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--spacing-xl);
   }
 
   .game-main {
@@ -78,16 +78,16 @@ body {
 
 @media (max-width: 768px) {
   .app-header h1 {
-    font-size: 1.8rem;
+    font-size: var(--font-size-2xl);
   }
 
   .app-header p {
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
   }
 
   .app-container {
-    padding: 1rem;
-    gap: 1rem;
+    padding: var(--spacing-lg);
+    gap: var(--spacing-lg);
   }
 }
 
@@ -104,5 +104,5 @@ body {
 }
 
 .app-container > * {
-  animation: fadeIn 0.5s ease-out;
+  animation: fadeIn var(--transition-base) ease-out;
 }

@@ -14,6 +14,7 @@ export default function Controls({
   onBluePercentageChange,
   numDistricts,
   onDistrictsChange,
+  maxDistricts,
   currentDistrict,
   onDistrictSelect,
   selectedChallenge,
@@ -56,7 +57,7 @@ export default function Controls({
           <input
             type="range"
             min="2"
-            max="12"
+            max={maxDistricts || 12}
             value={numDistricts}
             onChange={(e) => onDistrictsChange(parseInt(e.target.value))}
             className="slider"
@@ -128,23 +129,6 @@ export default function Controls({
         onSelect={onChallengeSelect}
       />
 
-      <div className="control-section">
-        <h3>Districts</h3>
-        <div className="district-buttons">
-          {Array.from({ length: numDistricts }).map((_, i) => {
-            const districtId = i + 1;
-            return (
-              <button
-                key={districtId}
-                className={`district-btn ${currentDistrict === districtId ? 'active' : ''}`}
-                onClick={() => onDistrictSelect(districtId)}
-              >
-                D{districtId}
-              </button>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }

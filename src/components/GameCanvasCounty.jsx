@@ -14,7 +14,8 @@ export default function GameCanvasCounty({
   currentDistrict,
   onCountyClick,
   highlightedDistrict,
-  showUnassignedCounties
+  showUnassignedCounties,
+  showDistricts = true
 }) {
   const canvasRef = useRef(null);
   const [hoveredCounty, setHoveredCounty] = useState(null);
@@ -23,7 +24,7 @@ export default function GameCanvasCounty({
     if (canvasRef.current && populationMap && (populationMap.party || populationMap.length > 0)) {
       drawMap();
     }
-  }, [populationMap, counties, districts, currentDistrict, hoveredCounty, highlightedDistrict, showUnassignedCounties]);
+  }, [populationMap, counties, districts, currentDistrict, hoveredCounty, highlightedDistrict, showUnassignedCounties, showDistricts]);
 
   function drawMap() {
     const canvas = canvasRef.current;
@@ -75,29 +76,30 @@ export default function GameCanvasCounty({
       }
     }
 
-    
-    const numDistricts = Math.max(...districts.flat().filter(d => d > 0), 0);
-    for (let districtId = 1; districtId <= numDistricts; districtId++) {
-      const color = DISTRICT_COLORS[(districtId - 1) % DISTRICT_COLORS.length];
-      const isHighlighted = highlightedDistrict === districtId;
-      const isCurrent = currentDistrict === districtId;
 
-      
-      const opacity = isHighlighted ? 'E6' : (isCurrent ? 'AA' : '99');
-      ctx.fillStyle = color + opacity;
+    if (showDistricts) {
+      const numDistricts = Math.max(...districts.flat().filter(d => d > 0), 0);
+      for (let districtId = 1; districtId <= numDistricts; districtId++) {
+        const color = DISTRICT_COLORS[(districtId - 1) % DISTRICT_COLORS.length];
+        const isHighlighted = highlightedDistrict === districtId;
+        const isCurrent = currentDistrict === districtId;
 
-      for (let y = 0; y < gridSize; y++) {
-        for (let x = 0; x < gridSize; x++) {
-          if (districts[y][x] === districtId) {
-            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+        const opacity = isHighlighted ? 'E6' : (isCurrent ? 'AA' : '99');
+        ctx.fillStyle = color + opacity;
+
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            if (districts[y][x] === districtId) {
+              ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            }
           }
         }
-      }
 
-      
-      const borderWidth = isHighlighted ? 3 : 2;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = borderWidth;
+
+        const borderWidth = isHighlighted ? 3 : 2;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = borderWidth;
       for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {
           if (districts[y][x] === districtId) {
@@ -114,6 +116,7 @@ export default function GameCanvasCounty({
           }
         }
       }
+    }
     }
 
 
