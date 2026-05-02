@@ -117,6 +117,98 @@ export default function GameStats({
     <div className="stats-panel">
       <h3>Game Stats</h3>
 
+      {currentDistrict > 0 && (
+        <div className="stat-block">
+          <div className="stat-label">District {currentDistrict}</div>
+          <div className="stat-value">{stats.currentDistrictPop} votes</div>
+          <div className="capacity-bar">
+            <div
+              className="capacity-fill"
+              style={{
+                width: `${(stats.currentDistrictPop / maxPopulation) * 100}%`,
+                backgroundColor: stats.currentDistrictPop < minPopulation ? '#FF6B6B' :
+                  stats.currentDistrictPop > maxPopulation ? '#FF6B6B' : '#4ECDC4'
+              }}
+            ></div>
+          </div>
+          <div className="capacity-range">
+            Range: {minPopulation}-{maxPopulation} votes (±10%)
+          </div>
+          {stats.districtStats[currentDistrict - 1] && (
+            <div className="district-votes">
+              <div>🔵 Blue: {stats.districtStats[currentDistrict - 1].blue}</div>
+              <div>🔴 Red: {stats.districtStats[currentDistrict - 1].red}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <hr className="stat-divider" />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h4 style={{ margin: 0 }}>District Details</h4>
+        <button
+          className="btn-unassigned"
+          onClick={onToggleUnassigned}
+          style={{
+            padding: '0.4rem 0.8rem',
+            fontSize: '0.75rem',
+            fontWeight: '600',
+            backgroundColor: showUnassignedCounties ? '#667eea' : '#E5E7EB',
+            color: showUnassignedCounties ? 'white' : '#6B7280',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'all 0.3s'
+          }}
+        >
+          Unassigned
+        </button>
+      </div>
+      <div className="districts-list">
+        {stats.districtStats.map(district => {
+          const isComplete = stats.completedDistricts.has(district.id);
+          const partyWon = district.blue > district.red ? 'blue' : 'red';
+
+          let bgColor = '#F9FAFB';
+          let borderColor = '#667eea';
+          let borderWidth = '3px';
+
+          if (isComplete) {
+            bgColor = '#FEF3C7';
+            borderColor = '#F59E0B';
+            borderWidth = '4px';
+          }
+
+          return (
+            <div
+              key={district.id}
+              className="district-stat-row"
+              onClick={() => onDistrictSelect(district.id)}
+              style={{
+                backgroundColor: bgColor,
+                borderLeftColor: borderColor,
+                borderLeftWidth: borderWidth,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontWeight: isComplete ? '700' : '600'
+              }}
+            >
+              <div className="district-name">
+                D{district.id}
+                {isComplete && <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: partyWon === 'blue' ? '#3B82F6' : '#EF4444' }}>✓</span>}
+              </div>
+              <div className="district-votes">
+                <span className="blue-votes">🔵 {district.blue}</span>
+                <span className="red-votes">🔴 {district.red}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <hr className="stat-divider" />
+
       <div className="stat-block">
         <div className="stat-label">Blue Population</div>
         <div className="stat-value">{stats.popPercent}%</div>
@@ -140,30 +232,10 @@ export default function GameStats({
         </div>
       </div>
 
-      <div className="stat-block">
-        <div className="stat-label">Status</div>
-        <div className="stat-value">
-          {stats.assigned ? '✓ All districts assigned' : '⌛ Assigning districts...'}
-        </div>
-      </div>
-
-      {currentDistrict > 0 && (
+      {stats.assigned && (
         <div className="stat-block">
-          <div className="stat-label">District {currentDistrict} Population</div>
-          <div className="stat-value">{stats.currentDistrictPop} votes</div>
-          <div className="capacity-bar">
-            <div
-              className="capacity-fill"
-              style={{
-                width: `${(stats.currentDistrictPop / maxPopulation) * 100}%`,
-                backgroundColor: stats.currentDistrictPop < minPopulation ? '#FF6B6B' :
-                  stats.currentDistrictPop > maxPopulation ? '#FF6B6B' : '#4ECDC4'
-              }}
-            ></div>
-          </div>
-          <div className="capacity-range">
-            Range: {minPopulation}-{maxPopulation} votes (±10%)
-          </div>
+          <div className="stat-label">Status</div>
+          <div className="stat-value">✓ All districts assigned</div>
         </div>
       )}
 
@@ -208,71 +280,6 @@ export default function GameStats({
           </div>
         </div>
       )}
-
-      <hr className="stat-divider" />
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h4 style={{ margin: 0 }}>District Details</h4>
-        <button
-          className="btn-unassigned"
-          onClick={onToggleUnassigned}
-          style={{
-            padding: '0.4rem 0.8rem',
-            fontSize: '0.75rem',
-            fontWeight: '600',
-            backgroundColor: showUnassignedCounties ? '#667eea' : '#E5E7EB',
-            color: showUnassignedCounties ? 'white' : '#6B7280',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'all 0.3s'
-          }}
-        >
-          Unassigned
-        </button>
-      </div>
-      <div className="districts-list">
-        {stats.districtStats.map(district => {
-          const isComplete = stats.completedDistricts.has(district.id);
-          const partyWon = district.blue > district.red ? 'blue' : 'red';
-
-          let bgColor = '#F9FAFB';
-          let borderColor = '#667eea';
-          let borderWidth = '3px';
-
-          if (isComplete) {
-            
-            bgColor = '#FEF3C7';
-            borderColor = '#F59E0B';
-            borderWidth = '4px';
-          }
-
-          return (
-            <div
-              key={district.id}
-              className="district-stat-row"
-              onClick={() => onDistrictSelect(district.id)}
-              style={{
-                backgroundColor: bgColor,
-                borderLeftColor: borderColor,
-                borderLeftWidth: borderWidth,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                fontWeight: isComplete ? '700' : '600'
-              }}
-            >
-              <div className="district-name">
-                D{district.id}
-                {isComplete && <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: partyWon === 'blue' ? '#3B82F6' : '#EF4444' }}>✓</span>}
-              </div>
-              <div className="district-votes">
-                <span className="blue-votes">🔵 {district.blue}</span>
-                <span className="red-votes">🔴 {district.red}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

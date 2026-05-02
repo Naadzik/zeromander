@@ -1,8 +1,7 @@
-export function generatePopulationMap(gridSize, bluePercentage) {
+export function generatePopulationMap(gridSize, bluePercentage, numCities = 4) {
   const partyMap = [];
   const densityMap = [];
 
-  const numCities = Math.max(3, Math.ceil(gridSize / 10));
   const citySeeds = [];
 
   for (let i = 0; i < numCities; i++) {
@@ -47,14 +46,23 @@ export function generatePopulationMap(gridSize, bluePercentage) {
         distToCity = Math.min(distToCity, dist);
       }
 
-      if (distToCity < 3) {
-        densityMap[y][x] = 8 + Math.floor(Math.random() * 3);
-      } else if (distToCity < 5) {
-        densityMap[y][x] = 6 + Math.floor(Math.random() * 3);
-      } else if (distToCity < 8) {
-        densityMap[y][x] = 3 + Math.floor(Math.random() * 2);
+      const isCity = distToCity < 8;
+      const party = partyMap[y][x];
+
+      if (isCity) {
+        if (party === 0) {
+          if (distToCity < 3) {
+            densityMap[y][x] = 15 + Math.floor(Math.random() * 6);
+          } else if (distToCity < 5) {
+            densityMap[y][x] = 10 + Math.floor(Math.random() * 6);
+          } else {
+            densityMap[y][x] = 5 + Math.floor(Math.random() * 6);
+          }
+        } else {
+          densityMap[y][x] = 1 + Math.floor(Math.random() * 3);
+        }
       } else {
-        densityMap[y][x] = 1 + Math.floor(Math.random() * 2);
+        densityMap[y][x] = 1 + Math.floor(Math.random() * 5);
       }
     }
   }

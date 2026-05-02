@@ -6,6 +6,8 @@ export default function Controls({
   onDifficultyChange,
   numCounties,
   onCountiesChange,
+  numCities,
+  onNumCitiesChange,
   bluePercentage,
   onBluePercentageChange,
   numDistricts,
@@ -17,6 +19,15 @@ export default function Controls({
   onResetGame
 }) {
   const challenges = getAllChallenges();
+
+  const DIFFICULTY_SETTINGS = {
+    easy: { gridSize: 25, numDistricts: 4, targetSeats: 55, maxCounties: 100 },
+    medium: { gridSize: 35, numDistricts: 6, targetSeats: 52, maxCounties: 200 },
+    hard: { gridSize: 50, numDistricts: 8, targetSeats: 50, maxCounties: 300 }
+  };
+
+  const maxCounties = DIFFICULTY_SETTINGS[difficulty]?.maxCounties || 250;
+  const minCounties = numDistricts * 5;
 
   return (
     <div className="controls-panel">
@@ -38,13 +49,37 @@ export default function Controls({
         </div>
 
         <div className="control-group">
-          <label>Counties: {numCounties}</label>
+          <label>Districts: {numDistricts}</label>
           <input
             type="range"
-            min="5"
-            max="250"
+            min="2"
+            max="12"
+            value={numDistricts}
+            onChange={(e) => onDistrictsChange(parseInt(e.target.value))}
+            className="slider"
+          />
+        </div>
+
+        <div className="control-group">
+          <label>Counties: {numCounties} (min: {minCounties}, max: {maxCounties})</label>
+          <input
+            type="range"
+            min={minCounties}
+            max={maxCounties}
             value={numCounties}
             onChange={(e) => onCountiesChange(parseInt(e.target.value))}
+            className="slider"
+          />
+        </div>
+
+        <div className="control-group">
+          <label>Cities: {numCities}</label>
+          <input
+            type="range"
+            min="1"
+            max="6"
+            value={numCities}
+            onChange={(e) => onNumCitiesChange(parseInt(e.target.value))}
             className="slider"
           />
         </div>
@@ -85,18 +120,6 @@ export default function Controls({
 
       <div className="control-section">
         <h3>Districts</h3>
-        <div className="control-group">
-          <label>Number: {numDistricts}</label>
-          <input
-            type="range"
-            min="2"
-            max="12"
-            value={numDistricts}
-            onChange={(e) => onDistrictsChange(parseInt(e.target.value))}
-            className="slider"
-          />
-        </div>
-
         <div className="district-buttons">
           {Array.from({ length: numDistricts }).map((_, i) => {
             const districtId = i + 1;

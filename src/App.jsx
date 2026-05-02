@@ -4,16 +4,16 @@ import Controls from './components/Controls'
 import GameStats from './components/GameStats'
 import GameEndModal from './components/GameEndModal'
 import { generatePopulationMap } from './utils/mapGenerator'
-import { generateCounties } from './utils/countyGenerator'
+import { generateCounties, rebalanceCountyPopulations, getCountyCells } from './utils/countyGenerator'
 import { getChallengeById, checkChallengeCompletion } from './utils/challenges'
-import { calculateSeats, getSeatPercentage, allDistrictsAssigned, getDistrictStats, calculateEfficiencyGap, getPopulationPercentage } from './utils/gameLogic'
+import { calculateSeats, getSeatPercentage, allDistrictsAssigned, getDistrictStats, calculateEfficiencyGap, getPopulationPercentage, validateCountyPopulations } from './utils/gameLogic'
 import { calculateCompactness, calculateCompetitiveness, calculatePartisanAsymmetry } from './utils/metrics'
 import './styles/App.css'
 
 const DIFFICULTY_SETTINGS = {
-  easy: { gridSize: 25, numDistricts: 4, targetSeats: 55 },
-  medium: { gridSize: 35, numDistricts: 6, targetSeats: 52 },
-  hard: { gridSize: 50, numDistricts: 8, targetSeats: 50 }
+  easy: { gridSize: 25, numDistricts: 4, targetSeats: 55, maxCounties: 100 },
+  medium: { gridSize: 35, numDistricts: 6, targetSeats: 52, maxCounties: 200 },
+  hard: { gridSize: 50, numDistricts: 8, targetSeats: 50, maxCounties: 300 }
 };
 
 export default function App() {
@@ -21,6 +21,7 @@ export default function App() {
   const [gridSize, setGridSize] = useState(DIFFICULTY_SETTINGS.easy.gridSize);
   const [numDistricts, setNumDistricts] = useState(DIFFICULTY_SETTINGS.easy.numDistricts);
   const [numCounties, setNumCounties] = useState(12);
+  const [numCities, setNumCities] = useState(4);
   const [bluePercentage, setBluePercentage] = useState(45);
   const [populationMap, setPopulationMap] = useState([]);
   const [counties, setCounties] = useState([]);
@@ -34,14 +35,47 @@ export default function App() {
   const [gameComplete, setGameComplete] = useState(false);
   const [gameStats, setGameStats] = useState(null);
 
-  // Initialize game
   useEffect(() => {
     generateNewGame();
-  }, [gridSize, bluePercentage]);
+  }, [gridSize, bluePercentage, numCities]);
+
+  function areAllDistrictsValid() {
+    if (!populationMap || districts.length === 0) return false;
+
+    const isNewFormat = populationMap && typeof populationMap === 'object' && !Array.isArray(populationMap) && populationMap.party;
+    const densityMap = isNewFormat ? populationMap.density : null;
+    const gridSize = isNewFormat ? populationMap.party.length : populationMap.length;
+
+    let totalPopulation = 0;
+    for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < gridSize; x++) {
+        totalPopulation += densityMap ? densityMap[y][x] : 1;
+      }
+    }
+
+    const targetPopulation = totalPopulation / numDistricts;
+    const minPopulation = Math.ceil(targetPopulation * 0.9);
+    const maxPopulation = Math.ceil(targetPopulation * 1.1);
+
+    for (let districtId = 1; districtId <= numDistricts; districtId++) {
+      let districtPop = 0;
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          if (districts[y][x] === districtId) {
+            districtPop += densityMap ? densityMap[y][x] : 1;
+          }
+        }
+      }
+      if (districtPop < minPopulation || districtPop > maxPopulation) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   // Check if game is complete
   useEffect(() => {
-    if (populationMap && populationMap.party && districts.length > 0 && allDistrictsAssigned(districts, numDistricts)) {
+    if (populationMap && populationMap.party && districts.length > 0 && allDistrictsAssigned(districts, numDistricts) && areAllDistrictsValid()) {
       const isNewFormat = populationMap && typeof populationMap === 'object' && !Array.isArray(populationMap) && populationMap.party;
       const partyMap = isNewFormat ? populationMap.party : populationMap;
       const gridSize = isNewFormat ? populationMap.party.length : populationMap.length;
@@ -99,10 +133,11 @@ export default function App() {
   }, [districts, numDistricts, targetSeatPercentage, selectedChallenge, populationMap]);
 
   function generateNewGame() {
-    const pop = generatePopulationMap(gridSize, bluePercentage);
+    const pop = generatePopulationMap(gridSize, bluePercentage, numCities);
     setPopulationMap(pop);
 
-    const counties_ = generateCounties(gridSize, numCounties);
+    let counties_ = generateCounties(gridSize, numCounties);
+    counties_ = rebalanceCountyPopulations(pop, counties_, numCounties, 10);
     setCounties(counties_);
 
     const dists = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
@@ -117,6 +152,7 @@ export default function App() {
     setGridSize(settings.gridSize);
     setNumDistricts(settings.numDistricts);
     setTargetSeatPercentage(settings.targetSeats);
+    setNumCities(4);
     setSelectedChallenge(null);
   }
 
@@ -134,11 +170,13 @@ export default function App() {
         setNumDistricts(config.numDistricts);
         setTargetSeatPercentage(config.targetSeatPercentage);
         setGridSize(35); // Challenge default size
+        setNumCities(4);
 
-        const pop = generatePopulationMap(35, config.bluePercentage);
+        const pop = generatePopulationMap(35, config.bluePercentage, 4);
         setPopulationMap(pop);
 
-        const counties_ = generateCounties(35, config.numCounties);
+        let counties_ = generateCounties(35, config.numCounties);
+        counties_ = rebalanceCountyPopulations(pop, counties_, config.numCounties, 10);
         setCounties(counties_);
 
         const dists = Array(35).fill(null).map(() => Array(35).fill(0));
@@ -151,6 +189,10 @@ export default function App() {
 
   function handleCountiesChange(value) {
     setNumCounties(value);
+  }
+
+  function handleNumCitiesChange(value) {
+    setNumCities(value);
   }
 
   function handleBluePercentageChange(value) {
@@ -321,6 +363,8 @@ export default function App() {
           onDifficultyChange={handleDifficultyChange}
           numCounties={numCounties}
           onCountiesChange={handleCountiesChange}
+          numCities={numCities}
+          onNumCitiesChange={handleNumCitiesChange}
           bluePercentage={bluePercentage}
           onBluePercentageChange={handleBluePercentageChange}
           numDistricts={numDistricts}

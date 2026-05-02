@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import '../styles/GameCanvas.css'
 
 const DISTRICT_COLORS = [
-  '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A',
-  '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-  '#F38181', '#AA96DA', '#FCBAD3', '#A8D8EA'
+  '#8B5CF6', '#EC4899', '#06B6D4', '#10B981',
+  '#F59E0B', '#6366F1', '#14B8A6', '#D946EF',
+  '#0EA5E9', '#84CC16', '#F97316', '#6B7280'
 ];
 
 export default function GameCanvasCounty({
@@ -116,31 +116,30 @@ export default function GameCanvasCounty({
       }
     }
 
-    
-    if (showUnassignedCounties && currentDistrict > 0) {
-      
+
+    if (showUnassignedCounties) {
+
       const unassignedCounties = new Set();
+      const assignedCounties = new Set();
+
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          if (districts[y][x] > 0) {
+            assignedCounties.add(counties[y][x]);
+          }
+        }
+      }
+
       for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {
           const countyId = counties[y][x];
-          let isAssignedToCurrentDistrict = false;
-
-          
-          for (let cy = 0; cy < gridSize && !isAssignedToCurrentDistrict; cy++) {
-            for (let cx = 0; cx < gridSize && !isAssignedToCurrentDistrict; cx++) {
-              if (counties[cy][cx] === countyId && districts[cy][cx] === currentDistrict) {
-                isAssignedToCurrentDistrict = true;
-              }
-            }
-          }
-
-          if (!isAssignedToCurrentDistrict && countyId > 0) {
+          if (countyId > 0 && !assignedCounties.has(countyId)) {
             unassignedCounties.add(countyId);
           }
         }
       }
 
-      
+
       ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
       for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {

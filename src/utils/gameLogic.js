@@ -133,3 +133,41 @@ export function isCountyAdjacentToDistrict(counties, districts, countyId, distri
 
   return true;
 }
+
+export function validateCountyPopulations(populationMap, counties, numCounties) {
+  const { partyMap, densityMap } = extractPopulationData(populationMap);
+
+  let totalPopulation = 0;
+  for (let y = 0; y < partyMap.length; y++) {
+    for (let x = 0; x < partyMap[y].length; x++) {
+      const pop = densityMap ? densityMap[y][x] : 1;
+      totalPopulation += pop;
+    }
+  }
+
+  const fairShare = totalPopulation / numCounties;
+  const minPop = Math.ceil(fairShare * 0.75);
+  const maxPop = Math.ceil(fairShare * 1.25);
+
+  const violations = [];
+  const countyPops = {};
+
+  for (let y = 0; y < counties.length; y++) {
+    for (let x = 0; x < counties[y].length; x++) {
+      const countyId = counties[y][x];
+      if (countyId > 0) {
+        const pop = densityMap ? densityMap[y][x] : 1;
+        countyPops[countyId] = (countyPops[countyId] || 0) + pop;
+      }
+    }
+  }
+
+  for (const countyId in countyPops) {
+    const pop = countyPops[countyId];
+    if (pop < minPop || pop > maxPop) {
+      violations.push({ countyId: parseInt(countyId), population: pop, minPop, maxPop });
+    }
+  }
+
+  return { isValid: violations.length === 0, violations, fairShare, minPop, maxPop };
+}
