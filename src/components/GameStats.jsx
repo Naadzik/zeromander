@@ -136,8 +136,8 @@ export default function GameStats({
           </div>
           {stats.districtStats[currentDistrict - 1] && (
             <div className="district-votes">
-              <div>🔵 Blue: {stats.districtStats[currentDistrict - 1].blue}</div>
-              <div>🔴 Red: {stats.districtStats[currentDistrict - 1].red}</div>
+              <div>🔵 Urban Union: {stats.districtStats[currentDistrict - 1].blue}</div>
+              <div>🔴 Heartland Alliance: {stats.districtStats[currentDistrict - 1].red}</div>
             </div>
           )}
         </div>
@@ -210,12 +210,12 @@ export default function GameStats({
       <hr className="stat-divider" />
 
       <div className="stat-block">
-        <div className="stat-label">Blue Population</div>
+        <div className="stat-label">Urban Union Population</div>
         <div className="stat-value">{stats.popPercent}%</div>
       </div>
 
       <div className="stat-block">
-        <div className="stat-label">Blue Seats</div>
+        <div className="stat-label">Urban Union Seats</div>
         <div className="stat-value">{stats.blueSeats}% ({stats.seats.blue}/{numDistricts})</div>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }}></div>
@@ -264,8 +264,8 @@ export default function GameStats({
       </div>
 
       <div className="asymmetry-detail">
-        <div>Blue votes: {stats.asymmetryBlueVote}%</div>
-        <div>Blue seats: {stats.asymmetryBlueSeat}%</div>
+        <div>Urban Union votes: {stats.asymmetryBlueVote}%</div>
+        <div>Urban Union seats: {stats.asymmetryBlueSeat}%</div>
       </div>
 
       {challenge && (

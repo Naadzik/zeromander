@@ -12,6 +12,7 @@ const challengeDefinitions = {
     name: 'Fair Representation',
     description: 'Achieve an efficiency gap < 5%',
     icon: '⚖️',
+    rules: 'Create districts that minimize wasted votes. The efficiency gap measures how unfairly votes are distributed between parties. A gap below 5% indicates fair representation for both Urban Union and Heartland Alliance.',
     config: {
       numCounties: 12,
       bluePercentage: 50,
@@ -25,6 +26,7 @@ const challengeDefinitions = {
     name: 'Extreme Packing',
     description: 'Win 60% of seats with only 40% of population',
     icon: '📦',
+    rules: 'Demonstrate the power of gerrymandering by "packing" opponents into a few districts while winning the rest. Urban Union has only 40% of the population but you must secure 60% of the seats.',
     config: {
       numCounties: 15,
       bluePercentage: 40,
@@ -38,6 +40,7 @@ const challengeDefinitions = {
     name: 'Cracker\'s Problem',
     description: 'Win only 35% of seats with 35% population (without cheating)',
     icon: '🍘',
+    rules: 'Urban Union has 35% of the population but is heavily diluted across districts. Create a fair map where both parties get seats proportional to their voting strength, not by advantage. Hold Urban Union to 35% of seats.',
     config: {
       numCounties: 14,
       bluePercentage: 35,
@@ -51,6 +54,7 @@ const challengeDefinitions = {
     name: 'Compact Districts',
     description: 'Achieve average compactness > 0.5',
     icon: '⭕',
+    rules: 'Create districts that are as geometrically compact as possible. Avoid bizarre shapes and long tentacles that indicate gerrymandering. Round, contiguous districts are fairer and more representative of communities.',
     config: {
       numCounties: 12,
       bluePercentage: 50,
@@ -64,6 +68,7 @@ const challengeDefinitions = {
     name: 'Balance Act',
     description: 'Win 50% seats AND keep efficiency gap < 3%',
     icon: '⚡',
+    rules: 'Achieve both proportional representation and fair vote efficiency. Urban Union should win 50% of seats while maintaining an extremely low efficiency gap (< 3%), ensuring minimal wasted votes.',
     config: {
       numCounties: 12,
       bluePercentage: 50,
@@ -77,6 +82,7 @@ const challengeDefinitions = {
     name: 'Landslide Victory',
     description: 'Secure 75% of seats (with 60% population)',
     icon: '🏆',
+    rules: 'Urban Union has 60% of the population—use this advantage to dominate the map. Win 75% of the seats by strategically placing Urban Union voters to control as many districts as possible.',
     config: {
       numCounties: 16,
       bluePercentage: 60,

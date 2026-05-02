@@ -43,7 +43,7 @@ export default function GameEndModal({ stats, challenge, onTryAgain, onClose }) 
 
           <div className="results-grid">
             <div className="result-card">
-              <div className="result-label">Blue Seats</div>
+              <div className="result-label">Urban Union Seats</div>
               <div className="result-value" style={{ color: '#3B82F6' }}>
                 {stats.blueWins} / {stats.totalDistricts}
               </div>
@@ -51,7 +51,7 @@ export default function GameEndModal({ stats, challenge, onTryAgain, onClose }) 
             </div>
 
             <div className="result-card">
-              <div className="result-label">Red Seats</div>
+              <div className="result-label">Heartland Alliance Seats</div>
               <div className="result-value" style={{ color: '#EF4444' }}>
                 {stats.redWins} / {stats.totalDistricts}
               </div>
@@ -76,11 +76,11 @@ export default function GameEndModal({ stats, challenge, onTryAgain, onClose }) 
               <div className="stats-section">
                 <h4>Population & Representation</h4>
                 <div className="stat-line">
-                  <span>Blue Population:</span>
+                  <span>Urban Union Population:</span>
                   <strong>{stats.allStats.bluePopPercent}%</strong>
                 </div>
                 <div className="stat-line">
-                  <span>Red Population:</span>
+                  <span>Heartland Alliance Population:</span>
                   <strong>{stats.allStats.redPopPercent}%</strong>
                 </div>
               </div>
@@ -92,11 +92,11 @@ export default function GameEndModal({ stats, challenge, onTryAgain, onClose }) 
                   <strong>{stats.allStats.efficiencyGap}%</strong>
                 </div>
                 <div className="stat-line">
-                  <span>Blue Wasted Votes:</span>
+                  <span>Urban Union Wasted Votes:</span>
                   <strong>{stats.allStats.blueWasted}</strong>
                 </div>
                 <div className="stat-line">
-                  <span>Red Wasted Votes:</span>
+                  <span>Heartland Alliance Wasted Votes:</span>
                   <strong>{stats.allStats.redWasted}</strong>
                 </div>
               </div>
@@ -143,7 +143,7 @@ export default function GameEndModal({ stats, challenge, onTryAgain, onClose }) 
                           </span>
                         </span>
                         <span className="district-winner">
-                          {d.blue > d.red ? '🔵 B' : '🔴 R'}
+                          {d.blue > d.red ? '🔵 UU' : '🔴 HA'}
                         </span>
                       </div>
                     ))}

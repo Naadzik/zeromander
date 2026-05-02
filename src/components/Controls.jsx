@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { getAllChallenges } from '../utils/challenges'
+import ChallengeModal from './ChallengeModal'
 import '../styles/Controls.css'
 
 export default function Controls({
@@ -18,6 +20,7 @@ export default function Controls({
   onChallengeSelect,
   onResetGame
 }) {
+  const [selectedChallengeModal, setSelectedChallengeModal] = useState(null);
   const challenges = getAllChallenges();
 
   const DIFFICULTY_SETTINGS = {
@@ -85,7 +88,7 @@ export default function Controls({
         </div>
 
         <div className="control-group">
-          <label>Blue Population: {bluePercentage}%</label>
+          <label>Urban Union Population: {bluePercentage}%</label>
           <input
             type="range"
             min="20"
@@ -108,7 +111,7 @@ export default function Controls({
             <button
               key={challenge.id}
               className={`challenge-btn ${selectedChallenge === challenge.id ? 'active' : ''}`}
-              onClick={() => onChallengeSelect(challenge.id)}
+              onClick={() => setSelectedChallengeModal(challenge)}
               title={challenge.description}
             >
               <span className="challenge-icon">{challenge.icon}</span>
@@ -117,6 +120,13 @@ export default function Controls({
           ))}
         </div>
       </div>
+
+      <ChallengeModal
+        challenge={selectedChallengeModal}
+        isOpen={!!selectedChallengeModal}
+        onClose={() => setSelectedChallengeModal(null)}
+        onSelect={onChallengeSelect}
+      />
 
       <div className="control-section">
         <h3>Districts</h3>
