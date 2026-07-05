@@ -4,7 +4,8 @@ import {
   getPopulationShares,
   calculateEfficiencyGap,
   getDistrictStats,
-  allDistrictsAssigned
+  allDistrictsAssigned,
+  applySwingToVotes
 } from './gameLogic.js';
 import { getGridSize, totalPopulation } from './formatUtils.js';
 import {
@@ -14,6 +15,18 @@ import {
 } from './metrics.js';
 
 export const round1 = v => Math.round(v * 10) / 10;
+
+// The gerrymandering goal: the FEWEST seats whose share strictly exceeds your
+// vote share. floor(share × districts) + 1 is the smallest integer greater
+// than your proportional entitlement, so this is exactly the classic
+// "seat% > vote%" win condition, just surfaced as a concrete seat count.
+// (Using round() instead demands +1 over the *rounded* share, which can be
+// unachievable — e.g. 20% across 4 districts cannot win 2 seats.)
+// Capped at the number of districts. Two-party framing.
+export function targetSeatCount(ourPopPercent, numDistricts) {
+  const proportional = Math.floor((ourPopPercent / 100) * numDistricts);
+  return Math.min(numDistricts, proportional + 1);
+}
 
 // Single source of truth for all game metrics — used by the live stats panel
 // and by the end-of-game modal, so the two can never disagree.
@@ -100,7 +113,8 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
   const ourPopPercent = core.ourPopPercent;
   const { gap, competitiveness, asymmetry } = core;
 
-  const nominalWon = ourSeats > ourPopPercent;
+  const targetSeats = targetSeatCount(ourPopPercent, numDistricts);
+  const nominalWon = core.ourSeatCount >= targetSeats;
 
   // When uncertainty mode is on, the swung result is what actually decides
   // won/lost — the nominal number is kept only for the "as drawn" comparison.
@@ -111,7 +125,7 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
   if (swing) {
     const ourSwungSeatCount = swing.seats[playerParty];
     const ourSwungSeatsPct = getSeatPercentage(ourSwungSeatCount, numDistricts);
-    const swungWon = ourSwungSeatsPct > ourPopPercent;
+    const swungWon = ourSwungSeatCount >= targetSeats;
     won = swungWon;
     swung = {
       swingPct: round1(swing.swingPct),
@@ -133,6 +147,7 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
     blueWins: seats.blue,
     redWins: seats.red,
     totalDistricts: numDistricts,
+    targetSeats,
     won,
     struckDown,
     struckDownReason,
@@ -150,12 +165,23 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
       competitiveness: round1(competitiveness.percentage),
       competitiveCount: competitiveness.competitive,
       asymmetry: round1(asymmetry.asymmetry),
-      districtBreakdown: districtStats.map(d => ({
-        id: d.id,
-        blue: d.blue,
-        red: d.red,
-        total: d.total
-      }))
+      districtBreakdown: districtStats.map(d => {
+        const entry = { id: d.id, blue: d.blue, red: d.red, total: d.total };
+        // When election-night uncertainty is on, attach each district's
+        // applied swing (national + its own local shock) and whether it
+        // flipped, so the breakdown can show why the outcome moved.
+        if (swing) {
+          const local = swing.districtSwings ? (swing.districtSwings[d.id] ?? 0) : 0;
+          const totalSwing = swing.swingPct + local;
+          const swungVotes = applySwingToVotes({ blue: d.blue, red: d.red }, totalSwing);
+          const baseWinner = d.blue > d.red ? 'blue' : 'red';
+          const swungWinner = swungVotes.blue > swungVotes.red ? 'blue' : 'red';
+          entry.swing = round1(totalSwing);
+          entry.swungWinner = swungWinner;
+          entry.flipped = baseWinner !== swungWinner;
+        }
+        return entry;
+      })
     }
   };
 }

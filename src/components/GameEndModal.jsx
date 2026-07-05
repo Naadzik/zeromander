@@ -279,6 +279,11 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, onTr
                   {stats.allStats.districtBreakdown && (
                     <div className="stats-section">
                       <h4>District Breakdown</h4>
+                      {stats.swung && (
+                        <p className="breakdown-caption">
+                          Election-night swing shown per district (national + local); → marks a flipped seat.
+                        </p>
+                      )}
                       <div className="districts-breakdown">
                         {stats.allStats.districtBreakdown.map(d => {
                           const total = isThreeParty ? d.total : (d.blue + d.red);
@@ -320,6 +325,12 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, onTr
                                 </span>
                               </span>
                               <span className="district-winner"><PartyIcon party={winnerParty} /></span>
+                              {d.swing !== undefined && (
+                                <span className={`district-swing${d.flipped ? ' district-swing--flip' : ''}`}>
+                                  {d.swing > 0 ? '+' : ''}{d.swing}%
+                                  {d.flipped && <> → <PartyIcon party={d.swungWinner} /></>}
+                                </span>
+                              )}
                             </div>
                           );
                         })}

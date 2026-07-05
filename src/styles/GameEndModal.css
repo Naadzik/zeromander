@@ -434,6 +434,32 @@
   font-size: var(--font-size-base);
 }
 
+.breakdown-caption {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.district-swing {
+  min-width: 70px;
+  text-align: right;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+/* A flipped seat is the whole point of the reveal — make it pop. */
+.district-swing--flip {
+  color: var(--accent-gold, #FFCB5C);
+  font-weight: var(--font-weight-bold);
+}
+
 @media (max-width: 600px) {
   .modal-content {
     width: 95%;

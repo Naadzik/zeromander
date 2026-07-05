@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { getDistrictPopulation } from '../utils/gameLogic'
-import { computeCoreStats, round1 } from '../utils/computeGameStats'
+import { computeCoreStats, round1, targetSeatCount } from '../utils/computeGameStats'
 import { checkConstraintViolations } from '../utils/legalConstraints'
 import { PARTY } from '../utils/partyConfig'
 import PartyIcon from './ui/PartyIcon'
@@ -57,6 +57,7 @@ export default function GameStats({
       assigned: core.assigned,
       mapTotalPop: core.mapTotalPop,
       compactness: Math.round(core.compactness.average * 100),
+      targetSeats: targetSeatCount(core.ourPopPercent, numDistricts),
       districtStats: core.districtStats
     };
 
@@ -139,7 +140,9 @@ export default function GameStats({
             Pop: <PartyIcon party="blue" /> {stats.pops?.blue}% &nbsp;<PartyIcon party="red" /> {stats.pops?.red}% &nbsp;<PartyIcon party="green" /> {stats.pops?.green}%
           </div>
         ) : (
-          <div className="target-label">Target: {targetSeatPercentage}% &nbsp;|&nbsp; Pop: {stats.ourPopPercent}%</div>
+          <div className="target-label">
+            Target: {stats.targetSeats}/{numDistricts} seats <span className="target-hint">(+1 vs. your {stats.ourPopPercent}% vote share)</span>
+          </div>
         )}
       </div>
 
