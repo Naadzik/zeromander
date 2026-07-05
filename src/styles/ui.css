@@ -1,0 +1,77 @@
+/* Shared UI primitives: party chips, seat bars, ticker stats, icons */
+
+.party-dot {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+  vertical-align: -0.02em;
+}
+
+.party-dot[data-party="blue"] {
+  background: var(--blue-party);
+}
+
+.party-dot[data-party="red"] {
+  background: var(--red-party);
+}
+
+.party-dot[data-party="green"] {
+  background: var(--green-party);
+}
+
+.icon {
+  vertical-align: -0.15em;
+}
+
+.seat-bar {
+  position: relative;
+  display: flex;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--navy-700);
+}
+
+.seat-bar__seg {
+  height: 100%;
+  transition: width var(--transition-slow);
+}
+
+.seat-bar__seg[data-party="blue"] {
+  background: var(--blue-party);
+}
+
+.seat-bar__seg[data-party="red"] {
+  background: var(--red-party);
+}
+
+.seat-bar__seg[data-party="green"] {
+  background: var(--green-party);
+}
+
+.seat-bar__seg--none {
+  background: var(--navy-700);
+}
+
+.seat-bar__tick {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--text-bright);
+  opacity: 0.85;
+}
+
+.big-stat__value {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  color: var(--text-bright);
+}
+
+.big-stat__suffix {
+  font-size: 0.55em;
+  margin-left: 2px;
+  color: var(--text-secondary);
+}

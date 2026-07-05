@@ -1,7 +1,24 @@
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import Icon from '../components/ui/Icons'
+import { getDailyChallenge } from '../utils/dailyChallenge'
+import { hasPlayedToday } from '../utils/dailyHistory'
 import styles from './Landing.module.css'
 
 export default function Landing() {
+  const daily = getDailyChallenge();
+  const playedToday = hasPlayedToday(daily.date);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Shared links use the short form naadzik.github.io/zeromander/?daily —
+  // forward straight into the day's board.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).has('daily')) {
+      navigate('/game?daily', { replace: true });
+    }
+  }, [location.search]);
+
   return (
     <div className={styles.landing}>
       {/* Header */}
@@ -21,9 +38,14 @@ export default function Landing() {
         <div className={styles.heroContent}>
           <h1>Master the art of electoral redistricting</h1>
           <p>Learn how gerrymandering works and create fair electoral districts</p>
-          <Link to="/game" className={styles.ctaButton}>
-            Play Now
-          </Link>
+          <div className={styles.ctaRow}>
+            <Link to="/game?daily" className={styles.ctaButtonDaily}>
+              {playedToday ? `🕵️ Daily Heist #${daily.dayNumber} ✓` : `🕵️ Daily Heist #${daily.dayNumber}`}
+            </Link>
+            <Link to="/game" className={styles.ctaButton}>
+              Play Sandbox
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -37,6 +59,12 @@ export default function Landing() {
           <p className={styles.aboutText}>
             In Zeromander, you take control of drawing district maps and learn firsthand how different redistricting strategies affect election outcomes, efficiency gaps, and democratic representation. Discover the power and responsibility of the redistricting process.
           </p>
+          <p className={styles.aboutText}>
+            <strong>Zeromander is strictly nonpartisan.</strong> Every party in the game is fictional, and the game makes no argument about who gerrymanders — because the answer is: whoever holds the pen. Gerrymandering is a structural flaw, not a partisan one; in the Daily Heist you're assigned a different side each day, so over any week you'll rig the map for both. The lesson isn't "they cheat" — it's "the same votes can produce opposite outcomes depending on who draws the lines."
+          </p>
+          <p className={styles.aboutText}>
+            <strong>The math is not ours.</strong> The fairness metrics come from the redistricting literature: the efficiency gap (<a href="https://chicagounbound.uchicago.edu/uclrev/vol82/iss2/4/" target="_blank" rel="noopener noreferrer">Stephanopoulos &amp; McGhee, 2015</a>), Polsby-Popper compactness (1991), and seats–votes asymmetry. The "neutral map" baseline is drawn by a party-blind algorithm in the spirit of the ensemble methods popularized by the <a href="https://mggg.org" target="_blank" rel="noopener noreferrer">MGGG Redistricting Lab</a>. Every metric's source is cited in-game next to the number it explains.
+          </p>
         </div>
       </section>
 
@@ -46,22 +74,22 @@ export default function Landing() {
           <h2>How it Works</h2>
           <div className={styles.featureGrid}>
             <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>🗳️</div>
+              <div className={styles.featureIcon}><Icon name="ballot" size={36} /></div>
               <h3>Electoral Redistricting</h3>
               <p>Draw district boundaries on an interactive map and watch how it affects election outcomes in real-time</p>
             </div>
             <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>📊</div>
+              <div className={styles.featureIcon}><Icon name="chart" size={36} /></div>
               <h3>Real-time Metrics</h3>
               <p>Monitor live statistics including efficiency gap, compactness, competitiveness, and partisan asymmetry</p>
             </div>
             <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>🎯</div>
-              <h3>Challenge Mode</h3>
-              <p>Complete specific challenges with different difficulty levels and constraints to test your redistricting skills</p>
+              <div className={styles.featureIcon}><Icon name="target" size={36} /></div>
+              <h3>Multiple Game Modes</h3>
+              <p>Scale from small maps to sprawling ones, or add a third party to the race and explore coalition dynamics beyond two-party politics</p>
             </div>
             <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>⚖️</div>
+              <div className={styles.featureIcon}><Icon name="scale" size={36} /></div>
               <h3>Fair Representation</h3>
               <p>Learn the principles of fair electoral representation and how to evaluate district fairness</p>
             </div>
@@ -108,7 +136,7 @@ export default function Landing() {
       <footer className={styles.footer}>
         <div className={styles.container}>
           <div className={styles.footerContent}>
-            <p>&copy; 2024 Zeromander. Created with ❤️ for electoral fairness</p>
+            <p>&copy; 2026 Zeromander. Nonpartisan &amp; open source — created for electoral fairness</p>
             <a href="https://github.com/Naadzik/zeromander" target="_blank" rel="noopener noreferrer">
               GitHub Repository
             </a>

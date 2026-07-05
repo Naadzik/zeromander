@@ -4,10 +4,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(2, 5, 12, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--spacing-md);
   z-index: 1000;
   animation: fadeIn 0.3s ease;
 }
@@ -28,6 +29,8 @@
   max-width: 600px;
   width: 90%;
   max-height: 90vh;
+  /* dvh accounts for mobile browser chrome; falls back to vh above */
+  max-height: 90dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -63,6 +66,55 @@
   margin: 0;
 }
 
+.modal-header[data-won="true"] {
+  border-bottom-color: var(--win-green);
+  background: var(--navy-800);
+}
+
+.modal-header[data-won="false"] {
+  border-bottom-color: var(--accent-red);
+  background: var(--navy-800);
+}
+
+.modal-header .modal-status-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: var(--font-weight-black);
+  letter-spacing: 0.04em;
+}
+
+.modal-header[data-won="true"] .modal-status-title {
+  color: var(--accent-gold);
+}
+
+.modal-header[data-won="false"] .modal-status-title {
+  color: var(--accent-red);
+}
+
+.modal-header__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.modal-header .modal-status-title {
+  margin: 0;
+}
+
+.modal-header .modal-status-message {
+  margin: 0.5rem 0 0 0;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0.5rem;
+  min-height: 0;
+}
+
 .modal-body {
   padding: var(--spacing-2xl);
   overflow-y: auto;
@@ -93,8 +145,8 @@
 }
 
 .result-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(102, 51, 153, 0.1);
+  border-color: var(--accent-blue);
+  box-shadow: 0 4px 12px rgba(47, 127, 232, 0.15);
 }
 
 .result-label {
@@ -107,7 +159,9 @@
 }
 
 .result-value {
-  font-size: 2rem;
+  font-family: var(--font-ticker);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.4rem;
   font-weight: var(--font-weight-bold);
   margin-bottom: var(--spacing-sm);
 }
@@ -116,44 +170,6 @@
   font-size: 1.25rem;
   font-weight: var(--font-weight-semibold);
   color: var(--text-tertiary);
-}
-
-.challenge-summary {
-  background: linear-gradient(135deg, #FFF5E6 0%, #FFE8CC 100%);
-  border: 2px solid #FFD699;
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  margin-bottom: var(--spacing-xl);
-}
-
-.challenge-summary h4 {
-  font-size: var(--font-size-lg);
-  color: var(--text-dark);
-  margin: 0 0 var(--spacing-sm) 0;
-}
-
-.challenge-summary p {
-  color: var(--text-secondary);
-  margin: 0 0 var(--spacing-lg) 0;
-  font-size: var(--font-size-base);
-}
-
-.challenge-badge {
-  display: inline-block;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-base);
-}
-
-.challenge-badge.won {
-  background: var(--success-light);
-  color: #065F46;
-}
-
-.challenge-badge.lost {
-  background: var(--error-light);
-  color: #7F1D1D;
 }
 
 .modal-footer {
@@ -198,7 +214,7 @@
 
 .modal-footer .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 51, 153, 0.4);
+  box-shadow: 0 8px 20px rgba(47, 127, 232, 0.35);
 }
 
 .modal-footer .btn-primary:active {
@@ -249,6 +265,13 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.swing-comparison {
+  background: var(--bg-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
 .stat-line {
   display: flex;
   justify-content: space-between;
@@ -266,6 +289,91 @@
   color: var(--text-dark);
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-base);
+}
+
+/* Citations are long prose, not headline numbers — shrink and right-align. */
+.stat-line strong.methodology-source {
+  font-weight: 500;
+  font-size: 0.75rem;
+  font-style: italic;
+  text-align: right;
+  max-width: 62%;
+  color: var(--text-secondary);
+}
+
+.methodology-note {
+  margin: var(--spacing-sm) 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Election-night counting reveal */
+.modal-content--counting {
+  cursor: pointer;
+  user-select: none;
+}
+
+.counting-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  text-align: center;
+}
+
+.counting-title {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 1px;
+  color: var(--text-bright, var(--text-dark));
+}
+
+.counting-message {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.counting-swing {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.counting-swing strong {
+  display: inline-block;
+  min-width: 3.5em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-bright, var(--text-dark));
+}
+
+.counting-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.counting-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-gold, #FFCB5C);
+  animation: countingPulse 1s infinite ease-in-out;
+}
+
+.counting-dots span:nth-child(2) { animation-delay: 0.18s; }
+.counting-dots span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes countingPulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.counting-skip {
+  margin: var(--spacing-sm) 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
 }
 
 .districts-breakdown {

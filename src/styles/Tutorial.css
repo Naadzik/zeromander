@@ -1,0 +1,89 @@
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 5, 12, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.tutorial-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  max-width: 460px;
+  width: calc(100% - 2rem);
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.tutorial-card h2 {
+  color: var(--text-bright);
+  font-size: 1.4rem;
+  margin: 0 0 0.75rem 0;
+}
+
+.tutorial-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+}
+
+.tutorial-progress {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.tutorial-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-color);
+  transition: all 0.2s;
+}
+
+.tutorial-dot.active {
+  background: var(--accent-gold);
+  width: 24px;
+  border-radius: 4px;
+}
+
+.tutorial-dot.done {
+  background: var(--accent-gold);
+  opacity: 0.5;
+}
+
+.tutorial-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.tutorial-actions .btn-skip {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  min-height: auto;
+  margin-right: auto;
+}
+
+.tutorial-actions .btn-skip:hover {
+  color: var(--text-secondary);
+}
+
+.tutorial-actions .btn-primary,
+.tutorial-actions .btn-secondary {
+  padding: 0.6rem 1.2rem;
+  min-height: auto;
+  font-size: 0.9rem;
+}

@@ -8,12 +8,14 @@
 
 /* Header */
 .header {
-  background-color: var(--primary-color);
-  color: white;
+  background-color: var(--navy-900);
+  color: var(--text-bright);
   padding: var(--spacing-md) 0;
   position: sticky;
   top: 0;
   z-index: 100;
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, var(--accent-blue) 0 50%, var(--accent-red) 50% 100%) 1;
   box-shadow: var(--shadow-header);
 }
 
@@ -31,13 +33,17 @@
 }
 
 .logo h1 {
+  font-family: var(--font-display);
   font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   margin: 0;
-  color: white;
+  color: var(--text-bright);
 }
 
 .githubLink {
-  color: white;
+  color: var(--text-dark);
   text-decoration: none;
   font-weight: var(--font-weight-semibold);
   padding: var(--spacing-sm) var(--spacing-md);
@@ -52,8 +58,13 @@
 
 /* Hero Section */
 .hero {
-  background: linear-gradient(135deg, #663399 0%, #7851A9 100%);
-  color: white;
+  background:
+    linear-gradient(115deg, rgba(47, 127, 232, 0.14) 0 46%, rgba(228, 70, 63, 0.12) 54% 100%),
+    linear-gradient(rgba(148, 166, 194, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 166, 194, 0.06) 1px, transparent 1px),
+    var(--navy-950);
+  background-size: auto, 32px 32px, 32px 32px, auto;
+  color: var(--text-bright);
   padding: var(--spacing-3xl) var(--spacing-lg);
   text-align: center;
   display: flex;
@@ -67,23 +78,27 @@
 }
 
 .heroContent h1 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-black);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   font-size: var(--font-size-4xl);
-  color: white;
+  color: var(--text-bright);
   margin-bottom: var(--spacing-lg);
   line-height: var(--line-height-tight);
 }
 
 .heroContent p {
   font-size: var(--font-size-lg);
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
   margin-bottom: var(--spacing-2xl);
   line-height: var(--line-height-relaxed);
 }
 
 .ctaButton {
   display: inline-block;
-  background-color: white;
-  color: var(--primary-color);
+  background-color: var(--accent-gold);
+  color: var(--navy-950);
   padding: var(--spacing-lg) var(--spacing-2xl);
   border-radius: var(--radius-md);
   font-weight: var(--font-weight-semibold);
@@ -99,11 +114,30 @@
 .ctaButton:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  background-color: #f5f5f5;
+  background-color: #FFCB5C;
 }
 
 .ctaButton:active {
   transform: translateY(0);
+}
+
+.ctaRow {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ctaButtonDaily {
+  composes: ctaButton;
+  background-color: transparent;
+  color: var(--accent-gold);
+  box-shadow: inset 0 0 0 2px var(--accent-gold);
+}
+
+.ctaButtonDaily:hover {
+  background-color: rgba(255, 203, 92, 0.12);
+  color: var(--accent-gold);
 }
 
 /* About Section */
@@ -137,7 +171,7 @@
 /* Features Section */
 .features {
   padding: var(--spacing-3xl) var(--spacing-lg);
-  background-color: white;
+  background-color: var(--navy-900);
 }
 
 .features h2 {
@@ -165,11 +199,11 @@
 .featureCard:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
-  border-color: var(--primary-color);
+  border-color: var(--accent-blue);
 }
 
 .featureIcon {
-  font-size: 3rem;
+  color: var(--accent-gold);
   margin-bottom: var(--spacing-md);
   display: block;
 }
@@ -205,7 +239,7 @@
 }
 
 .step {
-  background-color: white;
+  background-color: var(--navy-900);
   padding: var(--spacing-xl);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
@@ -218,8 +252,9 @@
   justify-content: center;
   width: 50px;
   height: 50px;
-  background-color: var(--primary-color);
+  background-color: var(--accent-blue);
   color: white;
+  font-family: var(--font-ticker);
   border-radius: 50%;
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
@@ -241,19 +276,21 @@
 /* Final CTA Section */
 .finalCta {
   padding: var(--spacing-3xl) var(--spacing-lg);
-  background: linear-gradient(135deg, #663399 0%, #7851A9 100%);
-  color: white;
+  background:
+    linear-gradient(115deg, rgba(47, 127, 232, 0.14) 0 46%, rgba(228, 70, 63, 0.12) 54% 100%),
+    var(--navy-950);
+  color: var(--text-bright);
   text-align: center;
 }
 
 .finalCta h2 {
-  color: white;
+  color: var(--text-bright);
   margin-bottom: var(--spacing-lg);
 }
 
 .finalCta p {
   font-size: var(--font-size-lg);
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
   margin-bottom: var(--spacing-2xl);
   max-width: 600px;
   margin-left: auto;
@@ -262,8 +299,8 @@
 
 .ctaButtonLarge {
   display: inline-block;
-  background-color: white;
-  color: var(--primary-color);
+  background-color: var(--accent-gold);
+  color: var(--navy-950);
   padding: var(--spacing-lg) var(--spacing-2xl);
   border-radius: var(--radius-md);
   font-weight: var(--font-weight-semibold);
@@ -278,7 +315,7 @@
 .ctaButtonLarge:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  background-color: #f5f5f5;
+  background-color: #FFCB5C;
 }
 
 .ctaButtonLarge:active {
@@ -287,8 +324,9 @@
 
 /* Footer */
 .footer {
-  background-color: var(--text-dark);
-  color: white;
+  background-color: var(--navy-900);
+  border-top: 1px solid var(--border-color);
+  color: var(--text-dark);
   padding: var(--spacing-2xl) var(--spacing-lg);
   text-align: center;
   margin-top: auto;
@@ -305,17 +343,17 @@
 
 .footerContent p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-secondary);
 }
 
 .footerContent a {
-  color: white;
+  color: var(--text-dark);
   text-decoration: none;
   transition: color var(--transition-base);
 }
 
 .footerContent a:hover {
-  color: var(--primary-light);
+  color: var(--accent-gold);
 }
 
 /* Responsive Design */

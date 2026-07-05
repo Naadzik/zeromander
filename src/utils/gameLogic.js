@@ -1,45 +1,91 @@
-import { extractPopulationData, getDistrictVotes } from './formatUtils.js';
+import { extractPopulationData, getDistrictVotes, getCellPopulation, forEachCell, totalPopulation } from './formatUtils.js';
 
-export function calculateSeats(populationMap, districts, numDistricts) {
+// Tie-breaks intentionally differ between modes and must stay that way:
+// 2-party ties go to red (blue must strictly win), 3-party ties favor blue.
+export function calculateSeats(populationMap, districts, numDistricts, isThreeParty = false) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
-
-  let blueSeats = 0, redSeats = 0;
+  const seats = { blue: 0, red: 0, green: 0 };
 
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
-    const { blueVotes, redVotes } = getDistrictVotes(partyMap, densityMap, districts, districtId);
-    if (blueVotes > redVotes) blueSeats++;
-    else redSeats++;
+    const { blue, red, green } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    if (isThreeParty) {
+      if (blue >= red && blue >= green) seats.blue++;
+      else if (red >= blue && red >= green) seats.red++;
+      else seats.green++;
+    } else {
+      if (blue > red) seats.blue++;
+      else seats.red++;
+    }
   }
 
-  return { blue: blueSeats, red: redSeats };
+  return seats;
+}
+
+// Uniform partisan swing: shifts a district's two-party vote share by
+// swingPct (positive = toward blue) before recomputing the winner. Pure and
+// deterministic given swingPct — the random draw itself happens in the
+// caller (useGameCompletion), not here, so this stays easily testable.
+export function applySwingToVotes({ blue, red }, swingPct) {
+  const total = blue + red;
+  if (total === 0) return { blue, red };
+  const blueShare = Math.min(1, Math.max(0, blue / total + swingPct / 100));
+  const swungBlue = total * blueShare;
+  return { blue: swungBlue, red: total - swungBlue };
+}
+
+// 2-party only, mirrors calculateSeats' tie-break (blue must strictly win).
+// Standard two-level swing model: one uniform national swing (`swingPct`)
+// plus optional district-level noise (`districtSwings`, 1-indexed by district
+// id) — local variation, so knife-edge districts can flip individually even
+// in a neutral national environment.
+export function calculateSeatsWithSwing(populationMap, districts, numDistricts, swingPct, districtSwings = null) {
+  const { partyMap, densityMap } = extractPopulationData(populationMap);
+  const seats = { blue: 0, red: 0 };
+
+  for (let districtId = 1; districtId <= numDistricts; districtId++) {
+    const { blue, red } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    const localSwing = districtSwings ? (districtSwings[districtId] ?? 0) : 0;
+    const swung = applySwingToVotes({ blue, red }, swingPct + localSwing);
+    if (swung.blue > swung.red) seats.blue++;
+    else seats.red++;
+  }
+
+  return { ...seats, swingPct };
 }
 
 export function getSeatPercentage(seats, totalDistricts) {
   return totalDistricts > 0 ? (seats / totalDistricts) * 100 : 0;
 }
 
-export function getPopulationPercentage(populationMap) {
+export function getPopulationShares(populationMap) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
+  const counts = { blue: 0, red: 0, green: 0 };
 
-  let blue = 0, total = 0;
-  for (let y = 0; y < partyMap.length; y++) {
-    for (let x = 0; x < partyMap[y].length; x++) {
-      const population = densityMap ? densityMap[y][x] : 1;
-      total += population;
-      if (partyMap[y][x] === 0) blue += population;
-    }
-  }
-  return total > 0 ? (blue / total) * 100 : 0;
+  forEachCell(partyMap, (party, x, y) => {
+    const population = getCellPopulation(densityMap, y, x);
+    if (party === 0) counts.blue += population;
+    else if (party === 1) counts.red += population;
+    else counts.green += population;
+  });
+
+  const total = counts.blue + counts.red + counts.green;
+  return {
+    blue: total > 0 ? (counts.blue / total) * 100 : 0,
+    red: total > 0 ? (counts.red / total) * 100 : 0,
+    green: total > 0 ? (counts.green / total) * 100 : 0,
+  };
 }
 
 export function calculateEfficiencyGap(populationMap, districts, numDistricts) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
 
   let blueWasted = 0, redWasted = 0;
+  let totalCast = 0;
 
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
-    const { blueVotes, redVotes } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    const { blue: blueVotes, red: redVotes } = getDistrictVotes(partyMap, densityMap, districts, districtId);
     const total = blueVotes + redVotes;
+    totalCast += total;
     if (blueVotes > redVotes) {
       blueWasted += Math.max(0, blueVotes - Math.ceil(total / 2));
       redWasted += redVotes;
@@ -49,16 +95,24 @@ export function calculateEfficiencyGap(populationMap, districts, numDistricts) {
     }
   }
 
-  const totalVotes = blueWasted + redWasted;
-  const gap = totalVotes > 0 ? Math.abs(blueWasted - redWasted) / totalVotes * 100 : 0;
+  // Stephanopoulos–McGhee: net wasted votes over total votes CAST (not total
+  // wasted) — the canonical denominator, so figures are comparable to
+  // published efficiency gaps.
+  const gap = totalCast > 0 ? Math.abs(blueWasted - redWasted) / totalCast * 100 : 0;
 
   return { blueWasted, redWasted, gap };
 }
 
-export function checkWin(populationMap, districts, numDistricts, targetSeatPercentage) {
+export function checkWin(populationMap, districts, numDistricts, opts) {
+  if (opts.isThreeParty) {
+    const seats = calculateSeats(populationMap, districts, numDistricts, true);
+    const shares = getPopulationShares(populationMap);
+    const playerSeatPct = (seats[opts.playerParty] / numDistricts) * 100;
+    return playerSeatPct > shares[opts.playerParty];
+  }
   const seats = calculateSeats(populationMap, districts, numDistricts);
   const seatPercentage = getSeatPercentage(seats.blue, numDistricts);
-  return seatPercentage >= targetSeatPercentage && allDistrictsAssigned(districts, numDistricts);
+  return seatPercentage >= opts.targetSeatPercentage && allDistrictsAssigned(districts, numDistricts);
 }
 
 export function allDistrictsAssigned(districts, numDistricts) {
@@ -74,93 +128,71 @@ export function getDistrictPopulation(populationMap, districts, districtId) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
 
   let count = 0;
-  for (let y = 0; y < partyMap.length; y++) {
-    for (let x = 0; x < partyMap[y].length; x++) {
-      if (districts[y][x] === districtId) {
-        count += densityMap ? densityMap[y][x] : 1;
-      }
+  forEachCell(partyMap, (_, x, y) => {
+    if (districts[y][x] === districtId) {
+      count += getCellPopulation(densityMap, y, x);
     }
-  }
+  });
   return count;
 }
 
-export function getDistrictStats(populationMap, districts, numDistricts) {
+export function getDistrictStats(populationMap, districts, numDistricts, isThreeParty = false) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
 
   const stats = [];
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
-    const { blueVotes, redVotes } = getDistrictVotes(partyMap, densityMap, districts, districtId);
-    stats.push({
-      id: districtId,
-      blue: blueVotes,
-      red: redVotes,
-      total: blueVotes + redVotes
-    });
+    const { blue, red, green } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    let winner = 'blue';
+    if (isThreeParty) {
+      if (red > blue && red > green) winner = 'red';
+      else if (green > blue && green > red) winner = 'green';
+    } else {
+      winner = blue > red ? 'blue' : 'red';
+    }
+    stats.push({ id: districtId, blue, red, green, total: blue + red + green, winner });
   }
   return stats;
 }
 
-export function isCountyAdjacentToDistrict(counties, districts, countyId, districtId) {
-  let isFirst = true;
+export function isCountyAdjacentToDistrict(districts, counties, countyId, districtId) {
   const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+  let hasAdjacent = false;
+  let districtHasCells = false;
 
   for (let y = 0; y < counties.length; y++) {
     for (let x = 0; x < counties[y].length; x++) {
       if (counties[y][x] === countyId) {
-        if (isFirst) {
-          isFirst = false;
-          continue;
-        }
-
-        let hasAdjacent = false;
+        if (districts[y][x] === districtId) return true;
         for (const [dx, dy] of dirs) {
-          const nx = x + dx;
-          const ny = y + dy;
-          if (nx >= 0 && nx < counties[y].length &&
-            ny >= 0 && ny < counties.length &&
+          const nx = x + dx, ny = y + dy;
+          if (nx >= 0 && nx < counties[y].length && ny >= 0 && ny < counties.length &&
             districts[ny][nx] === districtId) {
             hasAdjacent = true;
-            break;
           }
         }
-
-        if (!hasAdjacent && districts[y][x] !== districtId) {
-          return false;
-        }
       }
+      if (districts[y][x] === districtId) districtHasCells = true;
     }
   }
 
-  return true;
+  return !districtHasCells || hasAdjacent;
 }
 
 export function validateCountyPopulations(populationMap, counties, numCounties) {
-  const { partyMap, densityMap } = extractPopulationData(populationMap);
+  const { densityMap } = extractPopulationData(populationMap);
 
-  let totalPopulation = 0;
-  for (let y = 0; y < partyMap.length; y++) {
-    for (let x = 0; x < partyMap[y].length; x++) {
-      const pop = densityMap ? densityMap[y][x] : 1;
-      totalPopulation += pop;
-    }
-  }
-
-  const fairShare = totalPopulation / numCounties;
+  const fairShare = totalPopulation(populationMap) / numCounties;
   const minPop = Math.ceil(fairShare * 0.75);
   const maxPop = Math.ceil(fairShare * 1.25);
 
   const violations = [];
   const countyPops = {};
 
-  for (let y = 0; y < counties.length; y++) {
-    for (let x = 0; x < counties[y].length; x++) {
-      const countyId = counties[y][x];
-      if (countyId > 0) {
-        const pop = densityMap ? densityMap[y][x] : 1;
-        countyPops[countyId] = (countyPops[countyId] || 0) + pop;
-      }
+  forEachCell(counties, (countyId, x, y) => {
+    if (countyId > 0) {
+      countyPops[countyId] = (countyPops[countyId] || 0) + getCellPopulation(densityMap, y, x);
     }
-  }
+  });
 
   for (const countyId in countyPops) {
     const pop = countyPops[countyId];

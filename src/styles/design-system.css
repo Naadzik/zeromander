@@ -1,41 +1,72 @@
 /* Zeromander Design System */
-/* Royal Purple Brand Theme */
+/* Election Night Broadcast Theme */
 
 :root {
-  /* Colors */
-  --primary-color: #663399;
-  --primary-hover: #4d2680;
-  --primary-light: #f0e6ff;
+  /* Navy surface scale (darkest = page, lightest = raised) */
+  --navy-950: #060B16;
+  --navy-900: #0B1424;
+  --navy-800: #111E33;
+  --navy-700: #182A47;
+  --navy-600: #22375C;
+
+  /* Broadcast accents */
+  --accent-blue: #2F7FE8;
+  --accent-blue-hover: #4D93F0;
+  --accent-red: #E4463F;
+  --accent-gold: #F5B942;
+  --win-green: #2FA35C;
+
+  /* Primary (legacy alias — points at the broadcast blue) */
+  --primary-color: var(--accent-blue);
+  --primary-hover: var(--accent-blue-hover);
+  --primary-light: rgba(47, 127, 232, 0.16);
 
   /* Text Colors */
-  --text-dark: #1F2937;
-  --text-secondary: #6B7280;
-  --text-tertiary: #9CA3AF;
+  --text-bright: #F2F6FC;
+  --text-dark: #DCE5F2;
+  --text-secondary: #94A6C2;
+  --text-tertiary: #5D7191;
 
   /* Background Colors */
-  --bg-light: #F9FAFB;
-  --bg-lighter: #F8F9FA;
-  --bg-white: #FFFFFF;
+  --bg-light: var(--navy-800);
+  --bg-lighter: var(--navy-950);
+  --bg-white: var(--navy-900);
 
   /* Border & Dividers */
-  --border-color: #E5E7EB;
-  --divider-color: #D1D5DB;
+  --border-color: rgba(148, 166, 194, 0.18);
+  --divider-color: rgba(148, 166, 194, 0.28);
 
-  /* Status Colors (preserved for party visualization) */
-  --blue-party: #3B82F6;
-  --red-party: #EF4444;
-  --success-color: #10B981;
-  --success-light: #D1FAE5;
-  --warning-color: #F59E0B;
-  --warning-light: #FEF3C7;
-  --error-color: #EF4444;
-  --error-light: #FEE2E2;
+  /* Party colors — brightened for dark backgrounds */
+  --blue-party: #4D9FFF;
+  --red-party: #FF5A5A;
+  --green-party: #3DD68C;
+  --blue-party-deep: #1E5FBF;
+  --red-party-deep: #C22F2F;
+  --green-party-deep: #1F7A4D;
+
+  /* Canvas map theme */
+  --canvas-bg: #0B1424;
+  --canvas-blue-border: #7CB8FF;
+  --canvas-red-border: #FF8C8C;
+  --canvas-green-border: #7FE8B5;
+  --canvas-county-border: rgba(230, 238, 250, 0.35);
+  --canvas-county-border-party: rgba(230, 238, 250, 0.12);
+  --canvas-hover: #F5B942;
+  --canvas-unassigned: rgba(245, 185, 66, 0.18);
+
+  /* Status Colors */
+  --success-color: #2FA35C;
+  --success-light: rgba(47, 163, 92, 0.18);
+  --warning-color: #F5B942;
+  --warning-light: rgba(245, 185, 66, 0.15);
+  --error-color: #E4463F;
+  --error-light: rgba(228, 70, 63, 0.16);
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
-  --shadow-header: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --shadow-header: 0 2px 8px rgba(0, 0, 0, 0.5);
 
   /* Border Radius */
   --radius-sm: 4px;
@@ -53,7 +84,9 @@
   --spacing-3xl: 48px;
 
   /* Typography */
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family: 'Archivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: 'Archivo', -apple-system, sans-serif;
+  --font-ticker: 'Barlow Condensed', 'Archivo', -apple-system, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -68,6 +101,7 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --font-weight-black: 900;
 
   /* Line Heights */
   --line-height-tight: 1.25;
@@ -102,19 +136,40 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Broadcast number ticker */
+.ticker-number {
+  font-family: var(--font-ticker);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Lower-third style label: small, uppercase, letter-spaced */
+.broadcast-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
 /* Typography Styles */
 h1 {
+  font-family: var(--font-display);
   font-size: var(--font-size-4xl);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-black);
   line-height: var(--line-height-tight);
   margin-bottom: var(--spacing-lg);
+  color: var(--text-bright);
 }
 
 h2 {
+  font-family: var(--font-display);
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
   margin-bottom: var(--spacing-lg);
+  color: var(--text-bright);
 }
 
 h3 {
@@ -122,6 +177,7 @@ h3 {
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   margin-bottom: var(--spacing-md);
+  color: var(--text-bright);
 }
 
 h4 {
@@ -129,6 +185,7 @@ h4 {
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-normal);
   margin-bottom: var(--spacing-md);
+  color: var(--text-bright);
 }
 
 p {
@@ -143,18 +200,18 @@ small {
 
 /* Link Styles */
 a {
-  color: var(--primary-color);
+  color: var(--accent-blue-hover);
   text-decoration: none;
   transition: color var(--transition-base);
 }
 
 a:hover {
-  color: var(--primary-hover);
+  color: var(--accent-gold);
   text-decoration: underline;
 }
 
 a:focus {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--accent-blue);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -173,20 +230,20 @@ button {
 }
 
 button:focus {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--accent-blue);
   outline-offset: 2px;
 }
 
 /* Primary Button */
 .btn-primary {
-  background-color: var(--primary-color);
+  background-color: var(--accent-blue);
   color: white;
   padding: var(--spacing-lg) var(--spacing-xl);
   border-radius: var(--radius-md);
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover);
+  background-color: var(--accent-blue-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -194,11 +251,12 @@ button:focus {
 .btn-primary:active {
   transform: translateY(0);
   box-shadow: var(--shadow-sm);
-  background-color: #3d1a52;
+  background-color: #1D4FA0;
 }
 
 .btn-primary:disabled {
-  background-color: #d0bdd4;
+  background-color: var(--navy-600);
+  color: var(--text-tertiary);
   cursor: not-allowed;
   transform: none;
 }
@@ -206,24 +264,25 @@ button:focus {
 /* Secondary Button */
 .btn-secondary {
   background-color: transparent;
-  color: var(--primary-color);
-  border: 2px solid var(--primary-color);
+  color: var(--text-dark);
+  border: 2px solid var(--navy-600);
   padding: calc(var(--spacing-lg) - 2px) calc(var(--spacing-xl) - 2px);
 }
 
 .btn-secondary:hover {
-  background-color: var(--primary-light);
+  background-color: var(--navy-700);
+  border-color: var(--accent-blue);
   transform: translateY(-1px);
 }
 
 .btn-secondary:active {
   transform: translateY(0);
-  background-color: #e6d9f5;
+  background-color: var(--navy-600);
 }
 
 .btn-secondary:disabled {
-  color: #d0bdd4;
-  border-color: #d0bdd4;
+  color: var(--text-tertiary);
+  border-color: var(--navy-700);
   cursor: not-allowed;
 }
 

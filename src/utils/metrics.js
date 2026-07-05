@@ -1,4 +1,4 @@
-import { extractPopulationData, getDistrictVotes } from './formatUtils.js';
+import { extractPopulationData, getDistrictVotes, getCellPopulation, forEachCell } from './formatUtils.js';
 
 export function calculateCompactness(districts, numDistricts, gridSize) {
   const byDistrict = [];
@@ -47,7 +47,7 @@ export function calculateCompetitiveness(populationMap, districts, numDistricts)
   let competitive = 0;
 
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
-    const { blueVotes, redVotes } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    const { blue: blueVotes, red: redVotes } = getDistrictVotes(partyMap, densityMap, districts, districtId);
     const total = blueVotes + redVotes;
     if (total > 0) {
       const bluePercent = (blueVotes / total) * 100;
@@ -70,18 +70,16 @@ export function calculatePartisanAsymmetry(populationMap, districts, numDistrict
   let blueVotes = 0, redVotes = 0;
   let blueSeats = 0;
 
-  for (let y = 0; y < partyMap.length; y++) {
-    for (let x = 0; x < partyMap[y].length; x++) {
-      const population = densityMap ? densityMap[y][x] : 1;
-      if (partyMap[y][x] === 0) blueVotes += population;
-      else redVotes += population;
-    }
-  }
+  forEachCell(partyMap, (party, x, y) => {
+    const population = getCellPopulation(densityMap, y, x);
+    if (party === 0) blueVotes += population;
+    else redVotes += population;
+  });
 
   const blueVotePercent = (blueVotes / (blueVotes + redVotes)) * 100;
 
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
-    const { blueVotes: dBlue, redVotes: dRed } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    const { blue: dBlue, red: dRed } = getDistrictVotes(partyMap, densityMap, districts, districtId);
     if (dBlue > dRed) blueSeats++;
   }
 

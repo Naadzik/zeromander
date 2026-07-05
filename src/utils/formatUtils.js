@@ -14,18 +14,33 @@ export function getCellPopulation(densityMap, y, x) {
   return densityMap ? densityMap[y][x] : 1;
 }
 
-export function getDistrictVotes(partyMap, densityMap, districts, districtId) {
-  let blueVotes = 0, redVotes = 0;
-
-  for (let y = 0; y < partyMap.length; y++) {
-    for (let x = 0; x < partyMap[y].length; x++) {
-      if (districts[y][x] === districtId) {
-        const population = densityMap ? densityMap[y][x] : 1;
-        if (partyMap[y][x] === 0) blueVotes += population;
-        else redVotes += population;
-      }
+export function forEachCell(grid, fn) {
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[y].length; x++) {
+      fn(grid[y][x], x, y);
     }
   }
+}
 
-  return { blueVotes, redVotes };
+export function totalPopulation(populationMap) {
+  const { partyMap, densityMap } = extractPopulationData(populationMap);
+  let total = 0;
+  forEachCell(partyMap, (_, x, y) => {
+    total += getCellPopulation(densityMap, y, x);
+  });
+  return total;
+}
+
+// Party cell values: 0 = blue, 1 = red, 2 = green (green only on 3-party maps).
+export function getDistrictVotes(partyMap, densityMap, districts, districtId) {
+  const votes = { blue: 0, red: 0, green: 0 };
+  forEachCell(partyMap, (party, x, y) => {
+    if (districts[y][x] === districtId) {
+      const population = getCellPopulation(densityMap, y, x);
+      if (party === 0) votes.blue += population;
+      else if (party === 1) votes.red += population;
+      else votes.green += population;
+    }
+  });
+  return votes;
 }

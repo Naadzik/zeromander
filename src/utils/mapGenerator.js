@@ -1,127 +1,147 @@
-export function generatePopulationMap(gridSize, bluePercentage, numCities = 4) {
+function distToNearest(seeds, x, y) {
+  let min = Infinity;
+  for (const s of seeds) {
+    const dx = x - s.x, dy = y - s.y;
+    min = Math.min(min, Math.sqrt(dx * dx + dy * dy));
+  }
+  return min;
+}
+
+function placeSeeds(count, gridSize, rng, { maxAttempts = Infinity, accept, make } = {}) {
+  const seeds = [];
+  let attempts = 0;
+  while (seeds.length < count && attempts < maxAttempts) {
+    attempts++;
+    const x = rng() * gridSize;
+    const y = rng() * gridSize;
+    if (accept && !accept(x, y)) continue;
+    seeds.push(make ? make(x, y) : { x, y });
+  }
+  return seeds;
+}
+
+function makeSparsePatches(gridSize, rng) {
+  const count = 3 + Math.floor(rng() * 5);
+  return placeSeeds(count, gridSize, rng, { make: (x, y) => ({ x, y, r: 3 + rng() * 4 }) });
+}
+
+function inAnyPatch(patches, x, y) {
+  return patches.some(p => {
+    const dx = x - p.x, dy = y - p.y;
+    return Math.sqrt(dx * dx + dy * dy) < p.r;
+  });
+}
+
+// Density tiers shared by both generators: dense blue urban cores, sparse otherwise.
+function cityCellDensity(distCity, party, rng) {
+  if (party === 0) {
+    if (distCity < 3) return 20 + Math.floor(rng() * 11);
+    if (distCity < 5) return 15 + Math.floor(rng() * 6);
+    return 10 + Math.floor(rng() * 6);
+  }
+  return 2 + Math.floor(rng() * 3);
+}
+
+function ruralCellDensity(sparsePatches, x, y, rng) {
+  return inAnyPatch(sparsePatches, x, y) ? 1 : 2 + Math.floor(rng() * 3);
+}
+
+function shuffledCells(gridSize, rng) {
+  const cells = [];
+  for (let y = 0; y < gridSize; y++)
+    for (let x = 0; x < gridSize; x++)
+      cells.push({ x, y });
+  for (let i = cells.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [cells[i], cells[j]] = [cells[j], cells[i]];
+  }
+  return cells;
+}
+
+// Nudges partyId's population share toward targetPop by flipping random cells:
+// under target, cells matching takeFrom become partyId; over target, partyId
+// cells spill to spillTo.
+function rebalancePartyShare(partyMap, densityMap, cells, targetPop, partyId, takeFrom, spillTo) {
+  let current = 0;
+  for (const { x, y } of cells) {
+    if (partyMap[y][x] === partyId) current += densityMap[y][x];
+  }
+
+  if (current < targetPop) {
+    const deficit = targetPop - current;
+    let added = 0;
+    for (let i = 0; i < cells.length && added < deficit; i++) {
+      const { x, y } = cells[i];
+      if (takeFrom(partyMap[y][x])) {
+        partyMap[y][x] = partyId;
+        added += densityMap[y][x];
+      }
+    }
+  } else if (current > targetPop) {
+    const excess = current - targetPop;
+    let removed = 0;
+    for (let i = 0; i < cells.length && removed < excess; i++) {
+      const { x, y } = cells[i];
+      if (partyMap[y][x] === partyId) {
+        partyMap[y][x] = spillTo;
+        removed += densityMap[y][x];
+      }
+    }
+  }
+}
+
+export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random) {
   const partyMap = [];
   const densityMap = [];
 
-  const citySeeds = [];
+  const citySeeds = placeSeeds(numCities, gridSize, rng, {
+    make: (x, y) => ({ x, y, radius: 5 + rng() * 5 })
+  });
 
-  for (let i = 0; i < numCities; i++) {
-    citySeeds.push({
-      x: Math.random() * gridSize,
-      y: Math.random() * gridSize,
-      radius: 3 + Math.random() * 4
-    });
-  }
+  // At polarization=0 (balanced): cities are 50/50 random, rural is 15% blue (sparse)
+  // At polarization=50 (moderate): cities 72.5% blue, rural 10% blue (very sparse)
+  // At polarization=100 (extreme): cities 95% blue, rural 5% blue (extremely sparse)
+  const polarizationFactor = polarization / 100;
+  const cityBluePct = 50 + (45 * polarizationFactor);
+  const ruralBluePct = 15 - (10 * polarizationFactor);
 
   for (let y = 0; y < gridSize; y++) {
     partyMap[y] = [];
     densityMap[y] = [];
 
     for (let x = 0; x < gridSize; x++) {
-      let distToCity = Infinity;
-      for (const city of citySeeds) {
-        const dx = x - city.x;
-        const dy = y - city.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        distToCity = Math.min(distToCity, dist);
-      }
+      const distToCity = distToNearest(citySeeds, x, y);
 
-      const isCity = distToCity < 8;
+      // Add noise to city boundaries for irregular shapes
+      const boundaryNoise = Math.sin(x * 0.3 + y * 0.4) * 2 + Math.sin(x * 0.7 + y * 0.2) * 2;
+      const isCity = distToCity < (12 + boundaryNoise);
+      const roll = rng() * 100;
 
-      if (isCity) {
-        partyMap[y][x] = 0;
-      } else {
-        partyMap[y][x] = 1;
-      }
+      partyMap[y][x] = roll < (isCity ? cityBluePct : ruralBluePct) ? 0 : 1;
     }
   }
+
+  const sparsePatches = makeSparsePatches(gridSize, rng);
 
   for (let y = 0; y < gridSize; y++) {
     for (let x = 0; x < gridSize; x++) {
-      let distToCity = Infinity;
-
-      for (const city of citySeeds) {
-        const dx = x - city.x;
-        const dy = y - city.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        distToCity = Math.min(distToCity, dist);
-      }
-
-      const isCity = distToCity < 8;
-      const party = partyMap[y][x];
-
-      if (isCity) {
-        if (party === 0) {
-          if (distToCity < 3) {
-            densityMap[y][x] = 15 + Math.floor(Math.random() * 6);
-          } else if (distToCity < 5) {
-            densityMap[y][x] = 10 + Math.floor(Math.random() * 6);
-          } else {
-            densityMap[y][x] = 5 + Math.floor(Math.random() * 6);
-          }
-        } else {
-          densityMap[y][x] = 1 + Math.floor(Math.random() * 3);
-        }
+      const distToCity = distToNearest(citySeeds, x, y);
+      if (distToCity < 12) {
+        densityMap[y][x] = cityCellDensity(distToCity, partyMap[y][x], rng);
       } else {
-        densityMap[y][x] = 1 + Math.floor(Math.random() * 5);
+        densityMap[y][x] = ruralCellDensity(sparsePatches, x, y, rng);
       }
     }
   }
 
-  let totalBlue = 0;
-  let totalRed = 0;
+  let totalPop = 0;
+  for (let y = 0; y < gridSize; y++)
+    for (let x = 0; x < gridSize; x++)
+      totalPop += densityMap[y][x];
 
-  for (let y = 0; y < gridSize; y++) {
-    for (let x = 0; x < gridSize; x++) {
-      const density = densityMap[y][x];
-      if (partyMap[y][x] === 0) {
-        totalBlue += density;
-      } else {
-        totalRed += density;
-      }
-    }
-  }
-
-  const totalPopulation = totalBlue + totalRed;
-  const targetBlue = Math.round(totalPopulation * bluePercentage / 100);
-  let currentBlue = totalBlue;
-
-  if (currentBlue !== targetBlue) {
-    const cells = [];
-    for (let y = 0; y < gridSize; y++) {
-      for (let x = 0; x < gridSize; x++) {
-        cells.push({ x, y });
-      }
-    }
-
-    for (let i = cells.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [cells[i], cells[j]] = [cells[j], cells[i]];
-    }
-
-    if (currentBlue < targetBlue) {
-      const deficit = targetBlue - currentBlue;
-      let added = 0;
-
-      for (let i = 0; i < cells.length && added < deficit; i++) {
-        const { x, y } = cells[i];
-        if (partyMap[y][x] === 1) {
-          partyMap[y][x] = 0;
-          added += densityMap[y][x];
-        }
-      }
-    } else if (currentBlue > targetBlue) {
-      const excess = currentBlue - targetBlue;
-      let removed = 0;
-
-      for (let i = 0; i < cells.length && removed < excess; i++) {
-        const { x, y } = cells[i];
-        if (partyMap[y][x] === 0) {
-          partyMap[y][x] = 1;
-          removed += densityMap[y][x];
-        }
-      }
-    }
-  }
+  const cells = shuffledCells(gridSize, rng);
+  const targetBlue = Math.round(totalPop * bluePercentage / 100);
+  rebalancePartyShare(partyMap, densityMap, cells, targetBlue, 0, p => p === 1, 1);
 
   return {
     party: partyMap,
@@ -129,31 +149,87 @@ export function generatePopulationMap(gridSize, bluePercentage, numCities = 4) {
   };
 }
 
-export function countPopulation(populationMap) {
-  if (Array.isArray(populationMap)) {
-    let blue = 0, red = 0;
-    for (let y = 0; y < populationMap.length; y++) {
-      for (let x = 0; x < populationMap[y].length; x++) {
-        if (populationMap[y][x] === 0) blue++;
-        else red++;
-      }
-    }
-    return { blue, red, total: blue + red };
-  }
+export function generatePopulationMap3Party(gridSize, bluePercentage, greenPercentage, numCities, numTowns = 3, rng = Math.random) {
+  const citySeeds = placeSeeds(numCities, gridSize, rng);
 
-  const { party, density } = populationMap;
-  let blue = 0, red = 0;
+  // Small-town seeds: placed at least 20 units from any city (or anywhere if no cities)
+  const townSeeds = placeSeeds(numTowns, gridSize, rng, {
+    maxAttempts: 200,
+    accept: (x, y) => distToNearest(citySeeds, x, y) > 20
+  });
 
-  for (let y = 0; y < party.length; y++) {
-    for (let x = 0; x < party[y].length; x++) {
-      const pop = density[y][x];
-      if (party[y][x] === 0) {
-        blue += pop;
+  // Green rural patches: larger zones in deep rural that give green geographic coherence
+  // (prevents a random red/green mosaic — instead creates distinct red and green areas)
+  const numGreenPatches = 3 + Math.floor(rng() * 4); // 3–6
+  const greenRuralPatches = placeSeeds(numGreenPatches, gridSize, rng, {
+    maxAttempts: 300,
+    accept: (x, y) => distToNearest(citySeeds, x, y) > 25 && distToNearest(townSeeds, x, y) > 8,
+    make: (x, y) => ({ x, y, r: 8 + rng() * 10 })
+  });
+
+  const partyMap = [];
+  const densityMap = [];
+
+  for (let y = 0; y < gridSize; y++) {
+    partyMap[y] = [];
+    densityMap[y] = [];
+    for (let x = 0; x < gridSize; x++) {
+      const distCity = distToNearest(citySeeds, x, y);
+      const distTown = distToNearest(townSeeds, x, y);
+      const inGreenPatch = inAnyPatch(greenRuralPatches, x, y);
+
+      let bluePct, redPct;
+      if (distCity < 8) {
+        bluePct = 85; redPct = 8;   // green = 7
+      } else if (distCity < 15) {
+        bluePct = 75; redPct = 10;  // green = 15
+      } else if (distCity < 25) {
+        bluePct = 25; redPct = 35;  // green = 40
+      } else if (distTown < 6) {
+        bluePct = 5;  redPct = 20;  // green = 75
+      } else if (inGreenPatch) {
+        bluePct = 3;  redPct = 22;  // green = 75 — rural green patch
       } else {
-        red += pop;
+        bluePct = 2;  redPct = 97;  // green = 1 — solid red rural
+      }
+
+      const roll = rng() * 100;
+      if (roll < bluePct) partyMap[y][x] = 0;
+      else if (roll < bluePct + redPct) partyMap[y][x] = 1;
+      else partyMap[y][x] = 2;
+    }
+  }
+
+  const sparsePatches = makeSparsePatches(gridSize, rng);
+
+  // Density: mirrors normal mode for city cells; small-town green gets 4–9
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      const distCity = distToNearest(citySeeds, x, y);
+      const distTown = distToNearest(townSeeds, x, y);
+
+      if (distCity < 12) {
+        densityMap[y][x] = cityCellDensity(distCity, partyMap[y][x], rng);
+      } else if (distTown < 6) {
+        densityMap[y][x] = 4 + Math.floor(rng() * 6);
+      } else {
+        densityMap[y][x] = ruralCellDensity(sparsePatches, x, y, rng);
       }
     }
   }
 
-  return { blue, red, total: blue + red };
+  let totalPop = 0;
+  for (let y = 0; y < gridSize; y++)
+    for (let x = 0; x < gridSize; x++)
+      totalPop += densityMap[y][x];
+
+  const targetBlue = Math.round(totalPop * bluePercentage / 100);
+  const targetGreen = Math.round(totalPop * greenPercentage / 100);
+
+  // Adjust blue (convert any non-blue ↔ blue), then green (red ↔ green only,
+  // leaving blue intact)
+  rebalancePartyShare(partyMap, densityMap, shuffledCells(gridSize, rng), targetBlue, 0, p => p !== 0, 1);
+  rebalancePartyShare(partyMap, densityMap, shuffledCells(gridSize, rng), targetGreen, 2, p => p === 1, 1);
+
+  return { party: partyMap, density: densityMap };
 }

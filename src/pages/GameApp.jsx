@@ -1,488 +1,307 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import GameCanvasCounty from '../components/GameCanvasCounty'
 import Controls from '../components/Controls'
 import GameStats from '../components/GameStats'
 import GameEndModal from '../components/GameEndModal'
-import { generatePopulationMap } from '../utils/mapGenerator'
-import { generateCounties, rebalanceCountyPopulations, getCountyCells } from '../utils/countyGenerator'
-import { getChallengeById, checkChallengeCompletion } from '../utils/challenges'
-import { calculateSeats, getSeatPercentage, allDistrictsAssigned, getDistrictStats, calculateEfficiencyGap, getPopulationPercentage, validateCountyPopulations } from '../utils/gameLogic'
-import { calculateCompactness, calculateCompetitiveness, calculatePartisanAsymmetry } from '../utils/metrics'
+import GameHeader from '../components/GameHeader'
+import GameToolbar from '../components/GameToolbar'
+import GhostMapComparison from '../components/GhostMapComparison'
+import DailyObjectiveBanner from '../components/DailyObjectiveBanner'
+import Tutorial, { STEPS_3PARTY } from '../components/Tutorial'
+import '../styles/Tutorial.css'
+import { exportMapPng } from '../utils/exportMap'
+import { computeCoreStats } from '../utils/computeGameStats'
+import { useGameConfig } from '../hooks/useGameConfig'
+import { useMapState } from '../hooks/useMapState'
+import { usePlayerParty } from '../hooks/usePlayerParty'
+import { useTutorial } from '../hooks/useTutorial'
+import { useGameCompletion } from '../hooks/useGameCompletion'
+import { useLegalConstraints } from '../hooks/useLegalConstraints'
+import { useFairMap } from '../hooks/useFairMap'
+import { getDailyChallenge, buildDailyResult } from '../utils/dailyChallenge'
+import { getResultFor, recordDailyResult } from '../utils/dailyHistory'
 import '../styles/App.css'
-
-const DIFFICULTY_SETTINGS = {
-  easy: { gridSize: 25, numDistricts: 4, maxDistricts: 10, targetSeats: 55, maxCounties: 100 },
-  medium: { gridSize: 35, numDistricts: 6, maxDistricts: 16, targetSeats: 52, maxCounties: 200 },
-  hard: { gridSize: 50, numDistricts: 8, maxDistricts: 24, targetSeats: 50, maxCounties: 300 }
-};
 
 export default function GameApp() {
   const navigate = useNavigate();
-  const [difficulty, setDifficulty] = useState('easy');
-  const [gridSize, setGridSize] = useState(DIFFICULTY_SETTINGS.easy.gridSize);
-  const [numDistricts, setNumDistricts] = useState(DIFFICULTY_SETTINGS.easy.numDistricts);
-  const [numCounties, setNumCounties] = useState(DIFFICULTY_SETTINGS.easy.numDistricts * 5);
-  const [numCities, setNumCities] = useState(4);
-  const [bluePercentage, setBluePercentage] = useState(45);
-  const [populationMap, setPopulationMap] = useState([]);
-  const [counties, setCounties] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [currentDistrict, setCurrentDistrict] = useState(1);
-  const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [targetSeatPercentage, setTargetSeatPercentage] = useState(55);
-  const [gameWon, setGameWon] = useState(false);
+  const location = useLocation();
+
+  // "The Heist" daily mode: same board, same assigned party, same neutral
+  // baseline for everyone; one locked submission per UTC day.
+  const isDaily = new URLSearchParams(location.search).has('daily');
+  const challenge = useMemo(() => (isDaily ? getDailyChallenge() : null), [isDaily]);
+  // Derive the lookup from the same challenge object — two separate
+  // getDailyChallenge() calls could straddle UTC midnight and disagree.
+  const [dailyResult, setDailyResult] = useState(() => (challenge ? getResultFor(challenge.date) : null));
+
+  const sandboxConfig = useGameConfig();
+  // Daily overrides are plain values layered over the sandbox hook — Controls
+  // is hidden in daily mode, so its orphaned setters are unreachable.
+  const config = isDaily ? { ...sandboxConfig, ...challenge.config, isThreeParty: false } : sandboxConfig;
+
+  const legalConstraints = useLegalConstraints();
+  const map = useMapState(config, legalConstraints.constraints, {
+    seed: challenge?.seed,
+    locked: isDaily && !!dailyResult
+  });
+  const { playerParty, setPlayerParty, togglePlayerParty } = usePlayerParty();
+  // The daily assigns your party — that day you gerrymander for whoever you're told.
+  const effectiveParty = isDaily ? challenge.party : playerParty;
+  const tutorial = useTutorial();
+  const [electionUncertainty, setElectionUncertainty] = useState(false);
+  const completion = useGameCompletion({
+    populationMap: map.populationMap,
+    districts: map.districts,
+    numDistricts: config.numDistricts,
+    playerParty: effectiveParty,
+    difficulty: config.difficulty,
+    targetSeatPercentage: config.targetSeatPercentage,
+    constraints: legalConstraints.constraints,
+    electionUncertainty: isDaily ? false : electionUncertainty,
+    manual: isDaily
+  });
+  const boardLocked = isDaily && !!dailyResult;
+
   const [highlightedDistrict, setHighlightedDistrict] = useState(null);
   const [showUnassignedCounties, setShowUnassignedCounties] = useState(false);
-  const [showCurrentDistrict, setShowCurrentDistrict] = useState(true);
-  const [gameComplete, setGameComplete] = useState(false);
-  const [gameStats, setGameStats] = useState(null);
+  const [mapView, setMapView] = useState('districts');
 
   useEffect(() => {
-    generateNewGame();
-  }, [gridSize, bluePercentage, numCities]);
+    if (!map.lastRejection) return;
+    const timer = setTimeout(() => map.clearRejection(), 2500);
+    return () => clearTimeout(timer);
+  }, [map.lastRejection]);
 
-  function areAllDistrictsValid() {
-    if (!populationMap || districts.length === 0) return false;
+  const fairMap = useFairMap({
+    populationMap: map.populationMap,
+    counties: map.counties,
+    numDistricts: config.numDistricts,
+    gridSize: config.gridSize,
+    playerParty: effectiveParty,
+    isThreeParty: config.isThreeParty,
+    // Daily computes the neutral baseline eagerly (it's deterministic and the
+    // lock button needs it); sandbox still waits for completion.
+    enabled: isDaily ? map.counties.length > 0 : completion.gameComplete,
+    seed: challenge?.fairSeed
+  });
 
-    const isNewFormat = populationMap && typeof populationMap === 'object' && !Array.isArray(populationMap) && populationMap.party;
-    const densityMap = isNewFormat ? populationMap.density : null;
-    const gridSize = isNewFormat ? populationMap.party.length : populationMap.length;
-
-    let totalPopulation = 0;
-    for (let y = 0; y < gridSize; y++) {
-      for (let x = 0; x < gridSize; x++) {
-        totalPopulation += densityMap ? densityMap[y][x] : 1;
-      }
-    }
-
-    const targetPopulation = totalPopulation / numDistricts;
-    const minPopulation = Math.ceil(targetPopulation * 0.9);
-    const maxPopulation = Math.ceil(targetPopulation * 1.1);
-
-    for (let districtId = 1; districtId <= numDistricts; districtId++) {
-      let districtPop = 0;
-      for (let y = 0; y < gridSize; y++) {
-        for (let x = 0; x < gridSize; x++) {
-          if (districts[y][x] === districtId) {
-            districtPop += densityMap ? densityMap[y][x] : 1;
-          }
-        }
-      }
-      if (districtPop < minPopulation || districtPop > maxPopulation) {
-        return false;
-      }
-    }
-    return true;
-  }
-
+  // Re-entering a locked day: reinstall the submitted districts onto the
+  // (identical, deterministic) board instead of offering a fresh one.
   useEffect(() => {
-    if (populationMap && populationMap.party && districts.length > 0 && allDistrictsAssigned(districts, numDistricts) && areAllDistrictsValid()) {
-      const isNewFormat = populationMap && typeof populationMap === 'object' && !Array.isArray(populationMap) && populationMap.party;
-      const partyMap = isNewFormat ? populationMap.party : populationMap;
-      const gridSize = isNewFormat ? populationMap.party.length : populationMap.length;
+    if (!boardLocked || !dailyResult.districts || !map.counties.length) return;
+    map.restoreDistricts(dailyResult.districts);
+  }, [boardLocked, map.counties]);
 
-      const seats = calculateSeats(populationMap, districts, numDistricts);
-      const blueSeats = getSeatPercentage(seats.blue, numDistricts);
-      const popPercent = getPopulationPercentage(populationMap);
-      const gap = calculateEfficiencyGap(populationMap, districts, numDistricts);
-      const districtStats = getDistrictStats(populationMap, districts, numDistricts);
-      const compactness = calculateCompactness(districts, numDistricts, gridSize);
-      const competitiveness = calculateCompetitiveness(populationMap, districts, numDistricts);
-      const asymmetry = calculatePartisanAsymmetry(populationMap, districts, numDistricts);
+  const playerCoreStats = useMemo(() => {
+    if (!completion.gameComplete) return null;
+    return computeCoreStats(map.populationMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty);
+  }, [completion.gameComplete, map.populationMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty]);
 
-      const challenge = selectedChallenge ? getChallengeById(selectedChallenge) : null;
-
-      let won = false;
-      if (challenge) {
-        won = checkChallengeCompletion(challenge, {
-          blueSeats,
-          gap: gap.gap,
-          compactness: compactness.average,
-          competitiveness: competitiveness.percentage
-        });
-      } else {
-        won = blueSeats >= targetSeatPercentage;
-      }
-
-      setGameStats({
-        blueSeats: Math.round(blueSeats * 10) / 10,
-        redSeats: Math.round((100 - blueSeats) * 10) / 10,
-        blueWins: seats.blue,
-        redWins: seats.red,
-        totalDistricts: numDistricts,
-        won,
-        allStats: {
-          bluePopPercent: Math.round(popPercent * 10) / 10,
-          redPopPercent: Math.round((100 - popPercent) * 10) / 10,
-          efficiencyGap: Math.round(gap.gap * 10) / 10,
-          blueWasted: gap.blueWasted,
-          redWasted: gap.redWasted,
-          compactness: Math.round(compactness.average * 100),
-          competitiveness: Math.round(competitiveness.percentage * 10) / 10,
-          competitiveCount: competitiveness.competitive,
-          asymmetry: Math.round(asymmetry.asymmetry * 10) / 10,
-          districtBreakdown: districtStats.map(d => ({
-            id: d.id,
-            blue: d.blue,
-            red: d.red,
-            total: d.total
-          }))
-        }
-      });
-      setGameComplete(true);
-    }
-  }, [districts, numDistricts, targetSeatPercentage, selectedChallenge, populationMap]);
-
-  function generateNewGame() {
-    const pop = generatePopulationMap(gridSize, bluePercentage, numCities);
-    setPopulationMap(pop);
-
-    let counties_ = generateCounties(gridSize, numCounties);
-    counties_ = rebalanceCountyPopulations(pop, counties_, numCounties, 10);
-    setCounties(counties_);
-
-    const dists = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
-    setDistricts(dists);
-    setCurrentDistrict(1);
-    setGameWon(false);
-  }
+  const hasMap = map.populationMap.party || map.populationMap.length > 0;
 
   function handleDifficultyChange(newDifficulty) {
-    const settings = DIFFICULTY_SETTINGS[newDifficulty];
-    setDifficulty(newDifficulty);
-    setGridSize(settings.gridSize);
-    setNumDistricts(settings.numDistricts);
-    setNumCounties(settings.numDistricts * 5);
-    setTargetSeatPercentage(settings.targetSeats);
-    setNumCities(4);
-    setSelectedChallenge(null);
-  }
-
-  function handleChallengeSelect(challengeId) {
-    if (selectedChallenge === challengeId) {
-      setSelectedChallenge(null);
-      generateNewGame();
-    } else {
-      const challenge = getChallengeById(challengeId);
-      if (challenge) {
-        const config = challenge.config;
-        setSelectedChallenge(challengeId);
-        setNumCounties(config.numCounties);
-        setBluePercentage(config.bluePercentage);
-        setNumDistricts(config.numDistricts);
-        setTargetSeatPercentage(config.targetSeatPercentage);
-        setGridSize(35); // Challenge default size
-        setNumCities(4);
-
-        const pop = generatePopulationMap(35, config.bluePercentage, 4);
-        setPopulationMap(pop);
-
-        let counties_ = generateCounties(35, config.numCounties);
-        counties_ = rebalanceCountyPopulations(pop, counties_, config.numCounties, 10);
-        setCounties(counties_);
-
-        const dists = Array(35).fill(null).map(() => Array(35).fill(0));
-        setDistricts(dists);
-        setCurrentDistrict(1);
-        setGameWon(false);
-      }
+    config.applyDifficulty(newDifficulty);
+    if (newDifficulty !== 'three-party' && playerParty === 'green') {
+      setPlayerParty('blue');
+    }
+    if (newDifficulty === 'three-party') {
+      tutorial.show3PartyTutorialIfNew();
     }
   }
 
-  function handleCountiesChange(value) {
-    setNumCounties(value);
-  }
-
-  function handleNumCitiesChange(value) {
-    setNumCities(value);
-  }
-
-  function handleBluePercentageChange(value) {
-    setBluePercentage(value);
-  }
-
-  function handleDistrictsChange(value) {
-    setNumDistricts(value);
-  }
-
-  function handleDistrictSelect(districtId) {
-    setCurrentDistrict(districtId);
-  }
-
-  function handleCountyClick(countyId) {
-    if (currentDistrict === 0) return;
-
-    const newDistricts = districts.map(row => [...row]);
-    const countyCells = getCountyCells(counties, countyId);
-
-    const isNewFormat = populationMap && typeof populationMap === 'object' && !Array.isArray(populationMap) && populationMap.party;
-    const densityMap = isNewFormat ? populationMap.density : null;
-
-    const isAlreadyAssigned = countyCells.some(({ x, y }) => newDistricts[y][x] === currentDistrict);
-
-    if (isAlreadyAssigned) {
-      for (const { x, y } of countyCells) {
-        if (newDistricts[y][x] === currentDistrict) {
-          newDistricts[y][x] = 0;
-        }
-      }
-    } else {
-      let currentPopulation = 0;
-      for (let y = 0; y < newDistricts.length; y++) {
-        for (let x = 0; x < newDistricts[y].length; x++) {
-          if (newDistricts[y][x] === currentDistrict) {
-            currentPopulation += densityMap ? densityMap[y][x] : 1;
-          }
-        }
-      }
-
-      let countyPopulation = 0;
-      for (const { x, y } of countyCells) {
-        countyPopulation += densityMap ? densityMap[y][x] : 1;
-      }
-
-      const totalPopulation = currentPopulation + countyPopulation;
-
-      const totalPop = isNewFormat ?
-        (() => {
-          let sum = 0;
-          for (let y = 0; y < densityMap.length; y++) {
-            for (let x = 0; x < densityMap[y].length; x++) {
-              sum += densityMap[y][x];
-            }
-          }
-          return sum;
-        })() :
-        gridSize * gridSize;
-
-      const targetPopulation = totalPop / numDistricts;
-      const minPopulation = Math.ceil(targetPopulation * 0.9);
-      const maxPopulation = Math.ceil(targetPopulation * 1.1);
-
-      if (totalPopulation <= maxPopulation && isCountyAdjacentToDistrict(newDistricts, counties, countyId, currentDistrict)) {
-        for (const { x, y } of countyCells) {
-          newDistricts[y][x] = currentDistrict;
-        }
-      }
-    }
-
-    setDistricts(newDistricts);
-  }
-
-  function handleGenerateMap() {
-    generateNewGame();
+  function handleExportMap() {
+    const gameCanvas = document.querySelector('canvas');
+    if (!gameCanvas) return;
+    exportMapPng(gameCanvas, {
+      populationMap: map.populationMap,
+      districts: map.districts,
+      numDistricts: config.numDistricts,
+      playerParty: effectiveParty,
+      isThreeParty: config.isThreeParty,
+      mapView,
+      difficulty: config.difficulty
+    });
   }
 
   function handleTryAgain() {
-    setGameComplete(false);
-    setGameStats(null);
+    completion.resetCompletion();
     setHighlightedDistrict(null);
     setShowUnassignedCounties(false);
-    generateNewGame();
+    map.generateNewGame();
   }
 
-  function handleCloseEndModal() {
-    setGameComplete(false);
+  // The one-shot submission. Freezes stats, computes seats stolen against the
+  // deterministic neutral map, and persists the day's result.
+  function handleLockIn() {
+    if (!completion.isMapValid || !fairMap.fairStats) return;
+    const stats = completion.finalize();
+    if (!stats) return;
+    const result = buildDailyResult({
+      date: challenge.date,
+      dayNumber: challenge.dayNumber,
+      party: challenge.party,
+      playerCore: { ourSeatCount: stats.ourWins, ourPopPercent: stats.allStats.ourPopPercent },
+      fairCore: fairMap.fairStats,
+      districtBreakdown: stats.allStats.districtBreakdown,
+      numDistricts: config.numDistricts
+    });
+    // `districts` is a local-only extra so the locked map can be redrawn on
+    // re-entry; buildDailyResult itself stays the clean backend-ready record.
+    setDailyResult(recordDailyResult({ ...result, districts: map.districts }));
   }
 
-  function getCountyCells(counties, countyId) {
-    const cells = [];
-    for (let y = 0; y < counties.length; y++) {
-      for (let x = 0; x < counties[y].length; x++) {
-        if (counties[y][x] === countyId) {
-          cells.push({ x, y });
-        }
-      }
-    }
-    return cells;
-  }
+  const noop = () => {};
+  const stolen = dailyResult?.seatsStolen;
 
-  function isCountyAdjacentToDistrict(dists, counties, countyId, districtId) {
-    let hasAdjacent = false;
-    const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-
-    for (let y = 0; y < counties.length; y++) {
-      for (let x = 0; x < counties[y].length; x++) {
-        if (counties[y][x] === countyId) {
-          if (dists[y][x] === districtId) {
-            return true;
-          }
-
-          for (const [dx, dy] of dirs) {
-            const nx = x + dx;
-            const ny = y + dy;
-            if (nx >= 0 && nx < counties[y].length &&
-              ny >= 0 && ny < counties.length &&
-              dists[ny][nx] === districtId) {
-              hasAdjacent = true;
-            }
-          }
-        }
-      }
-    }
-
-    let districtHasCells = false;
-    for (let y = 0; y < dists.length; y++) {
-      for (let x = 0; x < dists[y].length; x++) {
-        if (dists[y][x] === districtId) {
-          districtHasCells = true;
-          break;
-        }
-      }
-      if (districtHasCells) break;
-    }
-
-    return !districtHasCells || hasAdjacent;
+  // Dev-only test seam (stripped from production builds): lets automated
+  // checks install a districts grid without simulating 475 county clicks.
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    window.__zmTest = { restoreDistricts: map.restoreDistricts };
   }
 
   return (
     <div className="app">
-      {gameComplete && gameStats && (
+      {tutorial.showTutorial && <Tutorial onClose={tutorial.dismissTutorial} />}
+      {tutorial.show3PartyTutorial && <Tutorial steps={STEPS_3PARTY} onClose={tutorial.dismiss3PartyTutorial} />}
+      {completion.showModal && completion.gameStats && (
         <GameEndModal
-          stats={gameStats}
-          challenge={selectedChallenge ? getChallengeById(selectedChallenge) : null}
-          onTryAgain={handleTryAgain}
-          onClose={handleCloseEndModal}
+          stats={completion.gameStats}
+          difficulty={config.difficulty}
+          fairStats={fairMap.fairStats}
+          daily={isDaily ? { dayNumber: challenge.dayNumber, party: challenge.party, result: dailyResult } : null}
+          onTryAgain={isDaily ? undefined : handleTryAgain}
+          onClose={completion.dismissModal}
         />
       )}
-      <header className="app-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%' }}>
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '1.5rem',
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            ← Back
-          </button>
-          <div style={{ flex: 1, textAlign: 'center' }}>
-            <h1>Zeromander</h1>
-            <p>Master the art of electoral redistricting</p>
-          </div>
-        </div>
-      </header>
+
+      <GameHeader onBack={() => navigate('/')} onHelp={tutorial.openTutorial} />
 
       <div className="app-container">
-        <Controls
-          difficulty={difficulty}
-          onDifficultyChange={handleDifficultyChange}
-          numCounties={numCounties}
-          onCountiesChange={handleCountiesChange}
-          numCities={numCities}
-          onNumCitiesChange={handleNumCitiesChange}
-          bluePercentage={bluePercentage}
-          onBluePercentageChange={handleBluePercentageChange}
-          numDistricts={numDistricts}
-          onDistrictsChange={handleDistrictsChange}
-          maxDistricts={DIFFICULTY_SETTINGS[difficulty].maxDistricts}
-          currentDistrict={currentDistrict}
-          onDistrictSelect={handleDistrictSelect}
-          selectedChallenge={selectedChallenge}
-          onChallengeSelect={handleChallengeSelect}
-          onResetGame={handleGenerateMap}
-        />
+        {!isDaily && (
+          <Controls
+            difficulty={config.difficulty}
+            onDifficultyChange={handleDifficultyChange}
+            numCounties={config.numCounties}
+            onCountiesChange={config.setNumCounties}
+            numCities={config.numCities}
+            onNumCitiesChange={config.setNumCities}
+            bluePercentage={config.bluePercentage}
+            onBluePercentageChange={config.handleBluePercentageChange}
+            greenPercentage={config.greenPercentage}
+            onGreenPercentageChange={config.setGreenPercentage}
+            numTowns={config.numTowns}
+            onNumTownsChange={config.setNumTowns}
+            numDistricts={config.numDistricts}
+            onDistrictsChange={config.setNumDistricts}
+            maxDistricts={config.maxDistricts}
+            currentDistrict={map.currentDistrict}
+            onDistrictSelect={map.setCurrentDistrict}
+            onResetGame={map.generateNewGame}
+            constraints={legalConstraints.constraints}
+            onPopDeviationEnabledChange={legalConstraints.setPopDeviationEnabled}
+            onPopDeviationModeChange={legalConstraints.setPopDeviationMode}
+            onPopDeviationThresholdChange={legalConstraints.setPopDeviationThreshold}
+            electionUncertainty={electionUncertainty}
+            onElectionUncertaintyChange={setElectionUncertainty}
+          />
+        )}
 
-        <div className="game-main" style={{ flexDirection: 'column', display: 'flex' }}>
-          <div style={{
-            display: 'flex',
-            gap: '0.5rem',
-            padding: '1rem',
-            backgroundColor: '#F9FAFB',
-            borderBottom: '1px solid #E5E7EB',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{
-              display: 'flex',
-              gap: '0.5rem',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              flex: '1 1 100%'
-            }}>
-              {Array.from({ length: numDistricts }).map((_, i) => {
-                const districtId = i + 1;
-                return (
-                  <button
-                    key={districtId}
-                    onClick={() => handleDistrictSelect(districtId)}
-                    style={{
-                      padding: '0.625rem 0.75rem',
-                      border: currentDistrict === districtId ? '2px solid #663399' : '2px solid #E5E7EB',
-                      background: currentDistrict === districtId ? '#663399' : 'white',
-                      color: currentDistrict === districtId ? 'white' : '#6B7280',
-                      borderRadius: '6px',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      minWidth: '2.5rem',
-                      textAlign: 'center'
-                    }}
-                  >
-                    D{districtId}
-                  </button>
-                );
-              })}
+        <div className="game-main">
+          {map.lastRejection && (
+            <div className="toast-transient">{map.lastRejection.message}</div>
+          )}
+          {isDaily && (
+            <DailyObjectiveBanner
+              dayNumber={challenge.dayNumber}
+              party={challenge.party}
+              popPercent={challenge.party === 'blue' ? challenge.config.bluePercentage : 100 - challenge.config.bluePercentage}
+            />
+          )}
+          {isDaily && !boardLocked && (
+            <div className="daily-lock-bar">
+              <button
+                className="btn-primary"
+                disabled={!completion.isMapValid || !fairMap.fairStats}
+                onClick={handleLockIn}
+              >
+                {completion.isMapValid ? '🔒 Lock in heist' : 'Assign every district to lock in'}
+              </button>
             </div>
-            <button
-              onClick={() => setShowCurrentDistrict(!showCurrentDistrict)}
-              style={{
-                padding: '0.625rem 1rem',
-                border: '2px solid #E5E7EB',
-                background: showCurrentDistrict ? '#663399' : 'white',
-                color: showCurrentDistrict ? 'white' : '#6B7280',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-              title={showCurrentDistrict ? 'Hide current district' : 'Show current district'}
-            >
-              {showCurrentDistrict ? '👁️ Visible' : '👁️‍🗨️ Hidden'}
-            </button>
-          </div>
-          {(populationMap.party || populationMap.length > 0) && (
+          )}
+          {boardLocked && !completion.showModal && (
+            <div className="daily-lock-bar daily-lock-bar--locked">
+              <span>
+                Daily #{dailyResult.dayNumber} locked — {stolen > 0 ? `stole +${stolen}` : stolen === 0 ? 'stole +0' : `${stolen}`} seats vs. the neutral map
+              </span>
+              <button className="btn-secondary" onClick={() => completion.finalize()}>
+                View result
+              </button>
+            </div>
+          )}
+          <GameToolbar
+            numDistricts={config.numDistricts}
+            currentDistrict={map.currentDistrict}
+            onDistrictSelect={map.setCurrentDistrict}
+            isThreeParty={config.isThreeParty}
+            playerParty={effectiveParty}
+            onPartySelect={isDaily ? noop : setPlayerParty}
+            onPartyToggle={isDaily ? noop : togglePlayerParty}
+            mapView={mapView}
+            onMapViewChange={setMapView}
+            canUndo={!boardLocked && map.undoRedo.canUndo}
+            canRedo={!boardLocked && map.undoRedo.canRedo}
+            onUndo={boardLocked ? noop : map.undoRedo.undo}
+            onRedo={boardLocked ? noop : map.undoRedo.redo}
+            onExport={handleExportMap}
+          />
+          {hasMap && (
             <GameCanvasCounty
-              populationMap={populationMap}
-              counties={counties}
-              districts={districts}
-              currentDistrict={currentDistrict}
-              onCountyClick={handleCountyClick}
+              populationMap={map.populationMap}
+              counties={map.counties}
+              districts={map.districts}
+              currentDistrict={map.currentDistrict}
+              onCountyClick={boardLocked ? noop : map.handleCountyClick}
+              onCountyPaint={boardLocked ? noop : map.handleCountyPaint}
+              onDragStart={boardLocked ? noop : map.undoRedo.snapshot}
               highlightedDistrict={highlightedDistrict}
               showUnassignedCounties={showUnassignedCounties}
-              showDistricts={showCurrentDistrict}
+              mapView={mapView}
             />
           )}
         </div>
 
-        {(populationMap.party || populationMap.length > 0) && (
+        {hasMap && (
           <GameStats
-            populationMap={populationMap}
-            districts={districts}
-            numDistricts={numDistricts}
-            currentDistrict={currentDistrict}
-            targetSeatPercentage={targetSeatPercentage}
-            selectedChallenge={selectedChallenge}
-            gameWon={gameWon}
+            populationMap={map.populationMap}
+            districts={map.districts}
+            numDistricts={config.numDistricts}
+            currentDistrict={map.currentDistrict}
+            targetSeatPercentage={config.targetSeatPercentage}
+            playerParty={effectiveParty}
             onDistrictSelect={setHighlightedDistrict}
             onToggleUnassigned={() => setShowUnassignedCounties(!showUnassignedCounties)}
             showUnassignedCounties={showUnassignedCounties}
+            isThreeParty={config.isThreeParty}
+            constraints={legalConstraints.constraints}
           />
         )}
       </div>
+
+      {completion.gameComplete && (
+        <GhostMapComparison
+          populationMap={map.populationMap}
+          counties={map.counties}
+          playerDistricts={map.districts}
+          fairDistricts={fairMap.fairDistricts}
+          playerCoreStats={playerCoreStats}
+          fairCoreStats={fairMap.fairStats}
+          numDistricts={config.numDistricts}
+          isThreeParty={config.isThreeParty}
+          playerParty={effectiveParty}
+          isComputing={fairMap.isComputing}
+        />
+      )}
     </div>
   );
 }

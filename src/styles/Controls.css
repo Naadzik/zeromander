@@ -1,11 +1,25 @@
 .controls-panel {
   background: var(--bg-white);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
   box-shadow: var(--shadow-lg);
-  width: 320px;
+  width: clamp(240px, 20vw, 320px);
+  flex-shrink: 0;
   overflow-y: auto;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 120px);
+}
+
+@media (max-width: 1500px) {
+  .controls-panel {
+    padding: var(--spacing-md);
+  }
+  .control-section {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+  }
+  .control-group {
+    margin-bottom: var(--spacing-md);
+  }
 }
 
 .control-section {
@@ -92,13 +106,12 @@
 
 .difficulty-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
 .difficulty-btn,
-.district-btn,
-.challenge-btn {
+.district-btn {
   padding: 0.625rem 0.75rem;
   border: 2px solid var(--border-color);
   background: var(--bg-white);
@@ -111,15 +124,13 @@
 }
 
 .difficulty-btn:hover,
-.district-btn:hover,
-.challenge-btn:hover {
+.district-btn:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
 }
 
 .difficulty-btn.active,
-.district-btn.active,
-.challenge-btn.active {
+.district-btn.active {
   background: var(--primary-color);
   color: white;
   border-color: transparent;
@@ -130,32 +141,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
   gap: 0.5rem;
-}
-
-.challenges-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-}
-
-.challenge-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  width: 100%;
-  padding: var(--spacing-md);
-  text-align: left;
-  justify-content: flex-start;
-}
-
-.challenge-icon {
-  font-size: 1.5rem;
-  min-width: 30px;
-}
-
-.challenge-name {
-  flex: 1;
-  font-size: var(--font-size-sm);
 }
 
 .btn-primary {
@@ -181,7 +166,7 @@
   transform: translateY(0);
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1100px) {
   .controls-panel {
     width: 100%;
     max-height: none;
@@ -192,7 +177,7 @@
   }
 
   .difficulty-buttons {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -213,4 +198,42 @@
 
 .controls-panel::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
+}
+
+.constraint-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.constraint-toggle,
+.constraint-label-static {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.constraint-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+}
+
+.constraint-status {
+  font-weight: var(--font-weight-semibold);
+}
+
+.constraint-status--pass {
+  color: var(--win-green, #22C55E);
+}
+
+.constraint-status--fail {
+  color: var(--error-color);
+}
+
+.constraint-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }

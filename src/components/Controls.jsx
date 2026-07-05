@@ -1,6 +1,3 @@
-import { useState } from 'react'
-import { getAllChallenges } from '../utils/challenges'
-import ChallengeModal from './ChallengeModal'
 import '../styles/Controls.css'
 
 export default function Controls({
@@ -10,28 +7,35 @@ export default function Controls({
   onCountiesChange,
   numCities,
   onNumCitiesChange,
+  numTowns,
+  onNumTownsChange,
   bluePercentage,
   onBluePercentageChange,
+  greenPercentage,
+  onGreenPercentageChange,
   numDistricts,
   onDistrictsChange,
   maxDistricts,
   currentDistrict,
   onDistrictSelect,
-  selectedChallenge,
-  onChallengeSelect,
-  onResetGame
+  onResetGame,
+  constraints,
+  onPopDeviationEnabledChange,
+  onPopDeviationModeChange,
+  onPopDeviationThresholdChange,
+  electionUncertainty,
+  onElectionUncertaintyChange
 }) {
-  const [selectedChallengeModal, setSelectedChallengeModal] = useState(null);
-  const challenges = getAllChallenges();
-
   const DIFFICULTY_SETTINGS = {
-    easy: { gridSize: 25, numDistricts: 4, targetSeats: 55, maxCounties: 100 },
-    medium: { gridSize: 35, numDistricts: 6, targetSeats: 52, maxCounties: 200 },
-    hard: { gridSize: 50, numDistricts: 8, targetSeats: 50, maxCounties: 300 }
+    small: { gridSize: 50, numDistricts: 8, targetSeats: 50, minCounties: 100, maxCounties: 300 },
+    medium: { gridSize: 80, numDistricts: 10, targetSeats: 50, minCounties: 150, maxCounties: 800 },
+    large: { gridSize: 100, numDistricts: 12, targetSeats: 50, minCounties: 200, maxCounties: 1000 },
+    'three-party': { gridSize: 80, numDistricts: 10, targetSeats: 0, minCounties: 150, maxCounties: 800 }
   };
+  const isThreeParty = difficulty === 'three-party';
 
+  const minCounties = DIFFICULTY_SETTINGS[difficulty]?.minCounties || 50;
   const maxCounties = DIFFICULTY_SETTINGS[difficulty]?.maxCounties || 250;
-  const minCounties = numDistricts * 5;
 
   return (
     <div className="controls-panel">
@@ -40,13 +44,13 @@ export default function Controls({
         <div className="control-group">
           <label>Difficulty</label>
           <div className="difficulty-buttons">
-            {['easy', 'medium', 'hard'].map(level => (
+            {['small', 'medium', 'large', 'three-party'].map(level => (
               <button
                 key={level}
                 className={`difficulty-btn ${difficulty === level ? 'active' : ''}`}
                 onClick={() => onDifficultyChange(level)}
               >
-                {level.charAt(0).toUpperCase() + level.slice(1)}
+                {level === 'three-party' ? '3rd Party' : level.charAt(0).toUpperCase() + level.slice(1)}
               </button>
             ))}
           </div>
@@ -77,16 +81,31 @@ export default function Controls({
         </div>
 
         <div className="control-group">
-          <label>Cities: {numCities}</label>
+          <label>Cities: {numCities === 0 ? 'none' : numCities}</label>
           <input
             type="range"
-            min="1"
+            min="0"
             max="6"
-            value={numCities}
+            value={Math.min(numCities, 6)}
             onChange={(e) => onNumCitiesChange(parseInt(e.target.value))}
             className="slider"
           />
         </div>
+
+        {isThreeParty && (
+          <div className="control-group">
+            <label>Towns: {numTowns === 0 ? 'none' : numTowns}</label>
+            <input
+              type="range"
+              min="0"
+              max="8"
+              value={numTowns}
+              onChange={(e) => onNumTownsChange(parseInt(e.target.value))}
+              className="slider"
+              style={{ accentColor: 'var(--green-party)' }}
+            />
+          </div>
+        )}
 
         <div className="control-group">
           <label>Urban Union Population: {bluePercentage}%</label>
@@ -100,35 +119,104 @@ export default function Controls({
           />
         </div>
 
+        {isThreeParty && (
+          <div className="control-group">
+            <label>Farmers Coalition Population: {greenPercentage}%</label>
+            <input
+              type="range"
+              min="5"
+              max={Math.min(40, 95 - bluePercentage)}
+              value={greenPercentage}
+              onChange={(e) => onGreenPercentageChange(parseInt(e.target.value))}
+              className="slider"
+              style={{ accentColor: 'var(--green-party)' }}
+            />
+          </div>
+        )}
+
         <button className="btn-primary" onClick={onResetGame}>
           Generate Map
         </button>
       </div>
 
-      <div className="control-section">
-        <h3>Challenges</h3>
-        <div className="challenges-list">
-          {challenges.map(challenge => (
-            <button
-              key={challenge.id}
-              className={`challenge-btn ${selectedChallenge === challenge.id ? 'active' : ''}`}
-              onClick={() => setSelectedChallengeModal(challenge)}
-              title={challenge.description}
-            >
-              <span className="challenge-icon">{challenge.icon}</span>
-              <span className="challenge-name">{challenge.name}</span>
-            </button>
-          ))}
+      {constraints && (
+        <div className="control-section">
+          <h3>Legal Requirements</h3>
+
+          <div className="control-group constraint-row">
+            <label className="constraint-label-static">
+              <span className="constraint-status constraint-status--pass">✓</span> Contiguity
+            </label>
+            <span className="constraint-hint">Always enforced — a district can never be disconnected.</span>
+          </div>
+
+          <div className="control-group constraint-row">
+            <label className="constraint-toggle">
+              <input
+                type="checkbox"
+                checked={constraints.populationDeviation.enabled}
+                onChange={(e) => onPopDeviationEnabledChange(e.target.checked)}
+              />
+              Strict Population Deviation
+            </label>
+          </div>
+
+          {constraints.populationDeviation.enabled && (
+            <>
+              <div className="control-group">
+                <label>Threshold: ±{constraints.populationDeviation.thresholdPct}% (base is ±10%)</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="9"
+                  value={constraints.populationDeviation.thresholdPct}
+                  onChange={(e) => onPopDeviationThresholdChange(parseInt(e.target.value))}
+                  className="slider"
+                />
+              </div>
+
+              <div className="control-group">
+                <label>Enforcement</label>
+                <div className="difficulty-buttons">
+                  <button
+                    className={`difficulty-btn ${constraints.populationDeviation.mode === 'hard' ? 'active' : ''}`}
+                    onClick={() => onPopDeviationModeChange('hard')}
+                    title="Blocks moves that would exceed the limit in real time."
+                  >
+                    Hard
+                  </button>
+                  <button
+                    className={`difficulty-btn ${constraints.populationDeviation.mode === 'soft' ? 'active' : ''}`}
+                    onClick={() => onPopDeviationModeChange('soft')}
+                    title="Map can complete, but a violating map is struck down by court at the end."
+                  >
+                    Soft
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+      )}
 
-      <ChallengeModal
-        challenge={selectedChallengeModal}
-        isOpen={!!selectedChallengeModal}
-        onClose={() => setSelectedChallengeModal(null)}
-        onSelect={onChallengeSelect}
-      />
-
+      {!isThreeParty && (
+        <div className="control-section">
+          <h3>Election Night</h3>
+          <div className="control-group constraint-row">
+            <label className="constraint-toggle">
+              <input
+                type="checkbox"
+                checked={electionUncertainty}
+                onChange={(e) => onElectionUncertaintyChange(e.target.checked)}
+              />
+              Election-Night Uncertainty
+            </label>
+            <span className="constraint-hint">
+              When you finish, a random national swing (±4%) plus a smaller independent swing in each district (±2%) is applied — the swung result decides win or lose, not the map as drawn.
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

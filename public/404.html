@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zeromander</title>
+  <script>
+    // Single-Page Apps for GitHub Pages redirect trick (rafgraph.dev/spa-github-pages)
+    // Encodes the real path into a query string, index.html decodes it back on load,
+    // so deep links like /zeromander/leaderboard survive a hard refresh.
+    var pathSegmentsToKeep = 1; // keep "/zeromander"
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
+    );
+  </script>
+</head>
+<body>
+</body>
+</html>

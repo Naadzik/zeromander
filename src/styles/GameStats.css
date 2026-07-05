@@ -1,11 +1,28 @@
 .stats-panel {
   background: var(--bg-white);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
   box-shadow: var(--shadow-lg);
-  width: 320px;
+  width: clamp(260px, 22vw, 340px);
+  flex-shrink: 0;
   overflow-y: auto;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 120px);
+}
+
+@media (max-width: 1500px) {
+  .stats-panel {
+    padding: var(--spacing-md);
+  }
+  .stat-block {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+  .stat-value {
+    font-size: 1.35rem;
+  }
+  .metric-value {
+    font-size: 1.2rem;
+  }
 }
 
 .stats-panel h3 {
@@ -53,8 +70,13 @@
 .stat-value {
   font-size: 1.75rem;
   font-weight: var(--font-weight-bold);
-  color: var(--text-dark);
+  color: var(--text-bright);
   margin-bottom: var(--spacing-sm);
+}
+
+.stat-value.ticker-number {
+  font-size: 2rem;
+  font-weight: var(--font-weight-semibold);
 }
 
 .progress-bar {
@@ -94,7 +116,7 @@
 
 .capacity-range {
   font-size: 0.75rem;
-  color: #9CA3AF;
+  color: var(--text-tertiary);
   margin-top: 0.5rem;
 }
 
@@ -164,71 +186,6 @@
   gap: var(--spacing-xs);
 }
 
-.challenge-display {
-  margin-top: var(--spacing-xl);
-  padding: var(--spacing-lg);
-  background: linear-gradient(135deg, #FFF5E6 0%, #FFE8CC 100%);
-  border: 2px solid #FFD699;
-  border-radius: 8px;
-  display: flex;
-  gap: var(--spacing-lg);
-  align-items: flex-start;
-  transition: all var(--transition-base);
-}
-
-.challenge-display.complete {
-  background: linear-gradient(135deg, #E6F9F0 0%, #CCF0E6 100%);
-  border-color: #66D9C9;
-  box-shadow: 0 0 0 3px rgba(102, 217, 201, 0.1);
-}
-
-.challenge-display .challenge-icon {
-  font-size: 2rem;
-  min-width: 50px;
-}
-
-.challenge-content {
-  flex: 1;
-}
-
-.challenge-title {
-  font-size: 0.95rem;
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-dark);
-  margin-bottom: var(--spacing-xs);
-}
-
-.challenge-goal {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.challenge-badge {
-  font-size: 0.8rem;
-  font-weight: var(--font-weight-semibold);
-  color: var(--success-color);
-  background: white;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  display: inline-block;
-  animation: popIn 0.4s ease;
-}
-
-@keyframes popIn {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
 .districts-list {
   display: flex;
   flex-direction: column;
@@ -246,6 +203,46 @@
   border-radius: var(--radius-md);
   border-left: 3px solid var(--primary-color);
   font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.district-stat-row[data-status="empty"] {
+  background-color: var(--navy-800);
+  border-left-color: var(--navy-600);
+}
+
+.district-stat-row[data-status="ok"] {
+  background-color: var(--success-light);
+  border-left-color: var(--win-green);
+}
+
+.district-stat-row[data-status="over"] {
+  background-color: var(--error-light);
+  border-left-color: var(--error-color);
+}
+
+.district-stat-row[data-status="under"] {
+  background-color: var(--warning-light);
+  border-left-color: var(--warning-color);
+}
+
+.btn-unassigned {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--navy-700);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-height: 0;
+}
+
+.btn-unassigned--active {
+  background-color: var(--accent-gold);
+  color: var(--navy-950);
 }
 
 .district-name {
@@ -270,7 +267,7 @@
   font-weight: var(--font-weight-semibold);
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1100px) {
   .stats-panel {
     width: 100%;
     max-height: none;
@@ -286,6 +283,106 @@
   .metrics-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.metric-info {
+  position: relative;
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.metric-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  user-select: none;
+}
+
+.metric-info-icon:hover {
+  background: var(--primary-color);
+}
+
+.metric-info-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  background: var(--text-dark);
+  color: white;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.metric-info-popover strong {
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.metric-info-source {
+  font-size: 0.6875rem;
+  font-style: italic;
+  opacity: 0.75;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 4px;
+  margin-top: 2px;
+}
+
+.metric-info-popover::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--text-dark);
+}
+
+.constraint-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.constraint-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.constraint-status-row[data-pass="true"] .constraint-status-icon {
+  color: var(--win-green);
+}
+
+.constraint-status-row[data-pass="false"] .constraint-status-icon {
+  color: var(--error-color);
+}
+
+.constraint-status-icon {
+  font-weight: var(--font-weight-semibold);
 }
 
 /* Scrollbar styling */

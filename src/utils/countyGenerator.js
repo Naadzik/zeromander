@@ -1,12 +1,12 @@
-export function generateCounties(gridSize, numCounties) {
+export function generateCounties(gridSize, numCounties, rng = Math.random) {
   const counties = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
 
   const seeds = [];
   for (let i = 1; i <= numCounties; i++) {
     seeds.push({
       id: i,
-      x: Math.random() * gridSize,
-      y: Math.random() * gridSize
+      x: rng() * gridSize,
+      y: rng() * gridSize
     });
   }
 
@@ -166,7 +166,7 @@ export function getCountyPopulation(populationMap, counties, countyId) {
   return { blue, red, total: blue + red };
 }
 
-export function rebalanceCountyPopulations(populationMap, counties, numCounties, maxAttempts = 10) {
+export function rebalanceCountyPopulations(populationMap, counties, numCounties, maxAttempts = 10, rng = Math.random) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
   const gridSize = counties.length;
 
@@ -221,10 +221,10 @@ export function rebalanceCountyPopulations(populationMap, counties, numCounties,
           }
         }
         if (oldCells.length > 0) {
-          const center = oldCells[Math.floor(Math.random() * oldCells.length)];
+          const center = oldCells[Math.floor(rng() * oldCells.length)];
           seeds.push({ id: i, x: center.x, y: center.y });
         } else {
-          seeds.push({ id: i, x: Math.random() * gridSize, y: Math.random() * gridSize });
+          seeds.push({ id: i, x: rng() * gridSize, y: rng() * gridSize });
         }
       }
 
