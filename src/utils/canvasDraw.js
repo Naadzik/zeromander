@@ -78,8 +78,9 @@ export function computeDistrictWinners(partyMap, densityMap, districts) {
         if (!voteCounts[d]) voteCounts[d] = { blue: 0, red: 0, green: 0 };
         const density = densityMap ? densityMap[y][x] : 1;
         if (partyMap[y][x] === 0) voteCounts[d].blue += density;
+        else if (partyMap[y][x] === 1) voteCounts[d].red += density;
         else if (partyMap[y][x] === 2) voteCounts[d].green += density;
-        else voteCounts[d].red += density;
+        // grey (3) is undecided — no vote until the reveal
       }
     }
   }
@@ -97,10 +98,12 @@ export function computeDistrictWinners(partyMap, densityMap, districts) {
 export function getCanvasTheme() {
   const cssVars = getComputedStyle(document.documentElement);
   const v = (name, fallback) => (cssVars.getPropertyValue(name) || fallback).trim();
+  // Indexed by party cell value: 0 blue, 1 red, 2 green, 3 grey (undecided).
   const party = [
     v('--blue-party', '#3B82F6'),
     v('--red-party', '#EF4444'),
-    v('--green-party', '#16A34A')
+    v('--green-party', '#16A34A'),
+    v('--grey-party', '#94A3B8')
   ];
   return {
     background: v('--canvas-bg', '#F8F9FA'),
@@ -108,12 +111,14 @@ export function getCanvasTheme() {
     denseOutline: [
       v('--blue-party-deep', '#1E40AF'),
       v('--red-party-deep', '#991B1B'),
-      v('--green-party-deep', '#14532D')
+      v('--green-party-deep', '#14532D'),
+      v('--grey-party-deep', '#64748B')
     ],
     partyBorder: [
       v('--canvas-blue-border', '#1D4ED8'),
       v('--canvas-red-border', '#B91C1C'),
-      v('--canvas-green-border', '#14532D')
+      v('--canvas-green-border', '#14532D'),
+      v('--canvas-grey-border', '#64748B')
     ],
     countyBorder: v('--canvas-county-border', 'rgba(80, 80, 80, 0.6)'),
     countyBorderParty: v('--canvas-county-border-party', 'rgba(80, 80, 80, 0.15)'),

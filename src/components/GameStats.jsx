@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getDistrictPopulation } from '../utils/gameLogic'
+import { getDistrictPopulation, classifyDistricts } from '../utils/gameLogic'
 import { computeCoreStats, round1, targetSeatCount } from '../utils/computeGameStats'
 import { checkConstraintViolations } from '../utils/legalConstraints'
 import { PARTY } from '../utils/partyConfig'
@@ -72,8 +72,23 @@ export default function GameStats({
       };
     }
 
+    // Risk-aware live view: seats a district's undecided population could
+    // still flip are shown as tossups, not banked wins.
+    const classified = classifyDistricts(populationMap, districts, numDistricts);
+    const safeSeats = {
+      blue: classified.filter(r => r.status === 'blue').length,
+      red: classified.filter(r => r.status === 'red').length
+    };
+    const tossups = classified.filter(r => r.status === 'tossup').length;
+    const ourSafe = playerParty === 'blue' ? safeSeats.blue : safeSeats.red;
+
     return {
       ...base,
+      classified,
+      safeSeats,
+      tossups,
+      ourSafe,
+      greyShare: round1(core.shares.grey ?? 0),
       blueSeats: round1((core.seats.blue / numDistricts) * 100),
       popPercent: round1(core.shares.blue),
       gap: round1(core.gap.gap),
@@ -133,15 +148,31 @@ export default function GameStats({
 
       <div className="stat-block">
         <div className="stat-label"><PartyIcon party={playerParty} /> Your Seats</div>
-        <div className="stat-value ticker-number" style={{ color: ourColor }}>{stats.ourSeats}% ({stats.ourSeatCount}/{numDistricts})</div>
-        <SeatBar seats={stats.seats} numDistricts={numDistricts} isThreeParty={isThreeParty} />
         {isThreeParty ? (
+          <div className="stat-value ticker-number" style={{ color: ourColor }}>{stats.ourSeats}% ({stats.ourSeatCount}/{numDistricts})</div>
+        ) : (
+          <div className="stat-value ticker-number" style={{ color: ourColor }}>
+            {round1((stats.ourSafe / numDistricts) * 100)}% ({stats.ourSafe}/{numDistricts})
+            {stats.tossups > 0 && <span className="tossup-chip">+{stats.tossups} tossup</span>}
+          </div>
+        )}
+        <SeatBar
+          seats={isThreeParty ? stats.seats : stats.safeSeats}
+          numDistricts={numDistricts}
+          isThreeParty={isThreeParty}
+          tossup={isThreeParty ? 0 : stats.tossups}
+        />
+        <div className="target-label">
+          Target: {stats.targetSeats}/{numDistricts} seats <span className="target-hint">(+1 vs. your {stats.ourPopPercent}% vote share)</span>
+        </div>
+        {!isThreeParty && stats.greyShare > 0 && (
+          <div className="target-label">
+            ⬜ {stats.greyShare}% undecided <MetricInfo metric="undecided" />
+          </div>
+        )}
+        {isThreeParty && (
           <div className="target-label">
             Pop: <PartyIcon party="blue" /> {stats.pops?.blue}% &nbsp;<PartyIcon party="red" /> {stats.pops?.red}% &nbsp;<PartyIcon party="green" /> {stats.pops?.green}%
-          </div>
-        ) : (
-          <div className="target-label">
-            Target: {stats.targetSeats}/{numDistricts} seats <span className="target-hint">(+1 vs. your {stats.ourPopPercent}% vote share)</span>
           </div>
         )}
       </div>
@@ -164,6 +195,8 @@ export default function GameStats({
           const overBounds = district.total > maxPopulation;
           const underBounds = hasContent && district.total < minPopulation;
           const status = withinBounds ? 'ok' : overBounds ? 'over' : underBounds ? 'under' : 'empty';
+          const classifiedRow = stats.classified?.[district.id - 1];
+          const isTossup = classifiedRow?.status === 'tossup' && hasContent;
 
           return (
             <div
@@ -177,11 +210,13 @@ export default function GameStats({
                 {withinBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: '#22C55E' }}>✓</span>}
                 {overBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: '#EF4444' }}>!</span>}
                 {underBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: '#F59E0B' }}>…</span>}
+                {isTossup && <span title="Tossup — undecided voters here could flip this district" style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: '#94A3B8', fontWeight: 700 }}>?</span>}
               </div>
               <div className="district-votes">
                 <span className="blue-votes"><PartyIcon party="blue" /> {district.blue}</span>
                 <span className="red-votes"><PartyIcon party="red" /> {district.red}</span>
                 {isThreeParty && <span style={{ color: 'var(--green-party)' }}><PartyIcon party="green" /> {district.green}</span>}
+                {classifiedRow?.greyPop > 0 && <span style={{ color: '#94A3B8' }}>⬜ {classifiedRow.greyPop}</span>}
               </div>
             </div>
           );

@@ -23,6 +23,47 @@ import { getDailyChallenge, buildDailyResult } from '../utils/dailyChallenge'
 import { getResultFor, recordDailyResult } from '../utils/dailyHistory'
 import '../styles/App.css'
 
+// Collapsed/expanded panel preference, remembered across sessions.
+function usePersistentToggle(key, defaultValue) {
+  const [value, setValue] = useState(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored !== null ? stored === '1' : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  });
+  function toggle() {
+    setValue(v => {
+      try { localStorage.setItem(key, v ? '0' : '1'); } catch { /* private mode */ }
+      return !v;
+    });
+  }
+  return [value, toggle];
+}
+
+// Side panel that folds into a slim rail so the map gets the full stage.
+// Vertical rail beside the map on desktop; horizontal bar above/below it
+// when the layout stacks (≤1100px).
+function CollapsiblePanel({ title, side, collapsed, onToggle, children }) {
+  if (collapsed) {
+    return (
+      <button className="panel-rail" onClick={onToggle} title={`Show ${title}`} aria-expanded="false">
+        <span className="panel-rail__chevron">{side === 'left' ? '»' : '«'}</span>
+        <span className="panel-rail__label">{title}</span>
+      </button>
+    );
+  }
+  return (
+    <div className="collapsible-panel">
+      <button className="panel-collapse-btn" onClick={onToggle} title={`Hide ${title}`} aria-expanded="true">
+        {side === 'left' ? '«' : '»'}
+      </button>
+      {children}
+    </div>
+  );
+}
+
 export default function GameApp() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,6 +108,17 @@ export default function GameApp() {
   const [showUnassignedCounties, setShowUnassignedCounties] = useState(false);
   const [mapView, setMapView] = useState('districts');
 
+  // After the election-night reveal the board shows the RESOLVED map (grey
+  // cells now colored); the underlying live map is untouched, so Try Again
+  // returns to a grey board. Completion math stays on the original map.
+  const effectiveMap = completion.revealedMap ?? map.populationMap;
+
+  // Panels start collapsed on small screens (the map is the point); the
+  // user's explicit choice is remembered either way.
+  const smallScreen = typeof window !== 'undefined' && window.innerWidth <= 1100;
+  const [setupCollapsed, toggleSetup] = usePersistentToggle('zeromander.ui.setupCollapsed', smallScreen);
+  const [statsCollapsed, toggleStats] = usePersistentToggle('zeromander.ui.statsCollapsed', smallScreen);
+
   useEffect(() => {
     if (!map.lastRejection) return;
     const timer = setTimeout(() => map.clearRejection(), 2500);
@@ -74,7 +126,9 @@ export default function GameApp() {
   }, [map.lastRejection]);
 
   const fairMap = useFairMap({
-    populationMap: map.populationMap,
+    // Revealed electorate once election night has happened — the neutral
+    // baseline must face the same voters as the player's final result.
+    populationMap: effectiveMap,
     counties: map.counties,
     numDistricts: config.numDistricts,
     gridSize: config.gridSize,
@@ -95,8 +149,8 @@ export default function GameApp() {
 
   const playerCoreStats = useMemo(() => {
     if (!completion.gameComplete) return null;
-    return computeCoreStats(map.populationMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty);
-  }, [completion.gameComplete, map.populationMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty]);
+    return computeCoreStats(effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty);
+  }, [completion.gameComplete, effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty]);
 
   const hasMap = map.populationMap.party || map.populationMap.length > 0;
 
@@ -114,7 +168,7 @@ export default function GameApp() {
     const gameCanvas = document.querySelector('canvas');
     if (!gameCanvas) return;
     exportMapPng(gameCanvas, {
-      populationMap: map.populationMap,
+      populationMap: effectiveMap,
       districts: map.districts,
       numDistricts: config.numDistricts,
       playerParty: effectiveParty,
@@ -179,6 +233,7 @@ export default function GameApp() {
 
       <div className="app-container">
         {!isDaily && (
+          <CollapsiblePanel title="Game Setup" side="left" collapsed={setupCollapsed} onToggle={toggleSetup}>
           <Controls
             difficulty={config.difficulty}
             onDifficultyChange={handleDifficultyChange}
@@ -204,7 +259,10 @@ export default function GameApp() {
             onPopDeviationThresholdChange={legalConstraints.setPopDeviationThreshold}
             electionUncertainty={electionUncertainty}
             onElectionUncertaintyChange={setElectionUncertainty}
+            greyPercentage={config.greyPercentage}
+            onGreyPercentageChange={config.setGreyPercentage}
           />
+          </CollapsiblePanel>
         )}
 
         <div className="game-main">
@@ -257,7 +315,7 @@ export default function GameApp() {
           />
           {hasMap && (
             <GameCanvasCounty
-              populationMap={map.populationMap}
+              populationMap={effectiveMap}
               counties={map.counties}
               districts={map.districts}
               currentDistrict={map.currentDistrict}
@@ -272,8 +330,9 @@ export default function GameApp() {
         </div>
 
         {hasMap && (
+          <CollapsiblePanel title="Game Stats" side="right" collapsed={statsCollapsed} onToggle={toggleStats}>
           <GameStats
-            populationMap={map.populationMap}
+            populationMap={effectiveMap}
             districts={map.districts}
             numDistricts={config.numDistricts}
             currentDistrict={map.currentDistrict}
@@ -285,12 +344,13 @@ export default function GameApp() {
             isThreeParty={config.isThreeParty}
             constraints={legalConstraints.constraints}
           />
+          </CollapsiblePanel>
         )}
       </div>
 
       {completion.gameComplete && (
         <GhostMapComparison
-          populationMap={map.populationMap}
+          populationMap={effectiveMap}
           counties={map.counties}
           playerDistricts={map.districts}
           fairDistricts={fairMap.fairDistricts}

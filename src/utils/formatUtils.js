@@ -31,15 +31,20 @@ export function totalPopulation(populationMap) {
   return total;
 }
 
-// Party cell values: 0 = blue, 1 = red, 2 = green (green only on 3-party maps).
+// Party cell values: 0 = blue, 1 = red, 2 = green (green only on 3-party maps),
+// 3 = grey (undecided: counts as population everywhere, casts NO votes until
+// the election-night reveal resolves it to blue/red).
+export const GREY = 3;
+
 export function getDistrictVotes(partyMap, densityMap, districts, districtId) {
-  const votes = { blue: 0, red: 0, green: 0 };
+  const votes = { blue: 0, red: 0, green: 0, greyPop: 0 };
   forEachCell(partyMap, (party, x, y) => {
     if (districts[y][x] === districtId) {
       const population = getCellPopulation(densityMap, y, x);
       if (party === 0) votes.blue += population;
       else if (party === 1) votes.red += population;
-      else votes.green += population;
+      else if (party === 2) votes.green += population;
+      else if (party === GREY) votes.greyPop += population;
     }
   });
   return votes;

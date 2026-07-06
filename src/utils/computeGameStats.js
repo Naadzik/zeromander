@@ -79,6 +79,10 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
   const { struckDown, struckDownReason } = getStrikeDown(constraintViolations);
 
   if (isThreeParty) {
+    // Same target semantics as 2-party: the fewest seats that beat your
+    // proportional entitlement. Plurality wins make seats cheaper in a
+    // 3-way race, but the bar is still relative to your own vote share.
+    const targetSeats3 = targetSeatCount(core.ourPopPercent, numDistricts);
     return {
       playerParty,
       isThreeParty: true,
@@ -86,7 +90,8 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
       ourSeatCount: core.ourSeatCount,
       ourWins: core.ourSeatCount,
       totalDistricts: numDistricts,
-      won: core.ourSeatsPct > core.ourPopPercent && !struckDown,
+      targetSeats: targetSeats3,
+      won: core.ourSeatCount >= targetSeats3 && !struckDown,
       struckDown,
       struckDownReason,
       allStats: {
@@ -131,6 +136,7 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
       swingPct: round1(swing.swingPct),
       ourSeats: round1(ourSwungSeatsPct),
       ourSeatCount: ourSwungSeatCount,
+      revealed: !!swing.revealed,
       won: swungWon
     };
   }
@@ -165,18 +171,19 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
       competitiveness: round1(competitiveness.percentage),
       competitiveCount: competitiveness.competitive,
       asymmetry: round1(asymmetry.asymmetry),
-      districtBreakdown: districtStats.map(d => {
+      districtBreakdown: districtStats.map((d, i) => {
         const entry = { id: d.id, blue: d.blue, red: d.red, total: d.total };
-        // When election-night uncertainty is on, attach each district's
-        // applied swing (national + its own local shock) and whether it
-        // flipped, so the breakdown can show why the outcome moved.
+        // Election night per district: how the undecideds broke (delta vs.
+        // the nominal tallies) plus the national swing, and whether the
+        // combination flipped the seat.
         if (swing) {
-          const local = swing.districtSwings ? (swing.districtSwings[d.id] ?? 0) : 0;
-          const totalSwing = swing.swingPct + local;
-          const swungVotes = applySwingToVotes({ blue: d.blue, red: d.red }, totalSwing);
+          const rv = swing.revealedDistrictStats ? swing.revealedDistrictStats[i] : d;
+          entry.greyBlue = rv.blue - d.blue;
+          entry.greyRed = rv.red - d.red;
+          entry.swing = round1(swing.swingPct);
+          const swungVotes = applySwingToVotes({ blue: rv.blue, red: rv.red }, swing.swingPct);
           const baseWinner = d.blue > d.red ? 'blue' : 'red';
           const swungWinner = swungVotes.blue > swungVotes.red ? 'blue' : 'red';
-          entry.swing = round1(totalSwing);
           entry.swungWinner = swungWinner;
           entry.flipped = baseWinner !== swungWinner;
         }

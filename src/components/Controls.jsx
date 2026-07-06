@@ -24,7 +24,9 @@ export default function Controls({
   onPopDeviationModeChange,
   onPopDeviationThresholdChange,
   electionUncertainty,
-  onElectionUncertaintyChange
+  onElectionUncertaintyChange,
+  greyPercentage,
+  onGreyPercentageChange
 }) {
   const DIFFICULTY_SETTINGS = {
     small: { gridSize: 50, numDistricts: 8, targetSeats: 50, minCounties: 100, maxCounties: 300 },
@@ -202,6 +204,20 @@ export default function Controls({
       {!isThreeParty && (
         <div className="control-section">
           <h3>Election Night</h3>
+          <div className="control-group">
+            <label>Undecided Voters: {greyPercentage}%</label>
+            <input
+              type="range"
+              min="0"
+              max="20"
+              value={greyPercentage}
+              onChange={(e) => onGreyPercentageChange(parseInt(e.target.value))}
+              className="slider"
+            />
+            <span className="constraint-hint">
+              Grey areas on the map hold voters who only decide on election night — whole neighborhoods break together. Recommended: 8%.
+            </span>
+          </div>
           <div className="control-group constraint-row">
             <label className="constraint-toggle">
               <input
@@ -209,10 +225,10 @@ export default function Controls({
                 checked={electionUncertainty}
                 onChange={(e) => onElectionUncertaintyChange(e.target.checked)}
               />
-              Election-Night Uncertainty
+              National Swing (±4%)
             </label>
             <span className="constraint-hint">
-              When you finish, a random national swing (±4%) plus a smaller independent swing in each district (±2%) is applied — the swung result decides win or lose, not the map as drawn.
+              When you finish, a random nationwide swing of up to ±4% shifts every district at once — the election-night result decides win or lose, not the map as drawn. Local uncertainty comes from the undecided voters above.
             </span>
           </div>
         </div>

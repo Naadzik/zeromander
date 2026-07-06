@@ -19,6 +19,11 @@ export const METRIC_DESCRIPTIONS = {
     body: 'The absolute difference between a party\'s seat share and its vote share (|seats% − votes%|). Lower means more proportional representation.',
     source: 'Simplified seats–votes disproportionality; the formal partisan-symmetry standard is Gelman & King (1994)'
   },
+  undecided: {
+    title: 'Undecided Voters',
+    body: 'Grey areas hold voters who only make up their minds on election night — and whole neighborhoods break together, usually (but not always!) leaning like the area around them. They count toward district population, but cast no votes until the reveal. A district is a TOSSUP (?) when its undecided population is larger than the current leader\'s margin: the election could flip it. Build a cushion, or gamble.',
+    source: 'Game mechanic — models local turnout/persuasion uncertainty, the reason real mapmakers build safety margins instead of maximally efficient 51-49 districts'
+  },
   populationParity: {
     title: 'Population Parity',
     body: 'Each district must contain roughly the same population (within ±10% of the target) so that every vote carries equal weight.',

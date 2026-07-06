@@ -8,6 +8,10 @@ export function calculateSeats(populationMap, districts, numDistricts, isThreePa
 
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
     const { blue, red, green } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    // A district nobody has drawn yet has no votes and is no-one's seat —
+    // without this, empty districts fall into the tie-breaks and a blank
+    // board reads as a 10/10 sweep for one side.
+    if (blue + red + green === 0) continue;
     if (isThreeParty) {
       if (blue >= red && blue >= green) seats.blue++;
       else if (red >= blue && red >= green) seats.red++;
@@ -57,22 +61,47 @@ export function getSeatPercentage(seats, totalDistricts) {
   return totalDistricts > 0 ? (seats / totalDistricts) * 100 : 0;
 }
 
+// Risk-aware live classification (2-party): a district is a TOSSUP when its
+// undecided (grey) population is at least the current leader's margin — the
+// election-night break could flip it. With no grey on the map this reduces to
+// exact ties only, i.e. today's behavior.
+export function classifyDistricts(populationMap, districts, numDistricts) {
+  const { partyMap, densityMap } = extractPopulationData(populationMap);
+  const rows = [];
+  for (let districtId = 1; districtId <= numDistricts; districtId++) {
+    const { blue, red, greyPop } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    let status;
+    if (blue + red + greyPop === 0) status = 'empty';
+    else if (Math.abs(blue - red) <= greyPop) status = 'tossup';
+    else status = blue > red ? 'blue' : 'red';
+    rows.push({ id: districtId, blue, red, greyPop, status });
+  }
+  return rows;
+}
+
+// Party shares are over DECIDED voters only: grey (undecided) population is
+// reported separately as its share of everyone. This makes ourPopPercent the
+// decided-vote share — exactly the anchor the seat target needs, stable from
+// generation through the election-night reveal.
 export function getPopulationShares(populationMap) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
-  const counts = { blue: 0, red: 0, green: 0 };
+  const counts = { blue: 0, red: 0, green: 0, grey: 0 };
 
   forEachCell(partyMap, (party, x, y) => {
     const population = getCellPopulation(densityMap, y, x);
     if (party === 0) counts.blue += population;
     else if (party === 1) counts.red += population;
-    else counts.green += population;
+    else if (party === 2) counts.green += population;
+    else counts.grey += population;
   });
 
-  const total = counts.blue + counts.red + counts.green;
+  const decided = counts.blue + counts.red + counts.green;
+  const everyone = decided + counts.grey;
   return {
-    blue: total > 0 ? (counts.blue / total) * 100 : 0,
-    red: total > 0 ? (counts.red / total) * 100 : 0,
-    green: total > 0 ? (counts.green / total) * 100 : 0,
+    blue: decided > 0 ? (counts.blue / decided) * 100 : 0,
+    red: decided > 0 ? (counts.red / decided) * 100 : 0,
+    green: decided > 0 ? (counts.green / decided) * 100 : 0,
+    grey: everyone > 0 ? (counts.grey / everyone) * 100 : 0,
   };
 }
 

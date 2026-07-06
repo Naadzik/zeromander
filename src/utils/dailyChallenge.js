@@ -48,6 +48,9 @@ export function getDailyChallenge(date = new Date()) {
       // bluePercentage is Urban Union's share; when the heist party is red,
       // red gets the minority split, i.e. blue gets the complement.
       bluePercentage: party === 'blue' ? split : 100 - split,
+      // No undecided voters in the daily: the board and the "seats stolen"
+      // baseline must stay deterministic and comparable across all players.
+      greyPercentage: 0,
       targetSeatPercentage: 50
     }
   };

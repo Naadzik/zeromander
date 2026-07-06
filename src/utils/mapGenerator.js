@@ -90,7 +90,10 @@ function rebalancePartyShare(partyMap, densityMap, cells, targetPop, partyId, ta
   }
 }
 
-export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random) {
+// `greyPercentage`: share of the population marked undecided (party 3) in
+// contiguous blobs — they count as people but cast no votes until the
+// election-night reveal. Trailing param so existing call sites are untouched.
+export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0) {
   const partyMap = [];
   const densityMap = [];
 
@@ -143,10 +146,53 @@ export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, p
   const targetBlue = Math.round(totalPop * bluePercentage / 100);
   rebalancePartyShare(partyMap, densityMap, cells, targetBlue, 0, p => p === 1, 1);
 
+  // HARD GUARD on 0: this block must consume zero rng draws when grey is off,
+  // or every seeded (daily) board silently changes. Do not "simplify" this.
+  if (greyPercentage > 0) {
+    applyGreyBlobs(partyMap, densityMap, gridSize, greyPercentage, totalPop, rng);
+  }
+
   return {
     party: partyMap,
     density: densityMap
   };
+}
+
+// Marks ~greyPercentage of the population (density-weighted) as undecided
+// (party 3), grown as 3–6 contiguous blobs: cells are claimed in order of
+// noisy distance to the nearest blob seed, so each blob is an organic disc.
+// Clusters are deliberately spatial — the reveal breaks them together, which
+// is what makes a big grey cluster a strategic risk rather than averaged-out
+// noise.
+function applyGreyBlobs(partyMap, densityMap, gridSize, greyPercentage, totalPop, rng) {
+  const targetGrey = totalPop * greyPercentage / 100;
+  const numBlobs = 3 + Math.floor(rng() * 4); // 3–6
+  const seeds = [];
+  for (let i = 0; i < numBlobs; i++) {
+    seeds.push({ x: rng() * gridSize, y: rng() * gridSize });
+  }
+
+  const scored = [];
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      let minDist = Infinity;
+      for (const s of seeds) {
+        const dx = x - s.x, dy = y - s.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < minDist) minDist = d;
+      }
+      const boundaryNoise = Math.sin(x * 0.5 + y * 0.3) * 1.5 + Math.sin(x * 0.2 + y * 0.7) * 1.5;
+      scored.push({ x, y, score: minDist + boundaryNoise });
+    }
+  }
+  scored.sort((a, b) => a.score - b.score);
+
+  let greyPop = 0;
+  for (const { x, y } of scored) {
+    if (greyPop >= targetGrey) break;
+    partyMap[y][x] = 3;
+    greyPop += densityMap[y][x];
+  }
 }
 
 export function generatePopulationMap3Party(gridSize, bluePercentage, greenPercentage, numCities, numTowns = 3, rng = Math.random) {

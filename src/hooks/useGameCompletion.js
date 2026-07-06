@@ -1,12 +1,27 @@
 import { useState, useEffect } from 'react';
-import { allDistrictsAssigned, calculateSeatsWithSwing } from '../utils/gameLogic';
+import { allDistrictsAssigned, calculateSeatsWithSwing, getDistrictStats } from '../utils/gameLogic';
 import { computePopulationDeviation, checkConstraintViolations } from '../utils/legalConstraints';
 import { computeCoreStats, buildEndGameStats } from '../utils/computeGameStats';
 import { isDistrictConnected } from '../utils/fairMapGenerator';
+import { resolveGreyPopulation } from '../utils/greyReveal';
+import { GREY } from '../utils/formatUtils';
 import { createRng, randomSeed } from '../utils/rng';
 
-const MAX_SWING_PCT = 4;          // uniform national swing: ±4%
-const MAX_DISTRICT_SWING_PCT = 2; // additional per-district noise: ±2% each
+// Uniform national swing: ±4%. Local uncertainty is no longer synthetic
+// per-district noise — it's the grey (undecided) population breaking in
+// clusters at the reveal.
+const MAX_SWING_PCT = 4;
+
+function mapHasGrey(populationMap) {
+  const party = populationMap?.party;
+  if (!party) return false;
+  for (let y = 0; y < party.length; y++) {
+    for (let x = 0; x < party[y].length; x++) {
+      if (party[y][x] === GREY) return true;
+    }
+  }
+  return false;
+}
 
 // The base ±10% completion gate is unaffected by constraint settings — even in
 // soft mode, a violating map must be allowed to complete so it can be struck down.
@@ -31,28 +46,43 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
   const [gameComplete, setGameComplete] = useState(false);
   const [gameStats, setGameStats] = useState(null);
   const [isMapValid, setIsMapValid] = useState(false);
+  // The election-night resolution of the grey population — a NEW map with all
+  // undecided cells assigned. Null until completion (and on grey-free boards).
+  // GameApp renders this over the live map once it exists, so the board
+  // visually "declares itself"; Try Again clears it back to grey.
+  const [revealedMap, setRevealedMap] = useState(null);
   // Dismissing the modal must NOT clear gameComplete — the ghost-map comparison
   // stays on screen so the player can study it after closing the dialog.
   const [modalDismissed, setModalDismissed] = useState(false);
 
   function computeStats() {
     const isThreeParty = difficulty === 'three-party';
+    // Nominal ("as drawn") stats are always from the ORIGINAL map: decided
+    // votes only. The target derives from the decided-vote share and is
+    // frozen before the reveal — no moving goalposts.
     const core = computeCoreStats(populationMap, districts, numDistricts, playerParty, isThreeParty);
     const constraintViolations = checkConstraintViolations(populationMap, districts, numDistricts, constraints);
 
+    const hasGrey = !isThreeParty && mapHasGrey(populationMap);
     let swing = null;
-    if (electionUncertainty && !isThreeParty) {
+    let revealed = null;
+    if ((electionUncertainty || hasGrey) && !isThreeParty) {
       const rng = createRng(randomSeed());
-      const swingPct = (rng() * 2 - 1) * MAX_SWING_PCT;
-      const districtSwings = [];
-      for (let d = 1; d <= numDistricts; d++) {
-        districtSwings[d] = (rng() * 2 - 1) * MAX_DISTRICT_SWING_PCT;
-      }
-      const swungSeats = calculateSeatsWithSwing(populationMap, districts, numDistricts, swingPct, districtSwings);
-      swing = { swingPct, districtSwings, seats: swungSeats };
+      const swingPct = electionUncertainty ? (rng() * 2 - 1) * MAX_SWING_PCT : 0;
+      revealed = hasGrey ? resolveGreyPopulation(populationMap, rng).revealedMap : populationMap;
+      const swungSeats = calculateSeatsWithSwing(revealed, districts, numDistricts, swingPct);
+      swing = {
+        swingPct,
+        seats: swungSeats,
+        revealed: hasGrey,
+        // Per-district votes AFTER the undecideds broke — the breakdown shows
+        // each district's grey→blue/red split from the delta vs. the nominal.
+        revealedDistrictStats: hasGrey ? getDistrictStats(revealed, districts, numDistricts, false) : null
+      };
     }
 
-    return buildEndGameStats(core, { playerParty, isThreeParty, numDistricts, constraintViolations, swing });
+    const stats = buildEndGameStats(core, { playerParty, isThreeParty, numDistricts, constraintViolations, swing });
+    return { stats, revealed: hasGrey ? revealed : null };
   }
 
   useEffect(() => {
@@ -62,7 +92,9 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
     setIsMapValid(valid);
 
     if (valid && !manual) {
-      setGameStats(computeStats());
+      const { stats, revealed } = computeStats();
+      setGameStats(stats);
+      setRevealedMap(revealed);
       setGameComplete(true);
       setModalDismissed(false);
     }
@@ -72,8 +104,9 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
   // build the daily result record synchronously (state updates are async).
   function finalize() {
     if (!isMapValid) return null;
-    const stats = computeStats();
+    const { stats, revealed } = computeStats();
     setGameStats(stats);
+    setRevealedMap(revealed);
     setGameComplete(true);
     setModalDismissed(false);
     return stats;
@@ -82,6 +115,7 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
   function resetCompletion() {
     setGameComplete(false);
     setGameStats(null);
+    setRevealedMap(null);
     setModalDismissed(false);
   }
 
@@ -89,6 +123,7 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
     gameComplete,
     gameStats,
     isMapValid,
+    revealedMap,
     finalize,
     showModal: gameComplete && !modalDismissed,
     dismissModal: () => setModalDismissed(true),

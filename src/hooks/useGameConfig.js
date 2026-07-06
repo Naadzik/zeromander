@@ -18,6 +18,8 @@ export function useGameConfig(initialDifficulty = 'medium') {
   const [greenPercentage, setGreenPercentage] = useState(25);
   const [numTowns, setNumTowns] = useState(3);
   const [targetSeatPercentage, setTargetSeatPercentage] = useState(initial.targetSeats);
+  // Undecided ("grey") population share — 2-party only for now.
+  const [greyPercentage, setGreyPercentage] = useState(8);
 
   const isThreeParty = difficulty === 'three-party';
 
@@ -51,6 +53,10 @@ export function useGameConfig(initialDifficulty = 'medium') {
     setGreenPercentage,
     numTowns,
     setNumTowns,
+    // Forced to 0 in three-party mode at the source, so generation and every
+    // consumer see a grey-free config there without per-site checks.
+    greyPercentage: isThreeParty ? 0 : greyPercentage,
+    setGreyPercentage,
     targetSeatPercentage,
     applyDifficulty,
     maxDistricts: DIFFICULTY_SETTINGS[difficulty].maxDistricts

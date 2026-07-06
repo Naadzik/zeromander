@@ -32,10 +32,12 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, onTr
         <div className="modal-content modal-content--counting" onClick={() => setPhase('result')}>
           <div className="counting-screen">
             <h2 className="counting-title">🗳️ ELECTION NIGHT</h2>
-            <p className="counting-message">Counting votes…</p>
-            <div className="counting-swing">
-              national swing <strong>{tickPct > 0 ? '+' : ''}{tickPct}%</strong>
-            </div>
+            <p className="counting-message">{stats.swung?.revealed ? 'Counting undecided precincts…' : 'Counting votes…'}</p>
+            {stats.swung?.swingPct !== 0 && (
+              <div className="counting-swing">
+                national swing <strong>{tickPct > 0 ? '+' : ''}{tickPct}%</strong>
+              </div>
+            )}
             <div className="counting-dots"><span /><span /><span /></div>
             <p className="counting-skip">tap to skip</p>
           </div>
@@ -110,10 +112,13 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, onTr
     }
   }
 
-  const ourWins = stats.ourWins ?? stats.blueWins;
-  const theirWins = stats.theirWins ?? stats.redWins;
-  const ourSeatsPct = stats.ourSeats ?? stats.blueSeats;
-  const theirSeatsPct = stats.theirSeats ?? stats.redSeats;
+  // The result cards show the FINAL outcome — after the election-night
+  // reveal/swing when one happened. The "as drawn" numbers live in the
+  // comparison rows below, so the cards, banner and side panel always agree.
+  const ourWins = stats.swung ? stats.swung.ourSeatCount : (stats.ourWins ?? stats.blueWins);
+  const theirWins = stats.swung ? stats.totalDistricts - stats.swung.ourSeatCount : (stats.theirWins ?? stats.redWins);
+  const ourSeatsPct = stats.swung ? stats.swung.ourSeats : (stats.ourSeats ?? stats.blueSeats);
+  const theirSeatsPct = stats.swung ? Math.round((100 - stats.swung.ourSeats) * 10) / 10 : (stats.theirSeats ?? stats.redSeats);
 
   return (
     <div className="modal-overlay" onClick={expanded ? onClose : undefined}>
@@ -193,11 +198,16 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, onTr
               {stats.swung && (
                 <div className="swing-comparison">
                   <div className="stat-line">
-                    <span>Nominal (as drawn):</span>
+                    <span>{stats.swung.revealed ? 'As drawn (decided voters only):' : 'Nominal (as drawn):'}</span>
                     <strong>{stats.nominal.ourSeats}% seats — {stats.nominal.won ? 'WIN' : 'LOSE'}</strong>
                   </div>
                   <div className="stat-line">
-                    <span>Election night ({stats.swung.swingPct > 0 ? '+' : ''}{stats.swung.swingPct}% national ± local swings):</span>
+                    <span>
+                      Election night ({[
+                        stats.swung.revealed ? 'undecideds broke' : null,
+                        stats.swung.swingPct !== 0 ? `${stats.swung.swingPct > 0 ? '+' : ''}${stats.swung.swingPct}% national swing` : null
+                      ].filter(Boolean).join(', ')}):
+                    </span>
                     <strong>{stats.swung.ourSeats}% seats — {stats.swung.won ? 'WIN' : 'LOSE'}</strong>
                   </div>
                 </div>
@@ -281,7 +291,9 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, onTr
                       <h4>District Breakdown</h4>
                       {stats.swung && (
                         <p className="breakdown-caption">
-                          Election-night swing shown per district (national + local); → marks a flipped seat.
+                          {stats.swung.revealed
+                            ? 'Election night per district: how the undecided voters broke; → marks a flipped seat.'
+                            : 'Election-night national swing shown per district; → marks a flipped seat.'}
                         </p>
                       )}
                       <div className="districts-breakdown">
@@ -325,9 +337,11 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, onTr
                                 </span>
                               </span>
                               <span className="district-winner"><PartyIcon party={winnerParty} /></span>
-                              {d.swing !== undefined && (
+                              {d.swing !== undefined && (d.greyBlue > 0 || d.greyRed > 0 || d.swing !== 0 || d.flipped) && (
                                 <span className={`district-swing${d.flipped ? ' district-swing--flip' : ''}`}>
-                                  {d.swing > 0 ? '+' : ''}{d.swing}%
+                                  {(d.greyBlue > 0 || d.greyRed > 0)
+                                    ? <>+{d.greyBlue}<PartyIcon party="blue" /> +{d.greyRed}<PartyIcon party="red" /></>
+                                    : d.swing !== 0 && <>{d.swing > 0 ? '+' : ''}{d.swing}%</>}
                                   {d.flipped && <> → <PartyIcon party={d.swungWinner} /></>}
                                 </span>
                               )}

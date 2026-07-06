@@ -54,6 +54,17 @@
   background: var(--navy-700);
 }
 
+/* Tossup: could go either way on election night — hatched grey. */
+.seat-bar__seg--tossup {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--grey-party, #94A3B8),
+    var(--grey-party, #94A3B8) 3px,
+    #64748B 3px,
+    #64748B 6px
+  );
+}
+
 .seat-bar__tick {
   position: absolute;
   left: 50%;

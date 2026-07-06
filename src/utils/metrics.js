@@ -73,7 +73,8 @@ export function calculatePartisanAsymmetry(populationMap, districts, numDistrict
   forEachCell(partyMap, (party, x, y) => {
     const population = getCellPopulation(densityMap, y, x);
     if (party === 0) blueVotes += population;
-    else redVotes += population;
+    else if (party === 1) redVotes += population;
+    // green/grey cast no votes in this 2-party metric
   });
 
   const blueVotePercent = (blueVotes / (blueVotes + redVotes)) * 100;

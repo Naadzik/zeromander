@@ -81,6 +81,23 @@ Difference between your seat share and vote share.
   - You: 45% votes, win 3/6 seats (50%) = 5% asymmetry ✓
   - You: 45% votes, win 5/6 seats (83%) = 38% asymmetry ✗
 
+## Election Night & Undecided Voters
+
+Two optional sources of uncertainty (2-party maps only) make thin-margin gerrymanders risky:
+
+### Undecided Voters (grey areas)
+- A configurable share of the population (recommended ~8%) is **undecided** — grey on the map.
+- They **count toward district population** (±10% parity) but **cast no votes** while you draw. All live numbers show decided votes only.
+- A district is a **tossup (?)** when its undecided population exceeds the current leader's margin — the reveal could flip it. The seat bar shows tossups as a hatched segment.
+- On election night, grey **neighborhoods break together**: each contiguous cluster leans roughly like the decided area around it (undecideds in a blue city lean blue), but with real variance — a cluster can badly underperform or overperform its surroundings. You can't count on them; you can only build cushions.
+
+### National Swing (toggle)
+- A single nationwide swing of up to ±4% shifts every district at once — the wave year no map can fully protect against.
+
+The election-night result — undecideds breaking, plus the national swing if enabled — decides win or lose. Your target is set from your **decided-vote share** before the reveal and doesn't move.
+
+**Why this matters:** real mapmakers draw 55–45 cushions instead of maximally "efficient" 51–49 districts precisely because turnout and late deciders are unpredictable. Fragile gerrymanders die on election night.
+
 ## Strategy Tips
 
 ### For Winning with Minority Population (< 50%)
