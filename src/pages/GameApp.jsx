@@ -72,13 +72,15 @@ function CollapsiblePanel({ title, side, collapsed, onToggle, children }) {
 // cities in red countryside, no grey/swing — so pack+crack always works.
 const LESSON = {
   // Seed chosen so the taught pack+crack wins 2/3 with CONTIGUOUS, balanced
-  // districts (two blue cities in the flanks, red packed in the middle — a
-  // clean 3-strip split wins at ~1% population deviation). Verified by solver.
+  // districts (two blue cities, red packed between — a clean 3-strip split
+  // wins). Re-verified against the natural model (N4): seed 29 still holds, a
+  // vertical strip split wins each blue district by ~14% at ~2% pop deviation.
   seed: 29,
   config: {
     difficulty: 'small', gridSize: 50, numDistricts: 3, numCounties: 90,
     numCities: 2, numTowns: 0, bluePercentage: 40, greyPercentage: 0,
-    targetSeatPercentage: 50, isThreeParty: false
+    targetSeatPercentage: 50, isThreeParty: false,
+    naturalBoard: true
   }
 };
 

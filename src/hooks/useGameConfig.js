@@ -57,6 +57,11 @@ export function useGameConfig(initialDifficulty = 'medium') {
     // consumer see a grey-free config there without per-site checks.
     greyPercentage: isThreeParty ? 0 : greyPercentage,
     setGreyPercentage,
+    // The natural board model is the default for every 2-party board. Duel
+    // (challenge-link) and lesson configs spread this, so they inherit it;
+    // three-party ignores it (uses its own generator). Removed with the flag
+    // in N5 once it's unconditional.
+    naturalBoard: true,
     targetSeatPercentage,
     applyDifficulty,
     maxDistricts: DIFFICULTY_SETTINGS[difficulty].maxDistricts
