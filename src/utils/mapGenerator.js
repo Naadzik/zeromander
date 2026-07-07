@@ -32,16 +32,6 @@ function inAnyPatch(patches, x, y) {
   });
 }
 
-// Density tiers shared by both generators: dense blue urban cores, sparse otherwise.
-function cityCellDensity(distCity, party, rng) {
-  if (party === 0) {
-    if (distCity < 3) return 20 + Math.floor(rng() * 11);
-    if (distCity < 5) return 15 + Math.floor(rng() * 6);
-    return 10 + Math.floor(rng() * 6);
-  }
-  return 2 + Math.floor(rng() * 3);
-}
-
 function ruralCellDensity(sparsePatches, x, y, rng) {
   return inAnyPatch(sparsePatches, x, y) ? 1 : 2 + Math.floor(rng() * 3);
 }
@@ -92,102 +82,16 @@ function rebalancePartyShare(partyMap, densityMap, cells, targetPop, partyId, ta
 
 // `greyPercentage`: share of the population marked undecided (party 3) in
 // contiguous blobs — they count as people but cast no votes until the
-// election-night reveal. Trailing param so existing call sites are untouched.
+// election-night reveal.
 //
-// `opts.solidCities`: the rebalance-to-target step normally flips cells in
-// random order, which at low blue% sprays red uniformly INTO the cities and
-// turns them purple (illegible — nothing to pack or crack). With solidCities,
-// surplus blue is stripped from the city fringe inward (deficit filled from
-// the fringe outward), so urban cores stay solid. Deterministic reordering of
-// the same shuffled cells — consumes ZERO extra rng draws, so boards without
-// the flag are byte-identical to pre-flag behavior. BOTH daily tiers enable it
-// (a deliberate one-time board redefinition, 2026-07-07); the sandbox and
-// challenge links leave it off, so their boards are unchanged.
-export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0, opts = {}) {
-  // Natural-board model (rollout scaffolding): a separate path so the legacy
-  // model below stays byte-identical while modes are switched over one at a
-  // time. Once every mode uses it, the flag and the legacy path get removed.
-  if (opts.naturalBoard) {
-    return generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage);
-  }
-
-  const partyMap = [];
-  const densityMap = [];
-
-  const citySeeds = placeSeeds(numCities, gridSize, rng, {
-    make: (x, y) => ({ x, y, radius: 5 + rng() * 5 })
-  });
-
-  // At polarization=0 (balanced): cities are 50/50 random, rural is 15% blue (sparse)
-  // At polarization=50 (moderate): cities 72.5% blue, rural 10% blue (very sparse)
-  // At polarization=100 (extreme): cities 95% blue, rural 5% blue (extremely sparse)
-  const polarizationFactor = polarization / 100;
-  const cityBluePct = 50 + (45 * polarizationFactor);
-  const ruralBluePct = 15 - (10 * polarizationFactor);
-
-  for (let y = 0; y < gridSize; y++) {
-    partyMap[y] = [];
-    densityMap[y] = [];
-
-    for (let x = 0; x < gridSize; x++) {
-      const distToCity = distToNearest(citySeeds, x, y);
-
-      // Add noise to city boundaries for irregular shapes
-      const boundaryNoise = Math.sin(x * 0.3 + y * 0.4) * 2 + Math.sin(x * 0.7 + y * 0.2) * 2;
-      const isCity = distToCity < (12 + boundaryNoise);
-      const roll = rng() * 100;
-
-      partyMap[y][x] = roll < (isCity ? cityBluePct : ruralBluePct) ? 0 : 1;
-    }
-  }
-
-  const sparsePatches = makeSparsePatches(gridSize, rng);
-
-  for (let y = 0; y < gridSize; y++) {
-    for (let x = 0; x < gridSize; x++) {
-      const distToCity = distToNearest(citySeeds, x, y);
-      if (distToCity < 12) {
-        densityMap[y][x] = cityCellDensity(distToCity, partyMap[y][x], rng);
-      } else {
-        densityMap[y][x] = ruralCellDensity(sparsePatches, x, y, rng);
-      }
-    }
-  }
-
-  let totalPop = 0;
-  for (let y = 0; y < gridSize; y++)
-    for (let x = 0; x < gridSize; x++)
-      totalPop += densityMap[y][x];
-
-  const cells = shuffledCells(gridSize, rng);
-  const targetBlue = Math.round(totalPop * bluePercentage / 100);
-  if (opts.solidCities) {
-    // Sort by noisy distance-to-city (noise keeps the peel edge organic, same
-    // style as the isCity boundary). Surplus: flip the FARTHEST blue first
-    // (fringe peels, cores hold). Deficit: flip the NEAREST red first.
-    let currentBlue = 0;
-    for (let y = 0; y < gridSize; y++)
-      for (let x = 0; x < gridSize; x++)
-        if (partyMap[y][x] === 0) currentBlue += densityMap[y][x];
-    const key = ({ x, y }) =>
-      distToNearest(citySeeds, x, y) + Math.sin(x * 0.3 + y * 0.4) * 2 + Math.sin(x * 0.7 + y * 0.2) * 2;
-    cells.sort((a, b) => (currentBlue > targetBlue ? key(b) - key(a) : key(a) - key(b)));
-  }
-  rebalancePartyShare(partyMap, densityMap, cells, targetBlue, 0, p => p === 1, 1);
-
-  // HARD GUARD on 0: this block must consume zero rng draws when grey is off,
-  // or every seeded (daily) board silently changes. Do not "simplify" this.
-  if (greyPercentage > 0) {
-    applyGreyBlobs(partyMap, densityMap, gridSize, greyPercentage, totalPop, rng);
-  }
-
-  return {
-    party: partyMap,
-    density: densityMap
-  };
+// This IS the natural-board model (unconditional since 2026-07-08; the legacy
+// "perfect circles + random rebalance" path and its rollout flags solidCities/
+// naturalBoard were removed once every mode had migrated).
+export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0) {
+  return generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage);
 }
 
-// ---------- Natural board model (opts.naturalBoard) ----------
+// ---------- Natural board model ----------
 // The replacement look: warped non-round cities, a density gradient that
 // widens outward, and a "dim seam" city edge — red near a city stays sparse,
 // so a city feathers into the countryside instead of ending in a bright halo.
@@ -451,8 +355,22 @@ function applyGreyBlobs(partyMap, densityMap, gridSize, greyPercentage, totalPop
   }
 }
 
+// Shares the natural model's look (N6): warped non-round cities via
+// naturalDist and the u-anchored density gradient. Party stays this mode's own
+// three-way zone model + rebalance passes — the 2-party dim-seam/share-fitting
+// don't apply here (three targets, sandbox-only, nothing frozen).
 export function generatePopulationMap3Party(gridSize, bluePercentage, greenPercentage, numCities, numTowns = 3, rng = Math.random) {
-  const citySeeds = placeSeeds(numCities, gridSize, rng);
+  // The urban party zones end at 15 (75/10 band) — the density gradient is
+  // anchored to that same extent so both feather out together.
+  const URBAN_EXTENT = 15;
+  const citySeeds = placeSeeds(numCities, gridSize, rng, {
+    make: (x, y) => ({
+      x, y,
+      phase: rng() * Math.PI * 2,
+      size: NATURAL.SIZE_MIN + rng() * NATURAL.SIZE_SPAN
+    })
+  });
+  const cityDist = (x, y) => citySeeds.length ? naturalDist(citySeeds, x, y) : Infinity;
 
   // Small-town seeds: placed at least 20 units from any city (or anywhere if no cities)
   const townSeeds = placeSeeds(numTowns, gridSize, rng, {
@@ -476,7 +394,8 @@ export function generatePopulationMap3Party(gridSize, bluePercentage, greenPerce
     partyMap[y] = [];
     densityMap[y] = [];
     for (let x = 0; x < gridSize; x++) {
-      const distCity = distToNearest(citySeeds, x, y);
+      // Warped distance → the 8/15/25 zone boundaries go organic per city.
+      const distCity = cityDist(x, y);
       const distTown = distToNearest(townSeeds, x, y);
       const inGreenPatch = inAnyPatch(greenRuralPatches, x, y);
 
@@ -504,14 +423,16 @@ export function generatePopulationMap3Party(gridSize, bluePercentage, greenPerce
 
   const sparsePatches = makeSparsePatches(gridSize, rng);
 
-  // Density: mirrors normal mode for city cells; small-town green gets 4–9
+  // Density: the natural u-anchored gradient inside the urban extent (blue
+  // bright core → dim fringe; red/green specks stay sparse); small-town green
+  // keeps its dense nub; countryside keeps its sparse patches.
   for (let y = 0; y < gridSize; y++) {
     for (let x = 0; x < gridSize; x++) {
-      const distCity = distToNearest(citySeeds, x, y);
+      const u = cityDist(x, y) / URBAN_EXTENT;
       const distTown = distToNearest(townSeeds, x, y);
 
-      if (distCity < 12) {
-        densityMap[y][x] = cityCellDensity(distCity, partyMap[y][x], rng);
+      if (u < 1) {
+        densityMap[y][x] = naturalDensity(u, partyMap[y][x] === 0 ? 0 : 1, rng);
       } else if (distTown < 6) {
         densityMap[y][x] = 4 + Math.floor(rng() * 6);
       } else {

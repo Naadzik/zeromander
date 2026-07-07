@@ -61,17 +61,13 @@ export function getDailyChallenge(date = new Date()) {
         numDistricts: 8,
         numCounties: 250,
         numCities: 3,
-        // naturalBoard: the legibility model — solid one-party cities with
-        // organic outlines that feather into the countryside (supersedes the
-        // solidCities peel). Redefines these boards once more; seed unchanged.
-        naturalBoard: true,
         ...shared
       }
     },
     full: {
-      // Seed unchanged from the pre-tier daily. Board CONTENT now comes from the
-      // naturalBoard model (2026-07-07) — solid cities, density gradient, no
-      // halo. A deliberate redefinition while the audience is ~a day old.
+      // Seed unchanged from the pre-tier daily. Board CONTENT was redefined
+      // once (2026-07-07/08) when the natural board model became the app-wide
+      // generator — solid cities, density gradient, no halo.
       seed,
       config: {
         difficulty: 'medium',
@@ -79,7 +75,6 @@ export function getDailyChallenge(date = new Date()) {
         numDistricts: 10,
         numCounties: 475,
         numCities: 4,
-        naturalBoard: true,
         ...shared
       }
     }

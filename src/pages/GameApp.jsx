@@ -79,8 +79,7 @@ const LESSON = {
   config: {
     difficulty: 'small', gridSize: 50, numDistricts: 3, numCounties: 90,
     numCities: 2, numTowns: 0, bluePercentage: 40, greyPercentage: 0,
-    targetSeatPercentage: 50, isThreeParty: false,
-    naturalBoard: true
+    targetSeatPercentage: 50, isThreeParty: false
   }
 };
 

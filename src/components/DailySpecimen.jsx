@@ -17,8 +17,7 @@ export default function DailySpecimen({ size = 400, className = '' }) {
     const { seed, config } = getDailyChallenge().small;
     const rng = createRng(seed);
     const pop = generatePopulationMap(
-      config.gridSize, config.bluePercentage, config.numCities, 100, rng, config.greyPercentage,
-      { solidCities: config.solidCities, naturalBoard: config.naturalBoard }
+      config.gridSize, config.bluePercentage, config.numCities, 100, rng, config.greyPercentage
     );
     let counties = generateCounties(config.gridSize, config.numCounties, rng);
     counties = rebalanceCountyPopulations(pop, counties, config.numCounties, 10, rng);

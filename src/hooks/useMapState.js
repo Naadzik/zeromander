@@ -21,7 +21,7 @@ function findFirstCell(grid, value) {
 // `options.locked` freezes the board: undo/redo (buttons AND keyboard
 // shortcuts) are disabled. Paint/click guards live at the GameApp level.
 export function useMapState(config, constraints, options = {}) {
-  const { difficulty, gridSize, numDistricts, numCounties, numCities, bluePercentage, greenPercentage, numTowns, greyPercentage = 0, solidCities = false, naturalBoard = false } = config;
+  const { difficulty, gridSize, numDistricts, numCounties, numCities, bluePercentage, greenPercentage, numTowns, greyPercentage = 0 } = config;
   const fixedSeed = options.seed;
 
   const [populationMap, setPopulationMap] = useState([]);
@@ -60,7 +60,7 @@ export function useMapState(config, constraints, options = {}) {
     const rng = createRng(effectiveSeed);
     const pop = difficulty === 'three-party'
       ? generatePopulationMap3Party(gridSize, bluePercentage, greenPercentage, numCities, numTowns, rng)
-      : generatePopulationMap(gridSize, bluePercentage, numCities, 100, rng, greyPercentage, { solidCities, naturalBoard });
+      : generatePopulationMap(gridSize, bluePercentage, numCities, 100, rng, greyPercentage);
     installMap(pop, gridSize, numCounties, rng);
   }
 
@@ -69,7 +69,7 @@ export function useMapState(config, constraints, options = {}) {
   useEffect(() => {
     const timer = setTimeout(() => generateNewGame(), 150);
     return () => clearTimeout(timer);
-  }, [gridSize, bluePercentage, greenPercentage, numCities, numTowns, greyPercentage, solidCities, naturalBoard, fixedSeed]);
+  }, [gridSize, bluePercentage, greenPercentage, numCities, numTowns, greyPercentage, fixedSeed]);
 
   function applyCountyAction(prevDistricts, countyId, mode) {
     if (currentDistrict === 0) return null;
