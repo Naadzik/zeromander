@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import '../styles/GameEndModal.css'
 import { seatGridString, TIER_LABELS } from '../utils/dailyChallenge'
 import { currentStreak, getResultFor } from '../utils/dailyHistory'
-import { METRIC_DESCRIPTIONS, NEUTRAL_MAP_NOTE } from '../utils/metricDescriptions'
 import { analyzeMap, efficiencyGapContext } from '../utils/mapAnatomy'
 import { PARTY } from '../utils/partyConfig'
 import PartyIcon from './ui/PartyIcon'
@@ -348,25 +348,14 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
                     )}
                   </div>
 
-                  <div className="stats-section">
-                    <h4>Methodology &amp; Sources</h4>
-                    {Object.values(METRIC_DESCRIPTIONS).filter(m => m.source).map(m => (
-                      <div className="stat-line" key={m.title}>
-                        <span>{m.title}:</span>
-                        <strong className="methodology-source">{m.source}</strong>
-                      </div>
-                    ))}
-                    <p className="methodology-note">{NEUTRAL_MAP_NOTE}</p>
-                  </div>
-
                   {stats.allStats.districtBreakdown && (
                     <div className="stats-section">
                       <h4>District Breakdown</h4>
                       {stats.swung && (
                         <p className="breakdown-caption">
-                          {stats.swung.revealed
-                            ? 'Bars are to scale. Lighter segments are undecided voters and the side they broke for; → marks a flipped seat.'
-                            : 'Bars are to scale. Election-night national swing shown per district; → marks a flipped seat.'}
+                          Bars are to scale; darker = decided votes, lighter = undecideds and the side
+                          they broke for. Totals are listed under each bar; a gold <strong>FLIPPED</strong> tag
+                          marks a seat the undecideds turned.
                         </p>
                       )}
                       <div className="districts-breakdown">
@@ -380,50 +369,50 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
                             ? d.total
                             : d.blue + d.red + (d.greyBlue ?? 0) + (d.greyRed ?? 0);
                           const maxTotal = Math.max(...rows.map(fullTotal), 1);
-                          // Only print a count when the segment is wide enough to hold it.
-                          const label = (votes, total) => (votes > 0 && votes / total >= 0.13 ? votes : '');
+                          const fmt = n => Math.round(n).toLocaleString();
+                          const seg = (w, total, cls, title) => w > 0 && (
+                            <span className={cls} style={{ width: `${(w / total) * 100}%` }} title={title} />
+                          );
                           return rows.map(d => {
                             const total = fullTotal(d);
                             const gB = d.greyBlue ?? 0;
                             const gR = d.greyRed ?? 0;
+                            const blueTot = d.blue + gB;
+                            const redTot = d.red + gR;
+                            const greenTot = isThreeParty ? (d.green ?? 0) : 0;
                             const winnerParty = isThreeParty
                               ? d.winner
-                              : (d.blue + gB > d.red + gR ? 'blue' : 'red');
+                              : (blueTot > redTot ? 'blue' : 'red');
+                            const nm = { blue: 'Urban Union', red: 'Heartland', green: 'Farmers' };
+                            const legendItem = (party, votes) => (
+                              <span className={`legend-item${winnerParty === party ? ' legend-item--win' : ''}`}>
+                                <PartyIcon party={party} size={11} /> {fmt(votes)}
+                              </span>
+                            );
                             return (
-                              <div key={d.id} className="district-breakdown-row">
+                              <div key={d.id} className={`district-breakdown-row${d.flipped ? ' district-breakdown-row--flipped' : ''}`}>
                                 <span className="district-num">D{d.id}</span>
                                 <span className="district-bar-track">
                                   <span className="district-bar" style={{ width: `${(total / maxTotal) * 100}%` }}>
-                                    <span className="bar-blue" style={{ width: `${(d.blue / total) * 100}%` }}>
-                                      {label(d.blue, total)}
-                                    </span>
-                                    {gB > 0 && (
-                                      <span className="bar-blue bar--late" style={{ width: `${(gB / total) * 100}%` }}>
-                                        {label(gB, total)}
-                                      </span>
-                                    )}
-                                    {isThreeParty && d.green > 0 && (
-                                      <span className="bar-green" style={{ width: `${(d.green / total) * 100}%` }}>
-                                        {label(d.green, total)}
-                                      </span>
-                                    )}
-                                    {gR > 0 && (
-                                      <span className="bar-red bar--late" style={{ width: `${(gR / total) * 100}%` }}>
-                                        {label(gR, total)}
-                                      </span>
-                                    )}
-                                    <span className="bar-red" style={{ width: `${(d.red / total) * 100}%` }}>
-                                      {label(d.red, total)}
-                                    </span>
+                                    {seg(d.blue, total, 'bar-blue', `${nm.blue}: ${fmt(d.blue)}`)}
+                                    {seg(gB, total, 'bar-blue bar--late', `Undecided → ${nm.blue}: ${fmt(gB)}`)}
+                                    {isThreeParty && seg(d.green, total, 'bar-green', `${nm.green}: ${fmt(d.green)}`)}
+                                    {seg(gR, total, 'bar-red bar--late', `Undecided → ${nm.red}: ${fmt(gR)}`)}
+                                    {seg(d.red, total, 'bar-red', `${nm.red}: ${fmt(d.red)}`)}
                                   </span>
                                 </span>
-                                <span className="district-winner"><PartyIcon party={winnerParty} /></span>
-                                {d.swing !== undefined && (d.swing !== 0 || d.flipped) && (
-                                  <span className={`district-swing${d.flipped ? ' district-swing--flip' : ''}`}>
-                                    {d.swing !== 0 && <>{d.swing > 0 ? '+' : ''}{d.swing}%</>}
-                                    {d.flipped && <> → <PartyIcon party={d.swungWinner} /></>}
-                                  </span>
-                                )}
+                                <span className="district-result">
+                                  {d.flipped && <span className="flip-badge">FLIPPED</span>}
+                                  {d.swing !== undefined && d.swing !== 0 && (
+                                    <span className="district-swing">{d.swing > 0 ? '+' : ''}{d.swing}%</span>
+                                  )}
+                                  <PartyIcon party={winnerParty} size={18} />
+                                </span>
+                                <span className="district-legend">
+                                  {legendItem('blue', blueTot)}
+                                  {isThreeParty && legendItem('green', greenTot)}
+                                  {legendItem('red', redTot)}
+                                </span>
                               </div>
                             );
                           });
@@ -474,6 +463,9 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
               </button>
             )
           )}
+          <Link to="/methodology" target="_blank" rel="noopener noreferrer" className="modal-methodology-link">
+            Methodology &amp; sources ↗
+          </Link>
         </div>
       </div>
     </div>

@@ -199,10 +199,21 @@
   background: var(--bg-light);
   border-top: 1px solid var(--border-color);
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-lg);
   justify-content: center;
   flex-shrink: 0;
 }
+
+/* Reference link, subtle, on its own line under the action buttons. */
+.modal-methodology-link {
+  flex-basis: 100%;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.modal-methodology-link:hover { color: var(--accent-blue, #4D9FFF); text-decoration: underline; }
 
 /* Scrollbar styling */
 .modal-body::-webkit-scrollbar {
@@ -458,12 +469,20 @@
 
 .district-breakdown-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-md);
+  row-gap: 6px;
   padding: var(--spacing-md);
   background: var(--bg-white);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+}
+
+/* A flipped seat is the whole point of the reveal — highlight the whole row. */
+.district-breakdown-row--flipped {
+  border-left: 3px solid var(--accent-gold, #FFCB5C);
+  background: rgba(255, 203, 92, 0.06);
 }
 
 .district-num {
@@ -530,11 +549,57 @@
   color: var(--text-bright);
 }
 
-.district-winner {
-  min-width: 45px;
-  text-align: right;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-base);
+/* Thin dividers so decided/late segments read as distinct even without labels. */
+.district-bar > span {
+  box-shadow: inset -1px 0 0 rgba(11, 20, 36, 0.35);
+}
+
+/* Winner icon + optional swing% + FLIPPED tag, pinned to the bar's right. */
+.district-result {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.district-swing {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.flip-badge {
+  font-family: var(--font-ticker, 'Barlow Condensed', sans-serif);
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  background: var(--accent-gold, #FFCB5C);
+  color: var(--navy-950, #0B1424);
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+
+/* Per-party totals — always legible, on a full-width line under the bar. */
+.district-legend {
+  flex-basis: 100%;
+  display: flex;
+  gap: 16px;
+  padding-left: 47px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary, #6b7a94);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-item--win {
+  color: var(--text-bright, #fff);
+  font-weight: var(--font-weight-bold);
 }
 
 .breakdown-caption {
@@ -542,25 +607,6 @@
   font-size: 0.75rem;
   color: var(--text-secondary);
   font-style: italic;
-}
-
-.district-swing {
-  min-width: 70px;
-  text-align: right;
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-}
-
-/* A flipped seat is the whole point of the reveal — make it pop. */
-.district-swing--flip {
-  color: var(--accent-gold, #FFCB5C);
-  font-weight: var(--font-weight-bold);
 }
 
 @media (max-width: 600px) {

@@ -117,7 +117,7 @@ export default function Landing() {
             <strong>Zeromander is strictly nonpartisan.</strong> Every party in the game is fictional, and the game makes no argument about who gerrymanders — because the answer is: whoever holds the pen. Gerrymandering is a structural flaw, not a partisan one; in the Daily Heist you're assigned a different side each day, so over any week you'll rig the map for both. The lesson isn't "they cheat" — it's "the same votes can produce opposite outcomes depending on who draws the lines."
           </p>
           <p className={styles.aboutText}>
-            <strong>The math is not ours.</strong> The fairness metrics come from the redistricting literature: the efficiency gap (<a href="https://chicagounbound.uchicago.edu/uclrev/vol82/iss2/4/" target="_blank" rel="noopener noreferrer">Stephanopoulos &amp; McGhee, 2015</a>), Polsby-Popper compactness (1991), and seats–votes asymmetry. The "neutral map" baseline is drawn by a party-blind algorithm in the spirit of the ensemble methods popularized by the <a href="https://mggg.org" target="_blank" rel="noopener noreferrer">MGGG Redistricting Lab</a>. Every metric's source is cited in-game next to the number it explains.
+            <strong>The math is not ours.</strong> The fairness metrics come from the redistricting literature: the efficiency gap (<a href="https://chicagounbound.uchicago.edu/uclrev/vol82/iss2/4/" target="_blank" rel="noopener noreferrer">Stephanopoulos &amp; McGhee, 2015</a>), Polsby-Popper compactness (1991), and seats–votes asymmetry. The "neutral map" baseline is drawn by a party-blind algorithm in the spirit of the ensemble methods popularized by the <a href="https://mggg.org" target="_blank" rel="noopener noreferrer">MGGG Redistricting Lab</a>. The <Link to="/methodology">full methodology &amp; sources</Link> spell out every metric and citation.
           </p>
         </div>
       </section>
@@ -127,9 +127,13 @@ export default function Landing() {
         <div className={styles.container}>
           <div className={styles.footerContent}>
             <p>&copy; 2026 Zeromander. Nonpartisan &amp; open source — created for electoral fairness</p>
-            <a href="https://github.com/Naadzik/zeromander" target="_blank" rel="noopener noreferrer">
-              GitHub Repository
-            </a>
+            <span>
+              <Link to="/methodology">Methodology &amp; Sources</Link>
+              {' · '}
+              <a href="https://github.com/Naadzik/zeromander" target="_blank" rel="noopener noreferrer">
+                GitHub Repository
+              </a>
+            </span>
           </div>
         </div>
       </footer>
