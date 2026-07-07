@@ -104,6 +104,13 @@ function rebalancePartyShare(partyMap, densityMap, cells, targetPop, partyId, ta
 // (a deliberate one-time board redefinition, 2026-07-07); the sandbox and
 // challenge links leave it off, so their boards are unchanged.
 export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0, opts = {}) {
+  // Natural-board model (rollout scaffolding): a separate path so the legacy
+  // model below stays byte-identical while modes are switched over one at a
+  // time. Once every mode uses it, the flag and the legacy path get removed.
+  if (opts.naturalBoard) {
+    return generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage);
+  }
+
   const partyMap = [];
   const densityMap = [];
 
@@ -178,6 +185,233 @@ export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, p
     party: partyMap,
     density: densityMap
   };
+}
+
+// ---------- Natural board model (opts.naturalBoard) ----------
+// The replacement look: warped non-round cities, a density gradient that
+// widens outward, and a "dim seam" city edge — red near a city stays sparse,
+// so a city feathers into the countryside instead of ending in a bright halo.
+// Party stays a hard step (every cell is solidly one party); only density
+// fades. See ~/.claude/plans/zeromander-natural-board-B.md.
+//
+// RNG DRAW ORDER IS FROZEN once the daily ships on this path: city seeds
+// (4 draws each) → party roll (raster) → [0-city fallback shuffle] → real
+// densities (raster) → corrective flips (walk order) → grey blobs (guarded).
+// Reordering any of it re-rolls every seeded board.
+
+const NATURAL = {
+  WARP_FULL_AT: 8,  // warp amplitude ramps 0→full over this raw distance
+  SIZE_MIN: 0.85,   // per-city footprint multiplier: 0.85–1.15
+  SIZE_SPAN: 0.3
+};
+
+// Multi-octave sine warp; `phase` gives each city its own outline.
+function naturalWarp(x, y, phase) {
+  return Math.sin(x * 0.18 + y * 0.13 + phase) * 3.0
+    + Math.sin(x * 0.37 + y * 0.29 + phase * 2) * 2.0
+    + Math.sin(x * 0.73 + y * 0.61 + phase) * 1.2;
+}
+
+// Warped effective distance to the nearest city. Amplitude scales with raw
+// distance, so downtown stays a solid disc while the fringe goes ragged.
+function naturalDist(citySeeds, x, y) {
+  let best = Infinity;
+  for (const s of citySeeds) {
+    const dx = x - s.x, dy = y - s.y;
+    const raw = Math.sqrt(dx * dx + dy * dy);
+    const amp = Math.min(1, raw / NATURAL.WARP_FULL_AT);
+    const d = raw / s.size + amp * naturalWarp(x, y, s.phase);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+// Density by NORMALIZED distance u = d / urbanEdge — the gradient is anchored
+// to the city's political extent, so every city runs bright core → dim fringe
+// and ends dim AT its own edge, whatever the day's vote split sizes it to.
+// (Absolute-distance tiers failed here: at underdog splits the fitted city is
+// small and its edge would still be dense — a bright cliff.) Red keeps a dim
+// belt just outside the edge — that sparseness IS the seam.
+function naturalDensity(u, party, rng) {
+  if (party !== 0) {
+    if (u < 1.35) return 2 + Math.floor(rng() * 3); // dim belt outside the edge
+    return 1 + Math.floor(rng() * 3);               // rural
+  }
+  if (u < 0.25) return 20 + Math.floor(rng() * 11); // core
+  if (u < 0.5) return 14 + Math.floor(rng() * 7);   // urban
+  if (u < 0.75) return 8 + Math.floor(rng() * 7);   // inner suburb
+  if (u < 1) return 4 + Math.floor(rng() * 6);      // outer suburb (dim edge)
+  return 1 + Math.floor(rng() * 3);                 // rural blue speck
+}
+
+// Deterministic tier midpoints — lets share passes run BEFORE any density rng
+// is spent (real densities depend on final parties).
+function naturalDensityMid(u, party) {
+  if (party !== 0) return u < 1.35 ? 3 : 2;
+  if (u < 0.25) return 25;
+  if (u < 0.5) return 17;
+  if (u < 0.75) return 11;
+  if (u < 1) return 6;
+  return 2;
+}
+
+function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage) {
+  const citySeeds = [];
+  for (let i = 0; i < numCities; i++) {
+    citySeeds.push({
+      x: rng() * gridSize,
+      y: rng() * gridSize,
+      phase: rng() * Math.PI * 2,
+      size: NATURAL.SIZE_MIN + rng() * NATURAL.SIZE_SPAN
+    });
+  }
+
+  const polarizationFactor = polarization / 100;
+  const cityBluePct = 50 + 45 * polarizationFactor;
+  const ruralBluePct = 15 - 10 * polarizationFactor;
+
+  // Distance field once (no rng).
+  const dist = [];
+  for (let y = 0; y < gridSize; y++) {
+    dist[y] = [];
+    for (let x = 0; x < gridSize; x++) {
+      dist[y][x] = citySeeds.length ? naturalDist(citySeeds, x, y) : Infinity;
+    }
+  }
+
+  // Size the political city boundary to the TARGET SHARE up front (binary
+  // search on tier midpoints — zero rng): a fixed radius would overshoot at
+  // underdog splits and the share passes would then peel away exactly the dim
+  // suburb rings that display the density gradient. With T fitted, the passes
+  // only fine-tune the edge. Low targets → compact cities, high targets →
+  // honest sprawl — and since density tiers are u = d/T, the full bright→dim
+  // gradient fits inside the city either way.
+  const expectedShare = (T) => {
+    let blue = 0, total = 0;
+    for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < gridSize; x++) {
+        const u = dist[y][x] / T;
+        const p = (u < 1 ? cityBluePct : ruralBluePct) / 100;
+        blue += p * naturalDensityMid(u, 0);
+        total += p * naturalDensityMid(u, 0) + (1 - p) * naturalDensityMid(u, 1);
+      }
+    }
+    return blue / total;
+  };
+  const targetShare = bluePercentage / 100;
+  let urbanEdge = 1; // any positive value works for the 0-city board (u = ∞)
+  if (citySeeds.length) {
+    let lo = 0.5, hi = gridSize * 1.5;
+    for (let it = 0; it < 24; it++) {
+      const mid = (lo + hi) / 2;
+      if (expectedShare(mid) < targetShare) lo = mid; else hi = mid;
+    }
+    urbanEdge = (lo + hi) / 2;
+  }
+
+  // Normalized distance field + party as a hard step on the fitted boundary.
+  const partyMap = [];
+  const uOf = [];
+  for (let y = 0; y < gridSize; y++) {
+    partyMap[y] = [];
+    uOf[y] = [];
+    for (let x = 0; x < gridSize; x++) {
+      const u = dist[y][x] / urbanEdge;
+      uOf[y][x] = u;
+      partyMap[y][x] = rng() * 100 < (u < 1 ? cityBluePct : ruralBluePct) ? 0 : 1;
+    }
+  }
+
+  // Cells ordered near→far. Share passes walk this: a blue surplus peels from
+  // the FAR end in (fringe first, cores last), a deficit grows blue from the
+  // NEAR end out — so the city edge moves, never the core. With no cities
+  // every distance ties at Infinity, so shuffle instead: scattered speckle,
+  // like the legacy model's 0-city boards.
+  const cells = [];
+  for (let y = 0; y < gridSize; y++) for (let x = 0; x < gridSize; x++) cells.push({ x, y });
+  if (citySeeds.length) {
+    cells.sort((a, b) => dist[a.y][a.x] - dist[b.y][b.x]);
+  } else {
+    for (let i = cells.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [cells[i], cells[j]] = [cells[j], cells[i]];
+    }
+  }
+
+  // Pass 1 — approximate the target share on tier midpoints (no rng spent).
+  let blueMid = 0, totalMid = 0;
+  for (const { x, y } of cells) {
+    const m = naturalDensityMid(uOf[y][x], partyMap[y][x]);
+    totalMid += m;
+    if (partyMap[y][x] === 0) blueMid += m;
+  }
+  if (blueMid / totalMid > targetShare) {
+    for (let i = cells.length - 1; i >= 0 && blueMid / totalMid > targetShare; i--) {
+      const { x, y } = cells[i];
+      if (partyMap[y][x] !== 0) continue;
+      const u = uOf[y][x];
+      blueMid -= naturalDensityMid(u, 0);
+      totalMid += naturalDensityMid(u, 1) - naturalDensityMid(u, 0);
+      partyMap[y][x] = 1;
+    }
+  } else {
+    for (let i = 0; i < cells.length && blueMid / totalMid < targetShare; i++) {
+      const { x, y } = cells[i];
+      if (partyMap[y][x] !== 1) continue;
+      const u = uOf[y][x];
+      blueMid += naturalDensityMid(u, 0);
+      totalMid += naturalDensityMid(u, 0) - naturalDensityMid(u, 1);
+      partyMap[y][x] = 0;
+    }
+  }
+
+  // Real densities (the dim seam lands here), raster order.
+  const densityMap = [];
+  let bluePop = 0, totalPop = 0;
+  for (let y = 0; y < gridSize; y++) {
+    densityMap[y] = [];
+    for (let x = 0; x < gridSize; x++) {
+      const v = naturalDensity(uOf[y][x], partyMap[y][x], rng);
+      densityMap[y][x] = v;
+      totalPop += v;
+      if (partyMap[y][x] === 0) bluePop += v;
+    }
+  }
+
+  // Pass 2 — corrective: land the REAL share on target. A flipped cell
+  // re-rolls its density into the new party's tier (keeps the seam dim);
+  // both population totals are tracked through each flip.
+  let guard = gridSize * gridSize;
+  if (bluePop / totalPop > targetShare) {
+    for (let i = cells.length - 1; i >= 0 && bluePop / totalPop > targetShare && guard-- > 0; i--) {
+      const { x, y } = cells[i];
+      if (partyMap[y][x] !== 0) continue;
+      const oldD = densityMap[y][x];
+      const newD = naturalDensity(uOf[y][x], 1, rng);
+      partyMap[y][x] = 1;
+      densityMap[y][x] = newD;
+      bluePop -= oldD;
+      totalPop += newD - oldD;
+    }
+  } else {
+    for (let i = 0; i < cells.length && bluePop / totalPop < targetShare && guard-- > 0; i++) {
+      const { x, y } = cells[i];
+      if (partyMap[y][x] !== 1) continue;
+      const oldD = densityMap[y][x];
+      const newD = naturalDensity(uOf[y][x], 0, rng);
+      partyMap[y][x] = 0;
+      densityMap[y][x] = newD;
+      bluePop += newD;
+      totalPop += newD - oldD;
+    }
+  }
+
+  // Same contract as the legacy path: grey must consume zero rng when off.
+  if (greyPercentage > 0) {
+    applyGreyBlobs(partyMap, densityMap, gridSize, greyPercentage, totalPop, rng);
+  }
+
+  return { party: partyMap, density: densityMap };
 }
 
 // Marks ~greyPercentage of the population (density-weighted) as undecided
