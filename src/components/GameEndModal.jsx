@@ -3,6 +3,7 @@ import '../styles/GameEndModal.css'
 import { seatGridString, TIER_LABELS } from '../utils/dailyChallenge'
 import { currentStreak, getResultFor } from '../utils/dailyHistory'
 import { METRIC_DESCRIPTIONS, NEUTRAL_MAP_NOTE } from '../utils/metricDescriptions'
+import { analyzeMap, efficiencyGapContext } from '../utils/mapAnatomy'
 import { PARTY } from '../utils/partyConfig'
 import PartyIcon from './ui/PartyIcon'
 import Icon from './ui/Icons'
@@ -76,12 +77,20 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
   const dailyResult = daily?.result ?? null;
   const stolen = dailyResult?.seatsStolen;
 
+  // Name the tactics: turns "you won" into "here's how you rigged it."
+  const anatomy = !isThreeParty && stats.allStats?.districtBreakdown
+    ? analyzeMap(stats.allStats.districtBreakdown, playerParty) : null;
+  const gapContextLine = (!isThreeParty && stats.allStats)
+    ? efficiencyGapContext(stats.allStats.efficiencyGap) : null;
+  const dList = ids => ids.map(i => `D${i}`).join(', ');
+
+  const dayLabel = daily ? `${daily.archive ? 'ARCHIVE · ' : ''}DAILY #${daily.dayNumber}` : '';
   const statusText = lesson
     ? (stats.won ? 'YOU JUST GERRYMANDERED' : 'ALMOST — RUN IT BACK')
     : dailyResult
     ? (stolen > 0
-        ? `DAILY #${daily.dayNumber}: STOLE +${stolen} SEAT${stolen === 1 ? '' : 'S'}`
-        : `DAILY #${daily.dayNumber}: NOTHING STOLEN`)
+        ? `${dayLabel}: STOLE +${stolen} SEAT${stolen === 1 ? '' : 'S'}`
+        : `${dayLabel}: NOTHING STOLEN`)
     : stats.struckDown
       ? 'STRUCK DOWN BY COURT'
       : stats.won ? `PROJECTION: ${(PARTY[playerParty]?.label ?? 'YOU').toUpperCase()} WIN` : 'RESULT: TARGET MISSED';
@@ -110,11 +119,11 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
         return `${TIER_LABELS[tier]}: ${r.seatGrid} ${s > 0 ? `+${s}` : s} stolen`;
       };
       return [
-        `Zeromander Daily #${daily.dayNumber}`,
+        `Zeromander Daily #${daily.dayNumber}${daily.archive ? ' (archive)' : ''}`,
         `🕵️ The Heist — ${ourLabel}, ${dailyResult.popPercent}% of the vote`,
-        tierLine('small'),
-        tierLine('full'),
-        streak > 1 ? `🔥 Streak: ${streak}` : null,
+        daily.archive ? `${TIER_LABELS[daily.tier]}: ${dailyResult.seatGrid} ${stolen > 0 ? `+${stolen}` : stolen} stolen` : tierLine('small'),
+        daily.archive ? null : tierLine('full'),
+        (!daily.archive && streak > 1) ? `🔥 Streak: ${streak}` : null,
         'naadzik.github.io/zeromander/?daily'
       ].filter(Boolean).join('\n');
     }
@@ -258,6 +267,24 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
                 </div>
               )}
 
+              {anatomy && (anatomy.packIds.length > 0 || anatomy.crackIds.length > 0) && (
+                <div className="map-anatomy">
+                  <h4>Anatomy of your map</h4>
+                  {anatomy.packIds.length > 0 && (
+                    <p className="anatomy-line">
+                      <span className="anatomy-tag anatomy-tag--pack">PACK</span>
+                      {theirLabel} crammed into {dList(anatomy.packIds)} — up to {anatomy.worstPackPct}% of the vote there, and everything past 50% is wasted.
+                    </p>
+                  )}
+                  {anatomy.crackIds.length > 0 && (
+                    <p className="anatomy-line">
+                      <span className="anatomy-tag anatomy-tag--crack">CRACK</span>
+                      {theirLabel} split across {dList(anatomy.crackIds)} — a 40–49% minority in each that wins none of them.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {expanded && stats.allStats && (
                 <div className="detailed-stats">
                   <h3>Detailed Statistics</h3>
@@ -293,6 +320,7 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
                         <span><PartyIcon party="red" /> Heartland Alliance Wasted Votes:</span>
                         <strong>{stats.allStats.redWasted}</strong>
                       </div>
+                      {gapContextLine && <p className="gap-context">{gapContextLine}</p>}
                     </div>
                   )}
 

@@ -331,6 +331,58 @@
   font-style: italic;
 }
 
+/* Anatomy of your map — the "here's how you rigged it" callout. */
+.map-anatomy {
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-gold);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 203, 92, 0.04);
+}
+
+.map-anatomy h4 {
+  margin: 0 0 var(--spacing-sm);
+  font-family: var(--font-ticker);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+  color: var(--text-bright);
+}
+
+.anatomy-line {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.anatomy-line:last-child { margin-bottom: 0; }
+
+.anatomy-tag {
+  display: inline-block;
+  font-family: var(--font-ticker);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  padding: 1px 6px;
+  border-radius: 2px;
+  margin-right: 8px;
+  color: var(--navy-950);
+  vertical-align: 1px;
+}
+
+.anatomy-tag--pack { background: var(--red-party); color: white; }
+.anatomy-tag--crack { background: var(--accent-gold); }
+
+.gap-context {
+  margin: var(--spacing-sm) 0 0;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 /* Election-night counting reveal */
 .modal-content--counting {
   cursor: pointer;

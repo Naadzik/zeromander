@@ -24,6 +24,7 @@ import { useLegalConstraints } from '../hooks/useLegalConstraints'
 import { useFairMap } from '../hooks/useFairMap'
 import { getDailyChallenge, buildDailyResult, fairSeedFrom, TIER_LABELS } from '../utils/dailyChallenge'
 import { getResultFor, recordDailyResult } from '../utils/dailyHistory'
+import { utcDateString } from '../utils/rng'
 import '../styles/App.css'
 
 // Collapsed/expanded panel preference, remembered across sessions.
@@ -90,24 +91,34 @@ export default function GameApp() {
   const isDaily = new URLSearchParams(location.search).has('daily');
   // Two tiers per day: the Warm-up (default, the gate) and the Full Job.
   const dailyTier = new URLSearchParams(location.search).get('tier') === 'full' ? 'full' : 'small';
-  const challenge = useMemo(() => (isDaily ? getDailyChallenge() : null), [isDaily]);
+  // Archive: ?daily=YYYY-MM-DD replays a PAST board — deterministic, so it's
+  // free. Archive plays are unscored: no history write, no streak, no gate.
+  const dailyDateParam = new URLSearchParams(location.search).get('daily');
+  const isArchive = isDaily
+    && /^\d{4}-\d{2}-\d{2}$/.test(dailyDateParam || '')
+    && dailyDateParam < utcDateString();
+  const challenge = useMemo(
+    () => (isDaily ? getDailyChallenge(isArchive ? new Date(dailyDateParam + 'T12:00:00Z') : new Date()) : null),
+    [isDaily, isArchive, dailyDateParam]
+  );
   const tierData = challenge?.[dailyTier] ?? null;
   // Derive the lookup from the same challenge object — two separate
   // getDailyChallenge() calls could straddle UTC midnight and disagree.
-  const [dailyResult, setDailyResult] = useState(() => (challenge ? getResultFor(challenge.date, dailyTier) : null));
+  // Archive always starts fresh (unscored, replayable).
+  const [dailyResult, setDailyResult] = useState(() => (challenge && !isArchive ? getResultFor(challenge.date, dailyTier) : null));
 
   // Tier switches re-render (not remount) this component — re-sync the
-  // stored result for the tier now in view.
+  // stored result for the tier now in view. (Archive stays fresh/unscored.)
   useEffect(() => {
-    setDailyResult(challenge ? getResultFor(challenge.date, dailyTier) : null);
-  }, [challenge, dailyTier]);
+    setDailyResult(challenge && !isArchive ? getResultFor(challenge.date, dailyTier) : null);
+  }, [challenge, dailyTier, isArchive]);
 
-  // The Full Job is gated: no Warm-up lock for today → back to the Warm-up.
+  // The Full Job is gated on the Warm-up (today only — archive is ungated).
   useEffect(() => {
-    if (isDaily && dailyTier === 'full' && challenge && !getResultFor(challenge.date, 'small')) {
+    if (isDaily && !isArchive && dailyTier === 'full' && challenge && !getResultFor(challenge.date, 'small')) {
       navigate('/game?daily', { replace: true });
     }
-  }, [isDaily, dailyTier, challenge, navigate]);
+  }, [isDaily, isArchive, dailyTier, challenge, navigate]);
 
   // "First Heist" guided lesson: a fixed 3-district teaching board.
   const isLesson = new URLSearchParams(location.search).has('lesson');
@@ -404,7 +415,10 @@ export default function GameApp() {
     });
     // `districts` is a local-only extra so the locked map can be redrawn on
     // re-entry; buildDailyResult itself stays the clean backend-ready record.
-    setDailyResult(recordDailyResult({ ...result, districts: map.districts }, dailyTier));
+    const record = { ...result, districts: map.districts };
+    // Archive plays are unscored — hold the result locally for the modal,
+    // but never touch history or the streak.
+    setDailyResult(isArchive ? record : recordDailyResult(record, dailyTier));
   }
 
   const noop = () => {};
@@ -439,7 +453,7 @@ export default function GameApp() {
           stats={completion.gameStats}
           difficulty={config.difficulty}
           fairStats={fairMap.fairStats}
-          daily={isDaily ? { dayNumber: challenge.dayNumber, party: challenge.party, tier: dailyTier, date: challenge.date, result: dailyResult } : null}
+          daily={isDaily ? { dayNumber: challenge.dayNumber, party: challenge.party, tier: dailyTier, date: challenge.date, result: dailyResult, archive: isArchive } : null}
           challengeShare={isLesson ? null : challengeShare}
           duelGoal={duel?.goal ?? null}
           lesson={isLesson ? { onPlayDaily: () => finishLesson('/game?daily') } : null}
@@ -492,7 +506,7 @@ export default function GameApp() {
             <DailyObjectiveBanner
               dayNumber={challenge.dayNumber}
               party={challenge.party}
-              tierLabel={TIER_LABELS[dailyTier]}
+              tierLabel={isArchive ? `Archive · ${TIER_LABELS[dailyTier]}` : TIER_LABELS[dailyTier]}
               popPercent={challenge.party === 'blue' ? tierData.config.bluePercentage : 100 - tierData.config.bluePercentage}
             />
           )}
