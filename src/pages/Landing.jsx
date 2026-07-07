@@ -7,6 +7,7 @@ import styles from './Landing.module.css'
 
 export default function Landing() {
   const daily = getDailyChallenge();
+  const lessonDone = (() => { try { return !!localStorage.getItem('zeromander.lessonDone'); } catch { return false; } })();
   const smallDone = hasPlayedToday(daily.date, 'small');
   const fullDone = hasPlayedToday(daily.date, 'full');
   const dailyCta = !smallDone
@@ -57,12 +58,25 @@ export default function Landing() {
               it's done to you.
             </p>
             <div className={styles.ctaRow}>
-              <Link to={dailyHref} className={styles.ctaButton}>
-                {dailyCta}
-              </Link>
-              <Link to="/game" className={styles.ctaButtonDaily}>
-                Open the Sandbox
-              </Link>
+              {!lessonDone ? (
+                <>
+                  <Link to="/game?lesson" className={styles.ctaButton}>
+                    Never gerrymandered? 60-second lesson
+                  </Link>
+                  <Link to={dailyHref} className={styles.ctaButtonDaily}>
+                    {dailyCta}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to={dailyHref} className={styles.ctaButton}>
+                    {dailyCta}
+                  </Link>
+                  <Link to="/game" className={styles.ctaButtonDaily}>
+                    Open the Sandbox
+                  </Link>
+                </>
+              )}
             </div>
             <p className={styles.smallPrint}>Free · No account · Fictional parties, real formulas</p>
           </div>

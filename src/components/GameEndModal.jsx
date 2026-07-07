@@ -11,7 +11,7 @@ import Icon from './ui/Icons'
 // Heist result — switches the header and share text to the daily format.
 // `challengeShare`: { stolen, url } — offers a "beat my score" link.
 // `duelGoal`: the rival's stolen count when playing a challenge link.
-export default function GameEndModal({ stats, difficulty, fairStats, daily, challengeShare, duelGoal, onTryAgain, onClose }) {
+export default function GameEndModal({ stats, difficulty, fairStats, daily, challengeShare, duelGoal, lesson, onTryAgain, onClose }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [challengeCopied, setChallengeCopied] = useState(false);
@@ -76,14 +76,20 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
   const dailyResult = daily?.result ?? null;
   const stolen = dailyResult?.seatsStolen;
 
-  const statusText = dailyResult
+  const statusText = lesson
+    ? (stats.won ? 'YOU JUST GERRYMANDERED' : 'ALMOST — RUN IT BACK')
+    : dailyResult
     ? (stolen > 0
         ? `DAILY #${daily.dayNumber}: STOLE +${stolen} SEAT${stolen === 1 ? '' : 'S'}`
         : `DAILY #${daily.dayNumber}: NOTHING STOLEN`)
     : stats.struckDown
       ? 'STRUCK DOWN BY COURT'
       : stats.won ? `PROJECTION: ${(PARTY[playerParty]?.label ?? 'YOU').toUpperCase()} WIN` : 'RESULT: TARGET MISSED';
-  const statusMessage = dailyResult
+  const statusMessage = lesson
+    ? (stats.won
+        ? `40% of the vote. ${stats.ourWins} of ${stats.totalDistricts} seats. You did this — and in most states, it's perfectly legal. Now try today's real board.`
+        : 'Not quite a majority this time — but you felt how it works: pack them tight, crack the rest. Redraw, or jump to today\'s real board.')
+    : dailyResult
     ? (stolen > 0
         ? `A party-blind map gives ${ourLabel} ${dailyResult.neutralSeats}/${dailyResult.numDistricts} seats. Yours delivers ${dailyResult.playerSeats}. Same voters, different lines — and it's legal in most states.`
         : `A party-blind map already gives ${ourLabel} ${dailyResult.neutralSeats}/${dailyResult.numDistricts} seats; your map delivers ${dailyResult.playerSeats}. The neutral commission out-drew you today.`)
@@ -408,9 +414,11 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
           >
             {expanded ? 'Hide Details' : 'Show All Stats'}
           </button>
-          <button className="btn-secondary" onClick={handleShare}>
-            {copied ? '✓ Copied!' : 'Share Result'}
-          </button>
+          {!lesson && (
+            <button className="btn-secondary" onClick={handleShare}>
+              {copied ? '✓ Copied!' : 'Share Result'}
+            </button>
+          )}
           {challengeShare && (
             <button className="btn-secondary" onClick={handleChallengeFriend}>
               {challengeCopied ? '✓ Link copied!' : 'Challenge a friend'}
@@ -421,7 +429,12 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
               Close & View Game
             </button>
           )}
-          {onTryAgain ? (
+          {lesson ? (
+            <>
+              <button className="btn-secondary" onClick={onTryAgain}>Redraw</button>
+              <button className="btn-primary" onClick={lesson.onPlayDaily}>Play today's Daily →</button>
+            </>
+          ) : onTryAgain ? (
             <button className="btn-primary" onClick={onTryAgain}>
               Try Again
             </button>

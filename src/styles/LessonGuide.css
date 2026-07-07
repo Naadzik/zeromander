@@ -1,0 +1,88 @@
+/* Docked coach for the First Heist lesson — bottom lower-third, map visible. */
+.lesson-guide {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  z-index: 940;
+  width: min(520px, calc(100vw - 32px));
+  padding: 16px 18px 14px;
+  background: rgba(7, 14, 28, 0.97);
+  border: 1px solid rgba(148, 166, 194, 0.35);
+  border-top: 4px solid var(--accent-gold);
+  border-radius: 3px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  color: var(--text-bright);
+  animation: chyronIn 0.25s ease-out;
+}
+
+.lesson-guide__dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.lesson-guide__dot {
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--navy-700, rgba(148, 166, 194, 0.25));
+  transition: background var(--transition-base);
+}
+
+.lesson-guide__dot.is-active { background: var(--accent-gold); }
+.lesson-guide__dot.is-done { background: rgba(255, 203, 92, 0.45); }
+
+.lesson-guide__title {
+  font-family: var(--font-ticker);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-bottom: 6px;
+}
+
+.lesson-guide__body {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-dark);
+}
+
+.lesson-guide__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lesson-guide__skip {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 0;
+}
+
+.lesson-guide__skip:hover { color: var(--text-secondary); }
+
+.lesson-guide__next {
+  background: var(--accent-gold);
+  color: var(--navy-950);
+  border: none;
+  border-radius: 3px;
+  padding: 8px 16px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.lesson-guide__next:hover { background: #FFCB5C; }
+
+@media (max-width: 600px) {
+  .lesson-guide { bottom: 12px; }
+  .lesson-guide__body { font-size: 0.85rem; }
+}

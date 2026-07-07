@@ -9,6 +9,8 @@ import GameToolbar from '../components/GameToolbar'
 import GhostMapComparison from '../components/GhostMapComparison'
 import DailyObjectiveBanner from '../components/DailyObjectiveBanner'
 import RevealChyron from '../components/RevealChyron'
+import LessonGuide from '../components/LessonGuide'
+import { classifyDistricts } from '../utils/gameLogic'
 import Tutorial, { STEPS_3PARTY } from '../components/Tutorial'
 import '../styles/Tutorial.css'
 import { exportMapPng } from '../utils/exportMap'
@@ -65,6 +67,20 @@ function CollapsiblePanel({ title, side, collapsed, onToggle, children }) {
   );
 }
 
+// The First Heist teaching board: fixed seed, small, 3 districts, two blue
+// cities in red countryside, no grey/swing — so pack+crack always works.
+const LESSON = {
+  // Seed chosen so the taught pack+crack wins 2/3 with CONTIGUOUS, balanced
+  // districts (two blue cities in the flanks, red packed in the middle — a
+  // clean 3-strip split wins at ~1% population deviation). Verified by solver.
+  seed: 29,
+  config: {
+    difficulty: 'small', gridSize: 50, numDistricts: 3, numCounties: 90,
+    numCities: 2, numTowns: 0, bluePercentage: 40, greyPercentage: 0,
+    targetSeatPercentage: 50, isThreeParty: false
+  }
+};
+
 export default function GameApp() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -93,10 +109,13 @@ export default function GameApp() {
     }
   }, [isDaily, dailyTier, challenge, navigate]);
 
+  // "First Heist" guided lesson: a fixed 3-district teaching board.
+  const isLesson = new URLSearchParams(location.search).has('lesson');
+
   // Challenge links: ?board=<seed> reproduces a friend's exact board (all
   // generation inputs are encoded), with their "seats stolen" as the goal.
   const duel = useMemo(() => {
-    if (isDaily) return null;
+    if (isDaily || isLesson) return null;
     const p = new URLSearchParams(location.search);
     if (!p.has('board')) return null;
     const int = (k, fallback) => {
@@ -119,25 +138,27 @@ export default function GameApp() {
   }, [isDaily, location.search]);
 
   const sandboxConfig = useGameConfig();
-  // Daily/duel overrides are plain values layered over the sandbox hook —
-  // Controls is hidden in both modes, so its orphaned setters are unreachable.
+  // Daily/duel/lesson overrides are plain values layered over the sandbox
+  // hook — Controls is hidden in those modes, so its setters are unreachable.
   const config = isDaily
     ? { ...sandboxConfig, ...tierData.config, isThreeParty: false }
-    : duel
-      ? {
-          ...sandboxConfig,
-          difficulty: duel.difficulty,
-          gridSize: DIFFICULTY_SETTINGS[duel.difficulty].gridSize,
-          numDistricts: duel.numDistricts,
-          numCounties: duel.numCounties,
-          numCities: duel.numCities,
-          numTowns: duel.numTowns,
-          bluePercentage: duel.bluePercentage,
-          greyPercentage: duel.greyPercentage,
-          targetSeatPercentage: 50,
-          isThreeParty: false
-        }
-      : sandboxConfig;
+    : isLesson
+      ? { ...sandboxConfig, ...LESSON.config }
+      : duel
+        ? {
+            ...sandboxConfig,
+            difficulty: duel.difficulty,
+            gridSize: DIFFICULTY_SETTINGS[duel.difficulty].gridSize,
+            numDistricts: duel.numDistricts,
+            numCounties: duel.numCounties,
+            numCities: duel.numCities,
+            numTowns: duel.numTowns,
+            bluePercentage: duel.bluePercentage,
+            greyPercentage: duel.greyPercentage,
+            targetSeatPercentage: 50,
+            isThreeParty: false
+          }
+        : sandboxConfig;
 
   const legalConstraints = useLegalConstraints();
   // The board also locks once a SANDBOX game completes — election night has
@@ -146,13 +167,13 @@ export default function GameApp() {
   // (useMapState ← completion ← map); the one-render lag is sub-frame.
   const gameCompleteRef = useRef(false);
   const map = useMapState(config, legalConstraints.constraints, {
-    seed: tierData?.seed ?? duel?.seed,
+    seed: tierData?.seed ?? duel?.seed ?? (isLesson ? LESSON.seed : undefined),
     locked: (isDaily && !!dailyResult) || gameCompleteRef.current
   });
   const { playerParty, setPlayerParty, togglePlayerParty } = usePlayerParty();
-  // The daily assigns your party — and a duel puts you in the challenger's
-  // seat, or the comparison means nothing.
-  const effectiveParty = isDaily ? challenge.party : (duel ? duel.party : playerParty);
+  // The daily assigns your party; a duel puts you in the challenger's seat;
+  // the lesson always casts you as the underdog Urban Union.
+  const effectiveParty = isDaily ? challenge.party : (duel ? duel.party : (isLesson ? 'blue' : playerParty));
   const tutorial = useTutorial();
   const [electionUncertainty, setElectionUncertainty] = useState(false);
   const completion = useGameCompletion({
@@ -163,7 +184,7 @@ export default function GameApp() {
     difficulty: config.difficulty,
     targetSeatPercentage: config.targetSeatPercentage,
     constraints: legalConstraints.constraints,
-    electionUncertainty: isDaily ? false : electionUncertainty,
+    electionUncertainty: (isDaily || isLesson) ? false : electionUncertainty,
     manual: isDaily
   });
   gameCompleteRef.current = completion.gameComplete;
@@ -171,6 +192,30 @@ export default function GameApp() {
   // editLocked = any state where the board must be read-only.
   const boardLocked = isDaily && !!dailyResult;
   const editLocked = boardLocked || completion.gameComplete;
+
+  // Lesson goal detection: drives the docked coach's auto-advance.
+  const lessonSignals = useMemo(() => {
+    if (!isLesson || !map.populationMap.party) return { packedRed: false, blueTwo: false };
+    const rows = classifyDistricts(map.populationMap, map.districts, config.numDistricts);
+    return {
+      // A district where Heartland is warehoused (safe red ≥60%).
+      packedRed: rows.some(r => r.status === 'red' && r.red / (r.blue + r.red || 1) >= 0.6),
+      // Two districts leaning your way — the majority is in reach.
+      blueTwo: rows.filter(r => r.status === 'blue').length >= 2
+    };
+  }, [isLesson, map.populationMap, map.districts, config.numDistricts]);
+
+  function finishLesson(destination) {
+    try { localStorage.setItem('zeromander.lessonDone', '1'); } catch { /* private mode */ }
+    navigate(destination);
+  }
+
+  // Mark the lesson done the moment it completes (the modal handles routing).
+  useEffect(() => {
+    if (isLesson && completion.gameComplete) {
+      try { localStorage.setItem('zeromander.lessonDone', '1'); } catch { /* private mode */ }
+    }
+  }, [isLesson, completion.gameComplete]);
 
   const [highlightedDistrict, setHighlightedDistrict] = useState(null);
   const [showUnassignedCounties, setShowUnassignedCounties] = useState(false);
@@ -385,14 +430,19 @@ export default function GameApp() {
         />
       )}
 
+      {isLesson && !completion.gameComplete && (
+        <LessonGuide signals={lessonSignals} onSkip={() => finishLesson('/game?daily')} />
+      )}
+
       {completion.showModal && completion.gameStats && !revealAnimating && !revealPending && (
         <GameEndModal
           stats={completion.gameStats}
           difficulty={config.difficulty}
           fairStats={fairMap.fairStats}
           daily={isDaily ? { dayNumber: challenge.dayNumber, party: challenge.party, tier: dailyTier, date: challenge.date, result: dailyResult } : null}
-          challengeShare={challengeShare}
+          challengeShare={isLesson ? null : challengeShare}
           duelGoal={duel?.goal ?? null}
+          lesson={isLesson ? { onPlayDaily: () => finishLesson('/game?daily') } : null}
           onTryAgain={isDaily ? undefined : handleTryAgain}
           onClose={completion.dismissModal}
         />
@@ -401,7 +451,7 @@ export default function GameApp() {
       <GameHeader onBack={() => navigate('/')} onHelp={tutorial.openTutorial} />
 
       <div className="app-container">
-        {!isDaily && !duel && (
+        {!isDaily && !duel && !isLesson && (
           <CollapsiblePanel title="Game Setup" side="left" collapsed={setupCollapsed} onToggle={toggleSetup}>
           <Controls
             difficulty={config.difficulty}
@@ -488,8 +538,8 @@ export default function GameApp() {
             onDistrictSelect={map.setCurrentDistrict}
             isThreeParty={config.isThreeParty}
             playerParty={effectiveParty}
-            onPartySelect={(editLocked || duel) ? noop : setPlayerParty}
-            onPartyToggle={(editLocked || duel) ? noop : togglePlayerParty}
+            onPartySelect={(editLocked || duel || isLesson) ? noop : setPlayerParty}
+            onPartyToggle={(editLocked || duel || isLesson) ? noop : togglePlayerParty}
             mapView={mapView}
             onMapViewChange={setMapView}
             canUndo={!editLocked && map.undoRedo.canUndo}
