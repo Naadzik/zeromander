@@ -93,7 +93,17 @@ function rebalancePartyShare(partyMap, densityMap, cells, targetPop, partyId, ta
 // `greyPercentage`: share of the population marked undecided (party 3) in
 // contiguous blobs — they count as people but cast no votes until the
 // election-night reveal. Trailing param so existing call sites are untouched.
-export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0) {
+//
+// `opts.solidCities`: the rebalance-to-target step normally flips cells in
+// random order, which at low blue% sprays red uniformly INTO the cities and
+// turns them purple (illegible — nothing to pack or crack). With solidCities,
+// surplus blue is stripped from the city fringe inward (deficit filled from
+// the fringe outward), so urban cores stay solid. Deterministic reordering of
+// the same shuffled cells — consumes ZERO extra rng draws, so boards without
+// the flag are byte-identical to pre-flag behavior. BOTH daily tiers enable it
+// (a deliberate one-time board redefinition, 2026-07-07); the sandbox and
+// challenge links leave it off, so their boards are unchanged.
+export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0, opts = {}) {
   const partyMap = [];
   const densityMap = [];
 
@@ -144,6 +154,18 @@ export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, p
 
   const cells = shuffledCells(gridSize, rng);
   const targetBlue = Math.round(totalPop * bluePercentage / 100);
+  if (opts.solidCities) {
+    // Sort by noisy distance-to-city (noise keeps the peel edge organic, same
+    // style as the isCity boundary). Surplus: flip the FARTHEST blue first
+    // (fringe peels, cores hold). Deficit: flip the NEAREST red first.
+    let currentBlue = 0;
+    for (let y = 0; y < gridSize; y++)
+      for (let x = 0; x < gridSize; x++)
+        if (partyMap[y][x] === 0) currentBlue += densityMap[y][x];
+    const key = ({ x, y }) =>
+      distToNearest(citySeeds, x, y) + Math.sin(x * 0.3 + y * 0.4) * 2 + Math.sin(x * 0.7 + y * 0.2) * 2;
+    cells.sort((a, b) => (currentBlue > targetBlue ? key(b) - key(a) : key(a) - key(b)));
+  }
   rebalancePartyShare(partyMap, densityMap, cells, targetBlue, 0, p => p === 1, 1);
 
   // HARD GUARD on 0: this block must consume zero rng draws when grey is off,

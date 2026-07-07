@@ -61,12 +61,20 @@ export function getDailyChallenge(date = new Date()) {
         numDistricts: 8,
         numCounties: 250,
         numCities: 3,
+        // On a 50-grid the cities cover most of the board, so the random
+        // rebalance turns them purple at underdog splits — illegible, nothing
+        // to pack or crack. solidCities peels surplus from the fringe instead.
+        // (Changed 2026-07-07, day 7: redefines Warm-up boards incl. archive.)
+        solidCities: true,
         ...shared
       }
     },
     full: {
-      // Unchanged seed + config from the pre-tier daily: boards already
-      // played and shared keep meaning exactly what they meant.
+      // Seed unchanged from the pre-tier daily. As of 2026-07-07 (day 7) the
+      // board CONTENT changed once: solidCities was turned on here too, because
+      // at underdog splits the random rebalance left the cities purple —
+      // illegible, nothing to pack. Deliberate one-time redefinition of the
+      // full board (quality > byte-continuity for a day-old, tiny audience).
       seed,
       config: {
         difficulty: 'medium',
@@ -74,6 +82,7 @@ export function getDailyChallenge(date = new Date()) {
         numDistricts: 10,
         numCounties: 475,
         numCities: 4,
+        solidCities: true,
         ...shared
       }
     }
