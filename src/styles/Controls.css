@@ -1,8 +1,9 @@
 .controls-panel {
   background: var(--bg-white);
-  border-radius: var(--radius-lg);
+  /* The control room: flat desk surface with a gold top rule — not a card. */
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  border-top: 3px solid var(--accent-gold);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-lg);
   width: clamp(240px, 20vw, 320px);
   flex-shrink: 0;
   overflow-y: auto;

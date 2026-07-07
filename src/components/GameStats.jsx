@@ -4,6 +4,7 @@ import { computeCoreStats, round1, targetSeatCount } from '../utils/computeGameS
 import { checkConstraintViolations } from '../utils/legalConstraints'
 import { PARTY } from '../utils/partyConfig'
 import PartyIcon from './ui/PartyIcon'
+import Icon from './ui/Icons'
 import SeatBar from './ui/SeatBar'
 import { METRIC_DESCRIPTIONS } from '../utils/metricDescriptions'
 import { useState } from 'react'
@@ -167,7 +168,7 @@ export default function GameStats({
         </div>
         {!isThreeParty && stats.greyShare > 0 && (
           <div className="target-label">
-            ⬜ {stats.greyShare}% undecided <MetricInfo metric="undecided" />
+            <Icon name="undecided" size={12} /> {stats.greyShare}% undecided <MetricInfo metric="undecided" />
           </div>
         )}
         {isThreeParty && (
@@ -216,7 +217,7 @@ export default function GameStats({
                 <span className="blue-votes"><PartyIcon party="blue" /> {district.blue}</span>
                 <span className="red-votes"><PartyIcon party="red" /> {district.red}</span>
                 {isThreeParty && <span style={{ color: 'var(--green-party)' }}><PartyIcon party="green" /> {district.green}</span>}
-                {classifiedRow?.greyPop > 0 && <span style={{ color: '#94A3B8' }}>⬜ {classifiedRow.greyPop}</span>}
+                {classifiedRow?.greyPop > 0 && <span style={{ color: '#94A3B8' }}><Icon name="undecided" size={11} /> {classifiedRow.greyPop}</span>}
               </div>
             </div>
           );

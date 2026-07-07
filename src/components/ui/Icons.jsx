@@ -63,6 +63,28 @@ const PATHS = {
       <path d="M18 6 6 18" />
     </>
   ),
+  // Streak flame
+  flame: (
+    <path d="M12 3c1 3-3.5 5-3.5 9a3.5 3.5 0 0 0 7 0c0-1.5-.8-2.6-1.5-3.5C15.5 10 18 11 18 14a6 6 0 0 1-12 0c0-5 5-6.5 6-11z" />
+  ),
+  // The heist: a fedora
+  spy: (
+    <>
+      <path d="M8 12V8.5A2.5 2.5 0 0 1 10.5 6h3A2.5 2.5 0 0 1 16 8.5V12" />
+      <path d="M3 14c3-1.6 6-2 9-2s6 .4 9 2" />
+      <path d="M3 14c2.5 2 5.5 3 9 3s6.5-1 9-3" />
+    </>
+  ),
+  // Undecided: a hatched square
+  undecided: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="1.5" />
+      <path d="M4 12 12 4" />
+      <path d="M4 19 19 4" />
+      <path d="M9 20 20 9" />
+      <path d="M16 20l4-4" />
+    </>
+  ),
 };
 
 export default function Icon({ name, size = 16, className = '' }) {

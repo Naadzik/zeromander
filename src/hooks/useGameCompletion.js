@@ -51,6 +51,10 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
   // GameApp renders this over the live map once it exists, so the board
   // visually "declares itself"; Try Again clears it back to grey.
   const [revealedMap, setRevealedMap] = useState(null);
+  // Per-cluster resolution data ({cells, lean, bluePop, redPop}) — drives the
+  // staged cluster-by-cluster reveal animation. Presentation only: the final
+  // revealedMap/stats above stay the precomputed source of truth.
+  const [revealClusters, setRevealClusters] = useState(null);
   // Dismissing the modal must NOT clear gameComplete — the ghost-map comparison
   // stays on screen so the player can study it after closing the dialog.
   const [modalDismissed, setModalDismissed] = useState(false);
@@ -66,10 +70,17 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
     const hasGrey = !isThreeParty && mapHasGrey(populationMap);
     let swing = null;
     let revealed = null;
+    let clusters = null;
     if ((electionUncertainty || hasGrey) && !isThreeParty) {
       const rng = createRng(randomSeed());
       const swingPct = electionUncertainty ? (rng() * 2 - 1) * MAX_SWING_PCT : 0;
-      revealed = hasGrey ? resolveGreyPopulation(populationMap, rng).revealedMap : populationMap;
+      if (hasGrey) {
+        const resolution = resolveGreyPopulation(populationMap, rng);
+        revealed = resolution.revealedMap;
+        clusters = resolution.clusters;
+      } else {
+        revealed = populationMap;
+      }
       const swungSeats = calculateSeatsWithSwing(revealed, districts, numDistricts, swingPct);
       swing = {
         swingPct,
@@ -82,7 +93,7 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
     }
 
     const stats = buildEndGameStats(core, { playerParty, isThreeParty, numDistricts, constraintViolations, swing });
-    return { stats, revealed: hasGrey ? revealed : null };
+    return { stats, revealed: hasGrey ? revealed : null, clusters };
   }
 
   useEffect(() => {
@@ -91,22 +102,27 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
       areAllDistrictsValid(populationMap, districts, numDistricts));
     setIsMapValid(valid);
 
-    if (valid && !manual) {
-      const { stats, revealed } = computeStats();
+    // The !gameComplete guard freezes the verdict once it exists — otherwise
+    // any dep change (uncertainty toggle, constraints) would re-roll election
+    // night on the same board. Only resetCompletion/Try Again re-arms it.
+    if (valid && !manual && !gameComplete) {
+      const { stats, revealed, clusters } = computeStats();
       setGameStats(stats);
       setRevealedMap(revealed);
+      setRevealClusters(clusters);
       setGameComplete(true);
       setModalDismissed(false);
     }
-  }, [districts, numDistricts, targetSeatPercentage, populationMap, playerParty, difficulty, constraints, electionUncertainty, manual]);
+  }, [districts, numDistricts, targetSeatPercentage, populationMap, playerParty, difficulty, constraints, electionUncertainty, manual, gameComplete]);
 
   // Manual completion trigger. Returns the computed stats so the caller can
   // build the daily result record synchronously (state updates are async).
   function finalize() {
     if (!isMapValid) return null;
-    const { stats, revealed } = computeStats();
+    const { stats, revealed, clusters } = computeStats();
     setGameStats(stats);
     setRevealedMap(revealed);
+    setRevealClusters(clusters);
     setGameComplete(true);
     setModalDismissed(false);
     return stats;
@@ -116,6 +132,7 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
     setGameComplete(false);
     setGameStats(null);
     setRevealedMap(null);
+    setRevealClusters(null);
     setModalDismissed(false);
   }
 
@@ -124,6 +141,7 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
     gameStats,
     isMapValid,
     revealedMap,
+    revealClusters,
     finalize,
     showModal: gameComplete && !modalDismissed,
     dismissModal: () => setModalDismissed(true),

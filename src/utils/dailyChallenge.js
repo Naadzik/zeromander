@@ -9,6 +9,16 @@ import { createRng, dailySeed, dailyNumber, utcDateString } from './rng.js';
 // one never shifts the sequence of another.
 const CONFIG_STREAM = 0x5F356495;
 const FAIR_STREAM = 0x9E3779B9;
+// The Warm-up tier's board seed stream. The FULL tier keeps the raw day seed —
+// this preserves every full-size board that existed before tiers shipped.
+const SMALL_STREAM = 0x51A11E57;
+
+// The neutral-map seed for a given board seed. Shared by the daily AND
+// challenge links/sandbox: same board seed → same neutral baseline → "seats
+// stolen" is comparable between players.
+export function fairSeedFrom(seed) {
+  return (seed ^ FAIR_STREAM) >>> 0;
+}
 
 // Assigned party rotates daily — over any week the public gerrymanders for
 // both sides equally, which is a neutrality feature, not a gameplay detail.
@@ -22,39 +32,55 @@ export function dailyVoterSplit(rng) {
   return 38 + Math.floor(rng() * 11);
 }
 
-// The single source of truth for a day's puzzle.
+// The single source of truth for a day's puzzle. TWO tiers per day:
+// the Warm-up (small, fast — the daily ritual, and the gate) and the
+// Full Job (the original full-size board, unlocked by finishing the
+// Warm-up). Party and voter split are shared across tiers.
 export function getDailyChallenge(date = new Date()) {
   const seed = dailySeed(date);
   const dayNumber = dailyNumber(date);
   const party = dailyParty(dayNumber);
   const configRng = createRng((seed ^ CONFIG_STREAM) >>> 0);
   const split = dailyVoterSplit(configRng);
+  // bluePercentage is Urban Union's share; when the heist party is red,
+  // red gets the minority split, i.e. blue gets the complement.
+  const bluePercentage = party === 'blue' ? split : 100 - split;
+  // No undecided voters in the daily: boards and the "seats stolen"
+  // baseline must stay deterministic and comparable across all players.
+  const shared = { numTowns: 3, bluePercentage, greyPercentage: 0, targetSeatPercentage: 50 };
 
   return {
     date: utcDateString(date),
     dayNumber,
-    seed,                                  // seeds the board generation
-    fairSeed: (seed ^ FAIR_STREAM) >>> 0,  // seeds the neutral map — MUST be
-                                           // deterministic or "seats stolen"
-                                           // isn't comparable between players
     party,
-    config: {
-      difficulty: 'medium',
-      gridSize: 80,
-      numDistricts: 10,
-      numCounties: 475,
-      numCities: 4,
-      numTowns: 3,
-      // bluePercentage is Urban Union's share; when the heist party is red,
-      // red gets the minority split, i.e. blue gets the complement.
-      bluePercentage: party === 'blue' ? split : 100 - split,
-      // No undecided voters in the daily: the board and the "seats stolen"
-      // baseline must stay deterministic and comparable across all players.
-      greyPercentage: 0,
-      targetSeatPercentage: 50
+    small: {
+      seed: (seed ^ SMALL_STREAM) >>> 0,
+      config: {
+        difficulty: 'small',
+        gridSize: 50,
+        numDistricts: 8,
+        numCounties: 250,
+        numCities: 3,
+        ...shared
+      }
+    },
+    full: {
+      // Unchanged seed + config from the pre-tier daily: boards already
+      // played and shared keep meaning exactly what they meant.
+      seed,
+      config: {
+        difficulty: 'medium',
+        gridSize: 80,
+        numDistricts: 10,
+        numCounties: 475,
+        numCities: 4,
+        ...shared
+      }
     }
   };
 }
+
+export const TIER_LABELS = { small: 'The Warm-up', full: 'The Full Job' };
 
 // THE score: seats beyond what a party-blind process would have produced.
 // Both cores must be computed with playerParty === the day's assigned party.

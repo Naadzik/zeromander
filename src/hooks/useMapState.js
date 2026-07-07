@@ -28,6 +28,9 @@ export function useMapState(config, constraints, options = {}) {
   const [counties, setCounties] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [currentDistrict, setCurrentDistrict] = useState(1);
+  // The seed that actually generated the current board — lets any game be
+  // reproduced (challenge links) and pins the neutral-map seed per board.
+  const [boardSeed, setBoardSeed] = useState(null);
   const [lastRejection, setLastRejection] = useState(null);
   const rejectionRef = useRef(null);
   // Synchronous mirror of `districts`: paint/click handlers compute the next
@@ -53,6 +56,7 @@ export function useMapState(config, constraints, options = {}) {
   // otherwise pass the click event as `seed` (→ createRng(event >>> 0) = 1).
   function generateNewGame(seed) {
     const effectiveSeed = typeof seed === 'number' ? seed : (typeof fixedSeed === 'number' ? fixedSeed : randomSeed());
+    setBoardSeed(effectiveSeed);
     const rng = createRng(effectiveSeed);
     const pop = difficulty === 'three-party'
       ? generatePopulationMap3Party(gridSize, bluePercentage, greenPercentage, numCities, numTowns, rng)
@@ -189,6 +193,7 @@ export function useMapState(config, constraints, options = {}) {
     counties,
     districts,
     currentDistrict,
+    boardSeed,
     setCurrentDistrict,
     generateNewGame,
     restoreDistricts,

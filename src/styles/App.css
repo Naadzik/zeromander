@@ -24,9 +24,16 @@ body {
 
 .app-header {
   background-color: var(--navy-900);
+  /* Faint CRT scanlines — the studio monitor look. Deliberately subtle. */
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.02) 0 1px,
+    transparent 1px 3px
+  );
   color: var(--text-bright);
   padding: 0.75rem 1.5rem;
   text-align: center;
+  border-top: 3px solid var(--accent-red); /* ON AIR rule */
   border-bottom: 3px solid;
   border-image: linear-gradient(90deg, var(--accent-blue) 0 50%, var(--accent-red) 50% 100%) 1;
   box-shadow: var(--shadow-header);
@@ -42,9 +49,12 @@ body {
 }
 
 .app-header p {
-  font-size: 0.8125rem;
-  opacity: 0.9;
-  font-weight: var(--font-weight-light);
+  font-family: var(--font-ticker);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
   margin: 0;
 }
 
@@ -102,8 +112,9 @@ body {
   justify-content: center;
   align-items: stretch;
   background: var(--bg-white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  /* The stage: flat with a hairline, not another floating card. */
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
   overflow: hidden;
   min-width: 0;
 }
@@ -247,6 +258,25 @@ body {
   font-weight: 700;
   color: var(--accent-gold, #FFCB5C);
   white-space: nowrap;
+}
+
+/* LIVE dot — this is a broadcast, act like one. */
+.daily-objective-banner__day::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  box-shadow: 0 0 6px var(--accent-red);
+  margin-right: 8px;
+  vertical-align: 1px;
+  animation: livePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 .daily-objective-banner__goal strong {

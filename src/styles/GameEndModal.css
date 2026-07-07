@@ -49,9 +49,31 @@
 }
 
 .modal-header {
+  position: relative;
   padding: var(--spacing-2xl);
   border-bottom: 4px solid var(--primary-color);
   text-align: center;
+}
+
+/* Rubber stamp for court-invalidated maps. */
+.court-stamp {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  transform: rotate(-12deg);
+  font-family: var(--font-ticker);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.05;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-red);
+  border: 3px double var(--accent-red);
+  border-radius: 4px;
+  padding: 6px 10px;
+  opacity: 0.85;
+  pointer-events: none;
+  mix-blend-mode: screen;
 }
 
 .modal-header h2 {
@@ -398,15 +420,24 @@
   min-width: 35px;
 }
 
-.district-bar {
+/* Full-width lane the scaled bar sits in — keeps rows left-aligned so
+   bar LENGTH reads as vote count across districts. */
+.district-bar-track {
   flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.district-bar {
   display: flex;
   height: 24px;
   background: var(--border-color);
-  border-radius: 4px;
+  border-radius: 2px;
   overflow: hidden;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  transition: width var(--transition-base);
 }
 
 .bar-blue {
@@ -425,6 +456,26 @@
   align-items: center;
   justify-content: center;
   transition: width var(--transition-base);
+}
+
+.bar-green {
+  background: var(--green-party);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width var(--transition-base);
+}
+
+/* Late deciders (grey voters after the reveal): same camp, lighter shade. */
+.bar-blue.bar--late {
+  background: rgba(77, 159, 255, 0.45);
+  color: var(--text-bright);
+}
+
+.bar-red.bar--late {
+  background: rgba(255, 90, 90, 0.45);
+  color: var(--text-bright);
 }
 
 .district-winner {
