@@ -65,14 +65,17 @@
   );
 }
 
+/* Goal marker — positioned inline at the target seat count, gold to read as
+   "the line you're aiming for" rather than a neutral majority tick. */
 .seat-bar__tick {
   position: absolute;
   left: 50%;
+  transform: translateX(-50%);
   top: -2px;
   bottom: -2px;
   width: 2px;
-  background: var(--text-bright);
-  opacity: 0.85;
+  background: var(--accent-gold, #FFCB5C);
+  opacity: 0.9;
 }
 
 .big-stat__value {

@@ -12,11 +12,11 @@ function StatRow({ label, value }) {
   );
 }
 
-function StatColumn({ title, populationMap, counties, districts, coreStats, numDistricts, isThreeParty, canvasRef }) {
+function StatColumn({ title, populationMap, counties, districts, coreStats, numDistricts, isThreeParty, canvasRef, view }) {
   return (
     <div className="ghost-map-panel">
       <h4>{title}</h4>
-      <GhostMapCanvas populationMap={populationMap} counties={counties} districts={districts} canvasRef={canvasRef} />
+      <GhostMapCanvas populationMap={populationMap} counties={counties} districts={districts} canvasRef={canvasRef} view={view} />
       <StatRow label="Seats" value={`${coreStats.ourSeatCount}/${numDistricts}`} />
       {!isThreeParty && (
         <StatRow label="Efficiency Gap" value={`${Math.round(coreStats.gap.gap)}%`} />
@@ -33,6 +33,7 @@ export default function GhostMapComparison({ populationMap, counties, playerDist
   const playerCanvasRef = useRef(null);
   const ghostCanvasRef = useRef(null);
   const [shareState, setShareState] = useState(null); // null | 'shared' | 'downloaded'
+  const [view, setView] = useState('districts'); // 'districts' | 'party'
 
   if (isComputing) {
     return <div className="ghost-map-comparison ghost-map-comparison--loading">Generating neutral map…</div>;
@@ -55,6 +56,10 @@ export default function GhostMapComparison({ populationMap, counties, playerDist
 
   return (
     <div className="ghost-map-comparison">
+      <div className="ghost-view-toggle" role="group" aria-label="Map coloring">
+        <button className={view === 'districts' ? 'is-active' : ''} onClick={() => setView('districts')}>Districts</button>
+        <button className={view === 'party' ? 'is-active' : ''} onClick={() => setView('party')}>Party colors</button>
+      </div>
       <div className="ghost-map-columns">
         <StatColumn
           title="Your Map"
@@ -65,6 +70,7 @@ export default function GhostMapComparison({ populationMap, counties, playerDist
           numDistricts={numDistricts}
           isThreeParty={isThreeParty}
           canvasRef={playerCanvasRef}
+          view={view}
         />
         <StatColumn
           title="Neutral Map"
@@ -75,6 +81,7 @@ export default function GhostMapComparison({ populationMap, counties, playerDist
           numDistricts={numDistricts}
           isThreeParty={isThreeParty}
           canvasRef={ghostCanvasRef}
+          view={view}
         />
       </div>
       <div className="ghost-share-row">

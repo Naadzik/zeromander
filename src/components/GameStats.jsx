@@ -50,15 +50,21 @@ export default function GameStats({
 
   const stats = useMemo(() => {
     const core = computeCoreStats(populationMap, districts, numDistricts, playerParty, isThreeParty);
+    // Base the target on the player's share of the WHOLE electorate (undecideds
+    // counted in the denominator), not the decided-only share. The decided
+    // share swings with WHERE the grey landed — showing it leaks how the
+    // undecideds lean before the reveal. Electorate share stays ~the dealt
+    // number, so toggling undecideds no longer gives the population away.
+    const electorateShare = core.ourPopPercent * (1 - (core.shares.grey ?? 0) / 100);
     const base = {
       seats: core.seats,
       ourSeats: round1(core.ourSeatsPct),
       ourSeatCount: core.ourSeatCount,
-      ourPopPercent: round1(core.ourPopPercent),
+      ourPopPercent: round1(electorateShare),
       assigned: core.assigned,
       mapTotalPop: core.mapTotalPop,
       compactness: Math.round(core.compactness.average * 100),
-      targetSeats: targetSeatCount(core.ourPopPercent, numDistricts),
+      targetSeats: targetSeatCount(electorateShare, numDistricts),
       districtStats: core.districtStats
     };
 
@@ -162,6 +168,7 @@ export default function GameStats({
           numDistricts={numDistricts}
           isThreeParty={isThreeParty}
           tossup={isThreeParty ? 0 : stats.tossups}
+          target={stats.targetSeats}
         />
         <div className="target-label">
           Target: {stats.targetSeats}/{numDistricts} seats <span className="target-hint">(+1 vs. your {stats.ourPopPercent}% vote share)</span>

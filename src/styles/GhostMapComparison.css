@@ -8,6 +8,36 @@
   border-top: 1px solid var(--border-color);
 }
 
+/* Districts / Party-colors segmented control for the comparison. */
+.ghost-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 4px);
+  overflow: hidden;
+}
+
+.ghost-view-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-ticker, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  cursor: pointer;
+}
+
+.ghost-view-toggle button + button {
+  border-left: 1px solid var(--border-color);
+}
+
+.ghost-view-toggle button.is-active {
+  background: var(--accent-blue, #4D9FFF);
+  color: #fff;
+}
+
 .ghost-map-columns {
   display: flex;
   gap: var(--spacing-lg);
