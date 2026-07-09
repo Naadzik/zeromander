@@ -5,6 +5,7 @@ import {
   strokeRegionBoundary,
   strokeAllBoundaries,
   fillCells,
+  computeDistrictWinners,
   getCanvasTheme
 } from '../utils/canvasDraw'
 import '../styles/GhostMapComparison.css'
@@ -36,36 +37,50 @@ export default function GhostMapCanvas({ populationMap, counties, districts, siz
     ctx.fillStyle = theme.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // In 'party' view each district is filled solid with its WINNING party's
+    // color — the same seat map the live board shows — so the two panels read
+    // as "who holds which seat" and can be compared at a glance. The other
+    // views keep the raw per-cell voter colors, density-faded.
+    const districtWinner = view === 'party'
+      ? computeDistrictWinners(partyMap, densityMap, districts)
+      : {};
+
     for (let y = 0; y < gridSize; y++) {
       for (let x = 0; x < gridSize; x++) {
-        const party = partyMap[y][x];
-        const density = densityMap ? densityMap[y][x] : 1;
-        const [r, g, b] = parseHex(theme.party[party]);
-        const alpha = 0.35 + (density / 10) * 0.65;
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        const d = districts[y][x];
+        if (view === 'party' && d > 0 && districtWinner[d] !== undefined) {
+          const [r, g, b] = parseHex(theme.party[districtWinner[d]]);
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        } else {
+          const party = partyMap[y][x];
+          const density = densityMap ? densityMap[y][x] : 1;
+          const [r, g, b] = parseHex(theme.party[party]);
+          const alpha = 0.35 + (density / 10) * 0.65;
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
       }
     }
 
     // 'original' shows the raw battleground with no district lines at all;
-    // 'districts' fills each district a distinct color; 'party' keeps the party
-    // colors readable and just outlines the districts in a light neutral.
+    // 'districts' fills each district a distinct color; 'party' leaves the
+    // winner-filled seats and just outlines the districts in their winner color.
     if (view !== 'original') {
       const numDistricts = Math.max(...districts.flat().filter(d => d > 0), 0);
       for (let districtId = 1; districtId <= numDistricts; districtId++) {
-        const color = DISTRICT_COLORS[(districtId - 1) % DISTRICT_COLORS.length];
         if (view === 'districts') {
+          const color = DISTRICT_COLORS[(districtId - 1) % DISTRICT_COLORS.length];
           fillCells(ctx, districts, v => v === districtId, cellSize, color + '99');
           ctx.strokeStyle = color;
         } else {
-          ctx.strokeStyle = 'rgba(233, 238, 245, 0.6)';
+          ctx.strokeStyle = theme.partyBorder[districtWinner[districtId]] ?? 'rgba(233, 238, 245, 0.6)';
         }
         ctx.lineWidth = 2;
         strokeRegionBoundary(ctx, districts, v => v === districtId, cellSize);
       }
     }
 
-    ctx.strokeStyle = theme.countyBorder;
+    ctx.strokeStyle = view === 'party' ? theme.countyBorderParty : theme.countyBorder;
     ctx.lineWidth = 1;
     strokeAllBoundaries(ctx, counties, cellSize);
 
