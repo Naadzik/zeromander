@@ -57,6 +57,7 @@ export default function GhostMapComparison({ populationMap, counties, playerDist
   return (
     <div className="ghost-map-comparison">
       <div className="ghost-view-toggle" role="group" aria-label="Map coloring">
+        <button className={view === 'original' ? 'is-active' : ''} onClick={() => setView('original')}>Original</button>
         <button className={view === 'districts' ? 'is-active' : ''} onClick={() => setView('districts')}>Districts</button>
         <button className={view === 'party' ? 'is-active' : ''} onClick={() => setView('party')}>Party colors</button>
       </div>

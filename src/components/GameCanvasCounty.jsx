@@ -45,7 +45,7 @@ export default function GameCanvasCounty({
     const ctx = canvas.getContext('2d');
 
     const theme = getCanvasTheme();
-    const { partyMap, densityMap } = extractPopulationData(populationMap);
+    const { partyMap, densityMap, communityMap } = extractPopulationData(populationMap);
 
     const gridSize = partyMap.length;
     const cellSize = canvas.width / gridSize;
@@ -127,6 +127,17 @@ export default function GameCanvasCounty({
     ctx.strokeStyle = mapView === 'party' ? theme.countyBorderParty : theme.countyBorder;
     ctx.lineWidth = 1;
     strokeAllBoundaries(ctx, counties, cellSize);
+
+    // Community-of-interest overlay (VRA layer) — a bold amber dashed outline so
+    // the protected community you must not crack or pack is always visible.
+    if (communityMap) {
+      ctx.save();
+      ctx.strokeStyle = '#FBBF24';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 3]);
+      strokeRegionBoundary(ctx, communityMap, v => v === true, cellSize);
+      ctx.restore();
+    }
 
     // Hovered county highlight
     if (hoveredCounty !== null) {

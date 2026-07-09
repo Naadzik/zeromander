@@ -2,7 +2,9 @@ export function extractPopulationData(populationMap) {
   const isNewFormat = populationMap && typeof populationMap === 'object' && !Array.isArray(populationMap) && populationMap.party;
   const partyMap = isNewFormat ? populationMap.party : populationMap;
   const densityMap = isNewFormat ? populationMap.density : null;
-  return { isNewFormat, partyMap, densityMap };
+  // Optional community-of-interest overlay (VRA layer); null unless generated.
+  const communityMap = isNewFormat ? (populationMap.community ?? null) : null;
+  return { isNewFormat, partyMap, densityMap, communityMap };
 }
 
 export function getGridSize(populationMap) {

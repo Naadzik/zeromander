@@ -175,6 +175,14 @@
   margin-bottom: var(--spacing-sm);
 }
 
+/* Litigation-risk banding. */
+.metric-value[data-risk="low"] { color: var(--win-green, #2FA35C); }
+.metric-value[data-risk="elevated"] { color: var(--accent-gold, #F5B942); }
+.metric-value[data-risk="high"] { color: var(--error-color, #E4463F); }
+.metric-value[data-community="fair"] { color: var(--win-green, #2FA35C); }
+.metric-value[data-community="cracked"],
+.metric-value[data-community="packed"] { color: var(--error-color, #E4463F); }
+
 .metric-desc {
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);

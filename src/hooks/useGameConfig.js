@@ -20,6 +20,8 @@ export function useGameConfig(initialDifficulty = 'medium') {
   const [targetSeatPercentage, setTargetSeatPercentage] = useState(initial.targetSeats);
   // Undecided ("grey") population share — 2-party only for now.
   const [greyPercentage, setGreyPercentage] = useState(8);
+  // Optional "community of interest" (VRA layer) — 2-party only.
+  const [includeCommunity, setIncludeCommunity] = useState(false);
 
   const isThreeParty = difficulty === 'three-party';
 
@@ -57,6 +59,10 @@ export function useGameConfig(initialDifficulty = 'medium') {
     // consumer see a grey-free config there without per-site checks.
     greyPercentage: isThreeParty ? 0 : greyPercentage,
     setGreyPercentage,
+    includeCommunity,
+    setIncludeCommunity,
+    // A fixed 20% share when enabled → a fair share of ~2 seats to protect.
+    communityPercentage: isThreeParty || !includeCommunity ? 0 : 20,
     targetSeatPercentage,
     applyDifficulty,
     maxDistricts: DIFFICULTY_SETTINGS[difficulty].maxDistricts

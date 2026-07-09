@@ -29,7 +29,7 @@ export default function GhostMapCanvas({ populationMap, counties, districts, siz
     const ctx = canvas.getContext('2d');
 
     const theme = getCanvasTheme();
-    const { partyMap, densityMap } = extractPopulationData(populationMap);
+    const { partyMap, densityMap, communityMap } = extractPopulationData(populationMap);
     const gridSize = partyMap.length;
     const cellSize = canvas.width / gridSize;
 
@@ -47,24 +47,38 @@ export default function GhostMapCanvas({ populationMap, counties, districts, siz
       }
     }
 
-    const numDistricts = Math.max(...districts.flat().filter(d => d > 0), 0);
-    for (let districtId = 1; districtId <= numDistricts; districtId++) {
-      const color = DISTRICT_COLORS[(districtId - 1) % DISTRICT_COLORS.length];
-      // 'party' view leaves the party colors readable — no fill overlay, just
-      // district outlines (in a light neutral) so the shapes still show.
-      if (view === 'districts') {
-        fillCells(ctx, districts, v => v === districtId, cellSize, color + '99');
-        ctx.strokeStyle = color;
-      } else {
-        ctx.strokeStyle = 'rgba(233, 238, 245, 0.6)';
+    // 'original' shows the raw battleground with no district lines at all;
+    // 'districts' fills each district a distinct color; 'party' keeps the party
+    // colors readable and just outlines the districts in a light neutral.
+    if (view !== 'original') {
+      const numDistricts = Math.max(...districts.flat().filter(d => d > 0), 0);
+      for (let districtId = 1; districtId <= numDistricts; districtId++) {
+        const color = DISTRICT_COLORS[(districtId - 1) % DISTRICT_COLORS.length];
+        if (view === 'districts') {
+          fillCells(ctx, districts, v => v === districtId, cellSize, color + '99');
+          ctx.strokeStyle = color;
+        } else {
+          ctx.strokeStyle = 'rgba(233, 238, 245, 0.6)';
+        }
+        ctx.lineWidth = 2;
+        strokeRegionBoundary(ctx, districts, v => v === districtId, cellSize);
       }
-      ctx.lineWidth = 2;
-      strokeRegionBoundary(ctx, districts, v => v === districtId, cellSize);
     }
 
     ctx.strokeStyle = theme.countyBorder;
     ctx.lineWidth = 1;
     strokeAllBoundaries(ctx, counties, cellSize);
+
+    // Community-of-interest overlay (VRA layer) — amber dashed outline, same as
+    // the game canvas, so the comparison shows the community too.
+    if (communityMap) {
+      ctx.save();
+      ctx.strokeStyle = '#FBBF24';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 3]);
+      strokeRegionBoundary(ctx, communityMap, v => v === true, cellSize);
+      ctx.restore();
+    }
   }, [populationMap, counties, districts, view]);
 
   return (

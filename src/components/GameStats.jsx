@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { getDistrictPopulation, classifyDistricts } from '../utils/gameLogic'
 import { computeCoreStats, round1, targetSeatCount } from '../utils/computeGameStats'
-import { checkConstraintViolations } from '../utils/legalConstraints'
+import { checkConstraintViolations, computePopulationDeviation } from '../utils/legalConstraints'
+import { litigationRisk } from '../utils/litigation'
+import { communityRepresentation } from '../utils/community'
 import { PARTY } from '../utils/partyConfig'
 import PartyIcon from './ui/PartyIcon'
 import Icon from './ui/Icons'
@@ -89,8 +91,20 @@ export default function GameStats({
     const tossups = classified.filter(r => r.status === 'tossup').length;
     const ourSafe = playerParty === 'blue' ? safeSeats.blue : safeSeats.red;
 
+    const dev = computePopulationDeviation(populationMap, districts, numDistricts, 10);
+    const community = communityRepresentation(populationMap, districts, numDistricts);
+    const litigation = litigationRisk({
+      compactness: core.compactness.average,
+      gap: core.gap.gap,
+      asymmetry: core.asymmetry.asymmetry,
+      worstDeviationPct: dev.worstDeviationPct,
+      communityDilution: community ? community.dilution : null
+    });
+
     return {
       ...base,
+      litigation,
+      community,
       classified,
       safeSeats,
       tossups,
@@ -266,6 +280,24 @@ export default function GameStats({
             <div className="metric-label">Partisan Asymmetry <MetricInfo metric="asymmetry" /></div>
             <div className="metric-value">{stats.asymmetry}%</div>
             <div className="metric-desc">|seats% - votes%|</div>
+          </div>
+        )}
+
+        {!isThreeParty && stats.litigation && (
+          <div className="metric-card">
+            <div className="metric-label">Litigation Risk <MetricInfo metric="litigationRisk" /></div>
+            <div className="metric-value" data-risk={stats.litigation.band}>{stats.litigation.score}</div>
+            <div className="metric-desc">
+              {stats.litigation.band}{stats.litigation.drivers.length ? ` · ${stats.litigation.drivers[0]}` : ''}
+            </div>
+          </div>
+        )}
+
+        {!isThreeParty && stats.community && (
+          <div className="metric-card">
+            <div className="metric-label">Community <MetricInfo metric="communityRepresentation" /></div>
+            <div className="metric-value" data-community={stats.community.status}>{stats.community.opportunityDistricts}/{stats.community.fairShare}</div>
+            <div className="metric-desc">opportunity seats · {stats.community.status}</div>
           </div>
         )}
       </div>

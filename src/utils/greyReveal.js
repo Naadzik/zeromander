@@ -16,7 +16,7 @@ import { extractPopulationData, GREY } from './formatUtils.js';
 // Pure: same map + same rng seed → same resolution. Returns a NEW populationMap
 // (original is never mutated) plus per-cluster info for display/animation.
 export function resolveGreyPopulation(populationMap, rng) {
-  const { partyMap, densityMap } = extractPopulationData(populationMap);
+  const { partyMap, densityMap, communityMap } = extractPopulationData(populationMap);
   const gridSize = partyMap.length;
 
   // No grey → return the input untouched WITHOUT consuming any rng draws.
@@ -88,8 +88,14 @@ export function resolveGreyPopulation(populationMap, rng) {
     }
   }
 
+  // Forward the community-of-interest layer untouched — election night only
+  // resolves the undecideds; the community grid is independent of party and must
+  // survive the reveal so its overlay still renders on the resolved map.
+  const revealedMap = { party: newParty, density: densityMap };
+  if (communityMap) revealedMap.community = communityMap;
+
   return {
-    revealedMap: { party: newParty, density: densityMap },
+    revealedMap,
     clusters
   };
 }

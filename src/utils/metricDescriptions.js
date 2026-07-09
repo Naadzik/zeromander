@@ -28,6 +28,16 @@ export const METRIC_DESCRIPTIONS = {
     title: 'Population Parity',
     body: 'Each district must contain roughly the same population (within ±10% of the target) so that every vote carries equal weight.',
     source: 'One person, one vote — Reynolds v. Sims (1964); ±10% reflects the practical threshold courts applied to state legislative maps'
+  },
+  litigationRisk: {
+    title: 'Litigation Risk',
+    body: 'A 0–100 estimate of how likely this map is to draw a court challenge, blending the signals lawsuits actually cite: contorted districts (low compactness), a large partisan efficiency gap, seats far from vote share, unequal district populations, and — when present — dilution of a protected community. It is a gauge, not a verdict — the game does not yet strike maps down.',
+    source: 'Composite of the metrics above; thresholds echo the ~7% efficiency-gap flag (Stephanopoulos & McGhee) and the ±10% population rule (Reynolds v. Sims)'
+  },
+  communityRepresentation: {
+    title: 'Community Representation',
+    body: 'The dashed amber region marks a "community of interest" whose members share concerns and are entitled to a fair chance to elect candidates of their choice. The value shows how many districts they can actually carry (an "opportunity district") versus their fair proportional share. Splitting them thin so they carry none is CRACKING; cramming them into fewer districts than fair is PACKING — both dilute their voice and are the heart of Voting Rights Act litigation.',
+    source: 'Voting Rights Act §2 vote-dilution doctrine — Thornburg v. Gingles (1986); the community here is fictional and non-partisan'
   }
 };
 

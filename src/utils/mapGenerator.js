@@ -87,8 +87,12 @@ function rebalancePartyShare(partyMap, densityMap, cells, targetPop, partyId, ta
 // This IS the natural-board model (unconditional since 2026-07-08; the legacy
 // "perfect circles + random rebalance" path and its rollout flags solidCities/
 // naturalBoard were removed once every mode had migrated).
-export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0) {
-  return generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage);
+// `communityPercentage`: share of the population belonging to a fictional,
+// non-partisan "community of interest" (VRA layer) — a SEPARATE boolean overlay
+// grid, independent of party. Trailing param + zero rng when 0, so every board
+// that doesn't ask for a community is byte-identical to before.
+export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0, communityPercentage = 0) {
+  return generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage, communityPercentage);
 }
 
 // ---------- Natural board model ----------
@@ -159,7 +163,7 @@ function naturalDensityMid(u, party) {
   return 2;
 }
 
-function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage) {
+function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage, communityPercentage = 0) {
   const citySeeds = [];
   for (let i = 0; i < numCities; i++) {
     citySeeds.push({
@@ -315,7 +319,48 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
     applyGreyBlobs(partyMap, densityMap, gridSize, greyPercentage, totalPop, rng);
   }
 
+  // HARD GUARD on 0 (like grey): a community layer must consume zero rng and
+  // add no keys when off, or every seeded board silently changes.
+  if (communityPercentage > 0) {
+    const community = growCommunity(gridSize, densityMap, communityPercentage, totalPop, rng);
+    return { party: partyMap, density: densityMap, community };
+  }
+
   return { party: partyMap, density: densityMap };
+}
+
+// Grows a fictional "community of interest" as a SEPARATE contiguous boolean
+// overlay (1–2 blobs) covering ~communityPercentage of the density-weighted
+// population — independent of party, so packing/cracking it is its own puzzle.
+// Same blob-claim shape as applyGreyBlobs, but never touches party/density.
+function growCommunity(gridSize, densityMap, communityPercentage, totalPop, rng) {
+  const target = (totalPop * communityPercentage) / 100;
+  const community = Array(gridSize).fill(null).map(() => Array(gridSize).fill(false));
+  const numBlobs = 1 + Math.floor(rng() * 2); // 1–2
+  const seeds = [];
+  for (let i = 0; i < numBlobs; i++) seeds.push({ x: rng() * gridSize, y: rng() * gridSize });
+
+  const scored = [];
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      let minDist = Infinity;
+      for (const s of seeds) {
+        const dx = x - s.x, dy = y - s.y;
+        minDist = Math.min(minDist, Math.sqrt(dx * dx + dy * dy));
+      }
+      const noise = Math.sin(x * 0.4 + y * 0.3) * 1.5 + Math.sin(x * 0.2 + y * 0.6) * 1.5;
+      scored.push({ x, y, score: minDist + noise });
+    }
+  }
+  scored.sort((a, b) => a.score - b.score);
+
+  let pop = 0;
+  for (const { x, y } of scored) {
+    if (pop >= target) break;
+    community[y][x] = true;
+    pop += densityMap[y][x];
+  }
+  return community;
 }
 
 // Marks ~greyPercentage of the population (density-weighted) as undecided
