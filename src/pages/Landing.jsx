@@ -79,6 +79,11 @@ export default function Landing() {
               )}
             </div>
             <p className={styles.smallPrint}>Free · No account · Fictional parties, real formulas</p>
+            <p className={styles.modes}>
+              More ways to play: <Link to="/game?decade">The Decade</Link>
+              {' · '}<Link to="/game?scenario=community">Community scenario</Link>
+              {' · '}<Link to="/game">Sandbox</Link>
+            </p>
           </div>
           <figure className={styles.specimenWrap}>
             <DailySpecimen size={400} className={styles.specimenCanvas} />

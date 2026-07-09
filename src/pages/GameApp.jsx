@@ -10,11 +10,13 @@ import GhostMapComparison from '../components/GhostMapComparison'
 import DailyObjectiveBanner from '../components/DailyObjectiveBanner'
 import RevealChyron from '../components/RevealChyron'
 import LessonGuide from '../components/LessonGuide'
-import { classifyDistricts } from '../utils/gameLogic'
+import DecadeResults from '../components/DecadeResults'
+import { classifyDistricts, getPopulationShares } from '../utils/gameLogic'
 import Tutorial, { STEPS_3PARTY } from '../components/Tutorial'
 import '../styles/Tutorial.css'
 import { exportMapPng } from '../utils/exportMap'
-import { computeCoreStats } from '../utils/computeGameStats'
+import { computeCoreStats, targetSeatCount } from '../utils/computeGameStats'
+import { swingRobustness, breakRobustness } from '../utils/electionVariation'
 import { useGameConfig, DIFFICULTY_SETTINGS } from '../hooks/useGameConfig'
 import { useMapState } from '../hooks/useMapState'
 import { usePlayerParty } from '../hooks/usePlayerParty'
@@ -24,7 +26,8 @@ import { useLegalConstraints } from '../hooks/useLegalConstraints'
 import { useFairMap } from '../hooks/useFairMap'
 import { getDailyChallenge, buildDailyResult, fairSeedFrom, TIER_LABELS } from '../utils/dailyChallenge'
 import { getResultFor, recordDailyResult } from '../utils/dailyHistory'
-import { utcDateString } from '../utils/rng'
+import { utcDateString, createRng } from '../utils/rng'
+import { runDecade, readBestDecade, saveBestDecade } from '../utils/decade'
 import '../styles/App.css'
 
 // Collapsed/expanded panel preference, remembered across sessions.
@@ -83,6 +86,41 @@ const LESSON = {
   }
 };
 
+// The community-of-interest scenario board (?scenario=community): a fixed,
+// competitive 10-district map with a 20% protected community (fair share ≈ 2
+// opportunity seats). The lesson is the trilemma — win your seats without
+// cracking or packing the community.
+const COMMUNITY_SCENARIO = {
+  seed: 88,
+  config: {
+    difficulty: 'medium', gridSize: 80, numDistricts: 10, numCounties: 475,
+    numCities: 4, numTowns: 0, bluePercentage: 48, greyPercentage: 0,
+    communityPercentage: 20, targetSeatPercentage: 50, isThreeParty: false
+  }
+};
+
+// Decade mode (?decade): a FRESH random medium board each visit — no grey, no
+// community (the decade's own swing + drift are the only variation). You draw
+// once as Urban Union, then defend the map through five elections.
+const DECADE_CONFIG = {
+  difficulty: 'medium', gridSize: 80, numDistricts: 10, numCounties: 475,
+  numCities: 4, numTowns: 0, bluePercentage: 45, greyPercentage: 0,
+  communityPercentage: 0, targetSeatPercentage: 50, isThreeParty: false
+};
+
+// FNV-1a over the districts grid → a stable per-map fingerprint. Combined with
+// the board seed it makes each map face ONE fixed decade (no re-roll fishing),
+// while different maps get different decades.
+function hashGrid(grid) {
+  let h = 2166136261;
+  for (let y = 0; y < grid.length; y++)
+    for (let x = 0; x < grid[y].length; x++) {
+      h ^= grid[y][x] + 1;
+      h = Math.imul(h, 16777619);
+    }
+  return h >>> 0;
+}
+
 export default function GameApp() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -123,11 +161,16 @@ export default function GameApp() {
 
   // "First Heist" guided lesson: a fixed 3-district teaching board.
   const isLesson = new URLSearchParams(location.search).has('lesson');
+  // Community-of-interest teaching scenario (VRA layer): a fixed board with a
+  // protected community — win seats AND give them fair representation.
+  const isCommunityScenario = new URLSearchParams(location.search).get('scenario') === 'community';
+  // Decade campaign mode: draw once, defend it across five elections.
+  const isDecade = new URLSearchParams(location.search).has('decade');
 
   // Challenge links: ?board=<seed> reproduces a friend's exact board (all
   // generation inputs are encoded), with their "seats stolen" as the goal.
   const duel = useMemo(() => {
-    if (isDaily || isLesson) return null;
+    if (isDaily || isLesson || isCommunityScenario || isDecade) return null;
     const p = new URLSearchParams(location.search);
     if (!p.has('board')) return null;
     const int = (k, fallback) => {
@@ -152,25 +195,33 @@ export default function GameApp() {
   const sandboxConfig = useGameConfig();
   // Daily/duel/lesson overrides are plain values layered over the sandbox
   // hook — Controls is hidden in those modes, so its setters are unreachable.
+  // `communityPercentage: 0` is forced in every non-sandbox/non-scenario mode
+  // so a sandbox community toggle can never leak into (and re-roll) a frozen
+  // daily / lesson / challenge board.
   const config = isDaily
-    ? { ...sandboxConfig, ...tierData.config, isThreeParty: false }
+    ? { ...sandboxConfig, ...tierData.config, communityPercentage: 0, isThreeParty: false }
     : isLesson
-      ? { ...sandboxConfig, ...LESSON.config }
-      : duel
-        ? {
-            ...sandboxConfig,
-            difficulty: duel.difficulty,
-            gridSize: DIFFICULTY_SETTINGS[duel.difficulty].gridSize,
-            numDistricts: duel.numDistricts,
-            numCounties: duel.numCounties,
-            numCities: duel.numCities,
-            numTowns: duel.numTowns,
-            bluePercentage: duel.bluePercentage,
-            greyPercentage: duel.greyPercentage,
-            targetSeatPercentage: 50,
-            isThreeParty: false
-          }
-        : sandboxConfig;
+      ? { ...sandboxConfig, ...LESSON.config, communityPercentage: 0 }
+      : isCommunityScenario
+        ? { ...sandboxConfig, ...COMMUNITY_SCENARIO.config }
+        : isDecade
+          ? { ...sandboxConfig, ...DECADE_CONFIG }
+          : duel
+          ? {
+              ...sandboxConfig,
+              difficulty: duel.difficulty,
+              gridSize: DIFFICULTY_SETTINGS[duel.difficulty].gridSize,
+              numDistricts: duel.numDistricts,
+              numCounties: duel.numCounties,
+              numCities: duel.numCities,
+              numTowns: duel.numTowns,
+              bluePercentage: duel.bluePercentage,
+              greyPercentage: duel.greyPercentage,
+              communityPercentage: 0,
+              targetSeatPercentage: 50,
+              isThreeParty: false
+            }
+          : sandboxConfig;
 
   const legalConstraints = useLegalConstraints();
   // The board also locks once a SANDBOX game completes — election night has
@@ -179,15 +230,21 @@ export default function GameApp() {
   // (useMapState ← completion ← map); the one-render lag is sub-frame.
   const gameCompleteRef = useRef(false);
   const map = useMapState(config, legalConstraints.constraints, {
-    seed: tierData?.seed ?? duel?.seed ?? (isLesson ? LESSON.seed : undefined),
+    seed: tierData?.seed ?? duel?.seed ?? (isLesson ? LESSON.seed : isCommunityScenario ? COMMUNITY_SCENARIO.seed : undefined),
     locked: (isDaily && !!dailyResult) || gameCompleteRef.current
   });
   const { playerParty, setPlayerParty, togglePlayerParty } = usePlayerParty();
   // The daily assigns your party; a duel puts you in the challenger's seat;
   // the lesson always casts you as the underdog Urban Union.
-  const effectiveParty = isDaily ? challenge.party : (duel ? duel.party : (isLesson ? 'blue' : playerParty));
+  const effectiveParty = isDaily ? challenge.party : (duel ? duel.party : (isLesson || isCommunityScenario || isDecade ? 'blue' : playerParty));
   const tutorial = useTutorial();
   const [electionUncertainty, setElectionUncertainty] = useState(false);
+  const [durabilityReport, setDurabilityReport] = useState(false);
+  // Decade mode: the played-out result, the prior best (for comparison), and
+  // whether this run set a new record. All null until "Run the decade".
+  const [decadeResult, setDecadeResult] = useState(null);
+  const [decadeBest, setDecadeBest] = useState(null);
+  const [decadeIsNewBest, setDecadeIsNewBest] = useState(false);
   const completion = useGameCompletion({
     populationMap: map.populationMap,
     districts: map.districts,
@@ -196,8 +253,8 @@ export default function GameApp() {
     difficulty: config.difficulty,
     targetSeatPercentage: config.targetSeatPercentage,
     constraints: legalConstraints.constraints,
-    electionUncertainty: (isDaily || isLesson) ? false : electionUncertainty,
-    manual: isDaily
+    electionUncertainty: (isDaily || isLesson || isDecade) ? false : electionUncertainty,
+    manual: isDaily || isDecade
   });
   gameCompleteRef.current = completion.gameComplete;
   // boardLocked = the daily's post-lock-in state (drives daily-specific UI);
@@ -342,6 +399,25 @@ export default function GameApp() {
     return computeCoreStats(effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty);
   }, [completion.gameComplete, effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty]);
 
+  // Durability report — sandbox 2-party opt-in. Stress-tests the finished map
+  // against a national swing AND against how the undecideds might break, using
+  // Engine A (electionVariation). One-time compute when the game completes.
+  const durability = useMemo(() => {
+    if (!durabilityReport || isDaily || config.isThreeParty || !completion.gameComplete || !map.populationMap?.party) return null;
+    const nd = config.numDistricts;
+    // Grey share + target come from the RAW pre-reveal map — the revealed map
+    // has no grey left, so reading it there would zero the undecided readout.
+    const rawShares = getPopulationShares(map.populationMap);
+    const greyShare = rawShares.grey ?? 0;
+    const targetSeats = targetSeatCount(rawShares[effectiveParty] * (1 - greyShare / 100), nd);
+    const decidedMap = completion.revealedMap ?? map.populationMap; // grey resolved
+    const swing = swingRobustness(decidedMap, map.districts, nd, effectiveParty, { targetSeats });
+    const breaks = greyShare > 0.01
+      ? breakRobustness(map.populationMap, map.districts, nd, effectiveParty, { runs: 200, targetSeats })
+      : null;
+    return { swing, breaks, targetSeats, numDistricts: nd };
+  }, [durabilityReport, isDaily, config.isThreeParty, config.numDistricts, completion.gameComplete, completion.revealedMap, map.populationMap, map.districts, effectiveParty]);
+
   const hasMap = map.populationMap.party || map.populationMap.length > 0;
 
   // "Challenge a friend": a URL that reproduces this exact board (all
@@ -399,6 +475,26 @@ export default function GameApp() {
     map.generateNewGame();
   }
 
+  // Decade mode: play the finished map out across five elections. The decade is
+  // seeded deterministically from the board + drawn lines, so a given map faces
+  // ONE fixed decade (you can't re-roll for a lucky run — you must redraw).
+  function handleRunDecade() {
+    if (!completion.isMapValid) return;
+    const seed = (Math.imul((map.boardSeed ?? 0) >>> 0, 2654435761) ^ hashGrid(map.districts)) >>> 0;
+    const result = runDecade(map.populationMap, map.districts, config.numDistricts, effectiveParty, createRng(seed), { elections: 5 });
+    setDecadeBest(readBestDecade());     // the record BEFORE this run, for the comparison line
+    setDecadeIsNewBest(saveBestDecade(result));
+    setDecadeResult(result);
+  }
+
+  function handleDecadeNewMap() {
+    setDecadeResult(null);
+    setDecadeIsNewBest(false);
+    setHighlightedDistrict(null);
+    setShowUnassignedCounties(false);
+    map.generateNewGame();
+  }
+
   // The one-shot submission. Freezes stats, computes seats stolen against the
   // deterministic neutral map, and persists the day's result.
   function handleLockIn() {
@@ -449,6 +545,18 @@ export default function GameApp() {
         <LessonGuide signals={lessonSignals} onSkip={() => finishLesson('/game?daily')} />
       )}
 
+      {isDecade && decadeResult && (
+        <DecadeResults
+          result={decadeResult}
+          playerParty={effectiveParty}
+          numDistricts={config.numDistricts}
+          best={decadeBest}
+          isNewBest={decadeIsNewBest}
+          onNewMap={handleDecadeNewMap}
+          onBack={() => navigate('/')}
+        />
+      )}
+
       {completion.showModal && completion.gameStats && !revealAnimating && !revealPending && (
         <GameEndModal
           stats={completion.gameStats}
@@ -456,6 +564,7 @@ export default function GameApp() {
           fairStats={fairMap.fairStats}
           daily={isDaily ? { dayNumber: challenge.dayNumber, party: challenge.party, tier: dailyTier, date: challenge.date, result: dailyResult, archive: isArchive } : null}
           challengeShare={isLesson ? null : challengeShare}
+          durability={durability}
           duelGoal={duel?.goal ?? null}
           lesson={isLesson ? { onPlayDaily: () => finishLesson('/game?daily') } : null}
           onTryAgain={isDaily ? undefined : handleTryAgain}
@@ -466,7 +575,7 @@ export default function GameApp() {
       <GameHeader onBack={() => navigate('/')} onHelp={tutorial.openTutorial} />
 
       <div className="app-container">
-        {!isDaily && !duel && !isLesson && (
+        {!isDaily && !duel && !isLesson && !isCommunityScenario && !isDecade && (
           <CollapsiblePanel title="Game Setup" side="left" collapsed={setupCollapsed} onToggle={toggleSetup}>
           <Controls
             difficulty={config.difficulty}
@@ -493,6 +602,10 @@ export default function GameApp() {
             onPopDeviationThresholdChange={legalConstraints.setPopDeviationThreshold}
             electionUncertainty={electionUncertainty}
             onElectionUncertaintyChange={setElectionUncertainty}
+            durabilityReport={durabilityReport}
+            onDurabilityReportChange={setDurabilityReport}
+            includeCommunity={sandboxConfig.includeCommunity}
+            onIncludeCommunityChange={sandboxConfig.setIncludeCommunity}
             greyPercentage={config.greyPercentage}
             onGreyPercentageChange={config.setGreyPercentage}
           />
@@ -511,6 +624,22 @@ export default function GameApp() {
               popPercent={challenge.party === 'blue' ? tierData.config.bluePercentage : 100 - tierData.config.bluePercentage}
             />
           )}
+          {isCommunityScenario && (
+            <div className="daily-objective-banner">
+              <span className="daily-objective-banner__day">Community scenario</span>
+              <span className="daily-objective-banner__goal">
+                The dashed amber region is the <strong>Riverlands community</strong> (~20% of voters). Win seats for Urban Union — but give them fair representation: don't <strong>crack</strong> them (split so they carry nothing) or <strong>pack</strong> them (cram into one seat). Watch the Community &amp; Litigation Risk meters.
+              </span>
+            </div>
+          )}
+          {isDecade && (
+            <div className="daily-objective-banner">
+              <span className="daily-objective-banner__day">The Decade</span>
+              <span className="daily-objective-banner__goal">
+                Draw one map, then defend it through <strong>five elections</strong> of national swings and a slow drift of voters toward the cities. A greedy map wins big today and shatters in a wave — build one that <strong>lasts</strong>. You're Urban Union; hold the majority as long as you can.
+              </span>
+            </div>
+          )}
           {duel && (
             <div className="daily-objective-banner">
               <span className="daily-objective-banner__day">Challenge board</span>
@@ -519,6 +648,17 @@ export default function GameApp() {
                   ? <>A rival stole <strong>{duel.goal > 0 ? `+${duel.goal}` : duel.goal} seats</strong> here, playing as {duel.party === 'blue' ? 'Urban Union' : 'Heartland Alliance'}. Your move.</>
                   : <>A shared board. Set the score.</>}
               </span>
+            </div>
+          )}
+          {isDecade && !decadeResult && (
+            <div className="daily-lock-bar">
+              <button
+                className="btn-primary"
+                disabled={!completion.isMapValid}
+                onClick={handleRunDecade}
+              >
+                {completion.isMapValid ? '▶ Run the decade' : 'Assign every district to run the decade'}
+              </button>
             </div>
           )}
           {isDaily && !boardLocked && (
@@ -553,8 +693,8 @@ export default function GameApp() {
             onDistrictSelect={map.setCurrentDistrict}
             isThreeParty={config.isThreeParty}
             playerParty={effectiveParty}
-            onPartySelect={(editLocked || duel || isLesson) ? noop : setPlayerParty}
-            onPartyToggle={(editLocked || duel || isLesson) ? noop : togglePlayerParty}
+            onPartySelect={(editLocked || duel || isLesson || isDecade) ? noop : setPlayerParty}
+            onPartyToggle={(editLocked || duel || isLesson || isDecade) ? noop : togglePlayerParty}
             mapView={mapView}
             onMapViewChange={setMapView}
             canUndo={!editLocked && map.undoRedo.canUndo}

@@ -194,6 +194,19 @@
   letter-spacing: 0.04em;
 }
 
+.modes {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+.modes a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-color);
+  transition: color var(--transition-fast, 0.15s) ease;
+}
+.modes a:hover { color: var(--accent-gold); }
+
 /* The specimen: today's real board in a studio-monitor frame */
 .specimenWrap {
   margin: 0;

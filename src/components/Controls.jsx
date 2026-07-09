@@ -25,6 +25,10 @@ export default function Controls({
   onPopDeviationThresholdChange,
   electionUncertainty,
   onElectionUncertaintyChange,
+  durabilityReport,
+  includeCommunity,
+  onIncludeCommunityChange,
+  onDurabilityReportChange,
   greyPercentage,
   onGreyPercentageChange
 }) {
@@ -222,6 +226,19 @@ export default function Controls({
             <label className="constraint-toggle">
               <input
                 type="checkbox"
+                checked={includeCommunity}
+                onChange={(e) => onIncludeCommunityChange(e.target.checked)}
+              />
+              Community of interest
+            </label>
+            <span className="constraint-hint">
+              Adds a protected "community of interest" (~20% of voters, dashed amber). Give them fair representation — cracking or packing them raises Litigation Risk. It's the heart of Voting Rights Act cases.
+            </span>
+          </div>
+          <div className="control-group constraint-row">
+            <label className="constraint-toggle">
+              <input
+                type="checkbox"
                 checked={electionUncertainty}
                 onChange={(e) => onElectionUncertaintyChange(e.target.checked)}
               />
@@ -229,6 +246,19 @@ export default function Controls({
             </label>
             <span className="constraint-hint">
               When you finish, a random nationwide swing of up to ±4% shifts every district at once — the election-night result decides win or lose, not the map as drawn. Local uncertainty comes from the undecided voters above.
+            </span>
+          </div>
+          <div className="control-group constraint-row">
+            <label className="constraint-toggle">
+              <input
+                type="checkbox"
+                checked={durabilityReport}
+                onChange={(e) => onDurabilityReportChange(e.target.checked)}
+              />
+              Durability report
+            </label>
+            <span className="constraint-hint">
+              After you lock in, stress-test the map: how big a wave it survives, and how it holds across the ways the undecideds could break. A greedy map wins big but shatters in a wave — a "dummymander".
             </span>
           </div>
         </div>
