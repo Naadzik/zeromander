@@ -1,8 +1,23 @@
-import { extractPopulationData } from './formatUtils.js';
-import { calculateSeatsWithSwing } from './gameLogic.js';
+import { extractPopulationData, getDistrictVotes } from './formatUtils.js';
+import { applySwingToVotes } from './gameLogic.js';
+import { resolveGreyPopulation } from './greyReveal.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const round1 = v => Math.round(v * 10) / 10;
+
+// Per-district winner (0 blue / 1 red) on `map` after `swingPct`, mirroring
+// calculateSeatsWithSwing's tie-break (blue must strictly win). Lets a caller
+// draw the seat map for a given election, not just tally the count.
+function districtWinners(populationMap, districts, numDistricts, swingPct) {
+  const { partyMap, densityMap } = extractPopulationData(populationMap);
+  const winners = {};
+  for (let d = 1; d <= numDistricts; d++) {
+    const { blue, red } = getDistrictVotes(partyMap, densityMap, districts, d);
+    const swung = applySwingToVotes({ blue, red }, swingPct);
+    winners[d] = swung.blue > swung.red ? 0 : 1;
+  }
+  return winners;
+}
 
 // ── Realistic national swing draw ────────────────────────────────────────
 // Most cycles are quiet — a couple of points either way; roughly one in seven
@@ -23,13 +38,31 @@ export function drawNationalSwing(rng) {
 }
 
 // ── Urbanization drift ───────────────────────────────────────────────────
-// Over a decade, population concentrates: denser-than-average cells gain
-// people, sparser-than-average cells lose them, with the total electorate held
-// constant (a redistribution, not growth). `step` = elections since the map was
-// drawn (0 = drawn conditions, no drift). Party never moves — only where the
-// voters live — but because cities lean one way, the mix shifts under a fixed
-// map. Pure: same map + same step → same result.
-const URBANIZATION_RATE = 0.015; // per step, scaled by each cell's density deviation
+// Calibrated to U.S. Census county population change, 2010–2020 (the clearest
+// modern FPTP case): metro areas grew ~9% over the decade and large-metro cores
+// ~7.8%, the SUBURBAN/outlying ring grew fastest of all, while rural/nonmetro
+// counties lost population overall and roughly HALF of all counties shrank
+// (US Census Bureau, 2020 Census; USDA ERS nonmetro estimates). So a cell's
+// growth is not "denser always wins": it rises with density, PEAKS at the
+// suburban ring (~1.6× the mean), eases at the very densest core, and turns
+// NEGATIVE below ~0.8× the mean (deep rural). The total electorate is held
+// constant — a legislature's seats are reapportioned, so a FIXED map faces a
+// shifting electorate, which is the whole point of the mode. Because the growth
+// concentrates the metro party's voters, it also packs them under winner-take-
+// all rules (Chen & Rodden, "Unintentional Gerrymandering," QJPS 2013): a party
+// can gain vote share over the decade yet lose ground in seats. Pure: same map
+// + same step → same result. `step` = elections since the map was drawn.
+const DRIFT_RATE = 0.035;  // ~7% peak metro gain over a 4-step (decade) run
+const DRIFT_PEAK = 1.6;    // growth peaks near 1.6× mean density (the suburbs)
+const DRIFT_FLOOR = 0.8;   // below 0.8× mean (remote rural) the trend is decline
+
+// Per-step relative growth for a cell at density-to-mean ratio r — a rational
+// "hump": negative below the rural floor, peaking at the suburban ring, easing
+// for the densest core.
+function growthPerStep(r) {
+  return DRIFT_RATE * (r - DRIFT_FLOOR) / (1 + (r / DRIFT_PEAK) ** 2);
+}
+
 export function applyDrift(populationMap, step) {
   const { partyMap, densityMap, communityMap } = extractPopulationData(populationMap);
   if (!densityMap || step <= 0) return populationMap;
@@ -47,12 +80,13 @@ export function applyDrift(populationMap, step) {
     for (let x = 0; x < densityMap[y].length; x++) {
       const d = densityMap[y][x];
       origTotal += d;
-      // Above mean → grows; below → shrinks; magnitude ∝ deviation. Clamped so
-      // no cell can invert or run away over the decade.
-      const factor = clamp(1 + URBANIZATION_RATE * step * (d - mean) / mean, 0.1, 3);
+      // Clamped so no cell can invert or run away over the decade.
+      const factor = clamp(1 + step * growthPerStep(d / mean), 0.1, 3);
       drifted[y][x] = d * factor;
       newTotal += drifted[y][x];
     }
+  // Renormalize to the original total — the shift is a redistribution, not net
+  // growth (the seat count is fixed; reapportionment moves seats, not people).
   const norm = newTotal > 0 ? origTotal / newTotal : 1;
   for (let y = 0; y < gridSize; y++)
     for (let x = 0; x < densityMap[y].length; x++) drifted[y][x] *= norm;
@@ -79,12 +113,21 @@ export function runDecade(populationMap, districts, numDistricts, playerParty, r
   for (let i = 0; i < elections; i++) {
     const drifted = applyDrift(populationMap, i);
     const nationalSwing = drawNationalSwing(rng);
-    const seats = calculateSeatsWithSwing(drifted, districts, numDistricts, nationalSwing);
-    const ourSeats = playerParty === 'red' ? seats.red : seats.blue;
+    // Undecideds ("grey") break FRESH each cycle — a new clustered lean every
+    // election, on top of the national swing. No-grey boards pass through
+    // untouched (and consume no rng), so this is a no-op there.
+    const decided = resolveGreyPopulation(drifted, rng).revealedMap;
+    // Per-district winners drive both the tally and the drawable seat map, so
+    // the count and the rendered map can never disagree.
+    const winners = districtWinners(decided, districts, numDistricts, nationalSwing);
+    let blue = 0, red = 0;
+    for (let d = 1; d <= numDistricts; d++) (winners[d] === 0 ? blue++ : red++);
+    const seats = { blue, red, swingPct: nationalSwing };
+    const ourSeats = playerParty === 'red' ? red : blue;
     const won = ourSeats >= targetSeats;
     if (won) heldMajority++;
     cumulativeOurSeats += ourSeats;
-    results.push({ year: startYear + i * yearsApart, nationalSwing, seats, ourSeats, won });
+    results.push({ year: startYear + i * yearsApart, nationalSwing, seats, ourSeats, won, winners });
   }
 
   return {
