@@ -11,6 +11,7 @@ import DailyObjectiveBanner from '../components/DailyObjectiveBanner'
 import RevealChyron from '../components/RevealChyron'
 import LessonGuide from '../components/LessonGuide'
 import DecadeResults from '../components/DecadeResults'
+import CommunityExplainer from '../components/CommunityExplainer'
 import { classifyDistricts, getPopulationShares } from '../utils/gameLogic'
 import Tutorial, { STEPS_3PARTY } from '../components/Tutorial'
 import '../styles/Tutorial.css'
@@ -625,12 +626,15 @@ export default function GameApp() {
             />
           )}
           {isCommunityScenario && (
-            <div className="daily-objective-banner">
-              <span className="daily-objective-banner__day">Community scenario</span>
-              <span className="daily-objective-banner__goal">
-                The dashed amber region is the <strong>Riverlands community</strong> (~20% of voters). Win seats for Urban Union — but give them fair representation: don't <strong>crack</strong> them (split so they carry nothing) or <strong>pack</strong> them (cram into one seat). Watch the Community &amp; Litigation Risk meters.
-              </span>
-            </div>
+            <>
+              <div className="daily-objective-banner">
+                <span className="daily-objective-banner__day">Community scenario</span>
+                <span className="daily-objective-banner__goal">
+                  The dashed amber region is the <strong>Riverlands community</strong> — about 20% of voters, so their fair share is <strong>2 of the 10 seats</strong>. Draw <strong>two districts where they're a majority</strong> while you win your own seats for Urban Union. <strong>Crack</strong> them (a majority in none) or <strong>pack</strong> them (all crammed into one) and you dilute their vote — and your <strong>Litigation Risk</strong> climbs.
+                </span>
+              </div>
+              <CommunityExplainer />
+            </>
           )}
           {isDecade && (
             <div className="daily-objective-banner">

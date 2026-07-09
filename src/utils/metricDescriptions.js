@@ -36,7 +36,7 @@ export const METRIC_DESCRIPTIONS = {
   },
   communityRepresentation: {
     title: 'Community Representation',
-    body: 'The dashed amber region marks a "community of interest" whose members share concerns and are entitled to a fair chance to elect candidates of their choice. The value shows how many districts they can actually carry (an "opportunity district") versus their fair proportional share. Splitting them thin so they carry none is CRACKING; cramming them into fewer districts than fair is PACKING — both dilute their voice and are the heart of Voting Rights Act litigation.',
+    body: 'Reads as opportunity districts / fair share. An "opportunity" (majority-community) district is one where the dashed-amber community is over half the voters, so it can actually elect its candidate of choice. Fair share = their population share × the number of districts (here ~20% × 10 ≈ 2). Draw that many majority-community districts and it reads "fair". Fall short and it is dilution: CRACKING (sliced so thin they are a majority in too few) or PACKING (crammed into fewer districts than fair, wasting the surplus). Both feed Litigation Risk — and the fix for either is the same: draw exactly their fair share of majority-community districts, no fewer and no more.',
     source: 'Voting Rights Act §2 vote-dilution doctrine — Thornburg v. Gingles (1986); the community here is fictional and non-partisan'
   }
 };
