@@ -12,7 +12,29 @@ import Icon from './ui/Icons'
 // Heist result — switches the header and share text to the daily format.
 // `challengeShare`: { stolen, url } — offers a "beat my score" link.
 // `duelGoal`: the rival's stolen count when playing a challenge link.
-export default function GameEndModal({ stats, difficulty, fairStats, daily, challengeShare, duelGoal, lesson, onTryAgain, onClose }) {
+// One-line read on how big an adverse wave the map survives.
+function durabilityVerdict(adverse) {
+  if (adverse <= 1) return 'A dummymander — one bad night and it collapses.';
+  if (adverse <= 3) return 'Solid for a normal year; a real wave would crack it.';
+  return 'Robust — it survives even a big wave.';
+}
+
+// Tiny seats-vs-national-swing sparkline for the durability panel.
+function DurabilitySpark({ swing, numDistricts }) {
+  const W = 220, H = 56, pad = 5;
+  const xs = s => pad + ((s + 10) / 20) * (W - 2 * pad);
+  const ys = v => (H - pad) - (v / Math.max(1, numDistricts)) * (H - 2 * pad);
+  const pts = swing.curve.map(p => `${xs(p.swingPct).toFixed(1)},${ys(p.seats).toFixed(1)}`).join(' ');
+  return (
+    <svg className="durability-spark" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="Seats held versus national swing">
+      <line x1={pad} x2={W - pad} y1={ys(swing.targetSeats)} y2={ys(swing.targetSeats)} className="dspark-target" strokeDasharray="3 3" />
+      <line x1={xs(0)} x2={xs(0)} y1={pad} y2={H - pad} className="dspark-zero" />
+      <polyline points={pts} className="dspark-curve" fill="none" />
+    </svg>
+  );
+}
+
+export default function GameEndModal({ stats, difficulty, fairStats, daily, challengeShare, durability, duelGoal, lesson, onTryAgain, onClose }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [challengeCopied, setChallengeCopied] = useState(false);
@@ -264,6 +286,24 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
                     </span>
                     <strong>{stats.swung.ourSeats}% seats — {stats.swung.won ? 'WIN' : 'LOSE'}</strong>
                   </div>
+                </div>
+              )}
+
+              {durability && (
+                <div className="durability">
+                  <h4>Durability</h4>
+                  <div className="durability-swing">
+                    <DurabilitySpark swing={durability.swing} numDistricts={durability.numDistricts} />
+                    <p className="durability-line">
+                      Holds <strong>{durability.swing.seatsAtZero}/{durability.numDistricts}</strong> until the national mood swings <strong>{durability.swing.adverseHold}%</strong> against you.{' '}
+                      {durabilityVerdict(durability.swing.adverseHold)}
+                    </p>
+                  </div>
+                  {durability.breaks && (
+                    <p className="durability-line durability-breaks">
+                      <Icon name="undecided" size={13} /> If the undecideds broke differently, you still hit target in <strong>{durability.breaks.meetsTargetPct}%</strong> of scenarios (typically {durability.breaks.seatDist.min}–{durability.breaks.seatDist.max} seats).
+                    </p>
+                  )}
                 </div>
               )}
 

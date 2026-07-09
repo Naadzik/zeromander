@@ -342,6 +342,43 @@
   font-style: italic;
 }
 
+/* Durability report — the "does it survive a wave?" callout (sandbox opt-in). */
+.durability {
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-blue, #4D9FFF);
+  border-radius: var(--radius-sm);
+  background: rgba(77, 159, 255, 0.05);
+}
+.durability h4 {
+  margin: 0 0 var(--spacing-sm);
+  font-family: var(--font-ticker);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+  color: var(--text-bright);
+}
+.durability-swing {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.durability-spark { flex-shrink: 0; }
+.dspark-curve { stroke: var(--accent-blue, #4D9FFF); stroke-width: 2; stroke-linejoin: round; }
+.dspark-target { stroke: var(--text-tertiary, #6b7a94); stroke-width: 1; }
+.dspark-zero { stroke: var(--accent-gold, #FFCB5C); stroke-width: 1; opacity: 0.7; }
+.durability-line {
+  margin: 0;
+  flex: 1;
+  min-width: 180px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.durability-breaks { margin-top: var(--spacing-sm); flex-basis: 100%; }
+
 /* Anatomy of your map — the "here's how you rigged it" callout. */
 .map-anatomy {
   margin: var(--spacing-md) 0;
