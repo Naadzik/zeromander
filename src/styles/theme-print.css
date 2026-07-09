@@ -1,0 +1,330 @@
+/* ============================================================
+   PRINT EDITION — the light newsprint broadsheet theme.
+   Everything print lives here, scoped under html[data-theme='print'];
+   with the attribute absent this file is inert and the broadcast
+   theme renders untouched.
+
+   Section 1: token overrides (this block).
+   Section 2 (below): structural overrides — de-carding, rules,
+   masthead — added in P4.
+
+   CONSTRAINT: --district-1..12, --canvas-hover, --canvas-community
+   and --canvas-pop-{gain,loss,neutral} MUST stay 6-digit #RRGGBB —
+   canvas draw code appends hex alpha pairs ('99'/'AA'/'E6'/'33') or
+   parses the channels. An rgba() here silently breaks the map.
+   ============================================================ */
+
+html[data-theme='print'] {
+  /* Paper surface scale (replaces the navy scale; --bg-* aliases follow) */
+  --navy-950: #EDE7D8;
+  --navy-900: #F7F3EA;
+  --navy-800: #F1EBDD;
+  --navy-700: #E7DFCC;
+  --navy-600: #D8CDB4;
+
+  /* Civic ink accents */
+  --accent-blue: #35618F;
+  --accent-blue-hover: #27496C;
+  --accent-red: #9E3A33;
+  --accent-gold: #7A5C14;
+  --win-green: #2E6B44;
+  --primary-light: rgba(53, 97, 143, 0.12);
+
+  /* Ink text */
+  --text-bright: #171310;
+  --text-dark: #2A251C;
+  --text-secondary: #5C5442;
+  --text-tertiary: #675F4C;
+
+  /* Hairline rules */
+  --border-color: rgba(23, 19, 16, 0.18);
+  --divider-color: rgba(23, 19, 16, 0.32);
+
+  /* Muted civic party colors (dark enough to double as text on paper) */
+  --blue-party: #3F6592;
+  --red-party: #A34A3E;
+  --green-party: #4F7345;
+  --blue-party-deep: #2A4665;
+  --red-party-deep: #713228;
+  --green-party-deep: #35522E;
+  --grey-party: #6F6A5C;
+  --grey-party-deep: #4E4A3F;
+
+  /* Canvas: an atlas plate on paper */
+  --canvas-bg: #F3EDDF;
+  --canvas-blue-border: #2A4665;
+  --canvas-red-border: #713228;
+  --canvas-green-border: #35522E;
+  --canvas-grey-border: #4E4A3F;
+  --canvas-county-border: rgba(23, 19, 16, 0.38);
+  --canvas-county-border-party: rgba(23, 19, 16, 0.14);
+  --canvas-hover: #8A6116;
+  --canvas-unassigned: rgba(138, 97, 22, 0.14);
+
+  /* District overlay palette — muted atlas inks (6-digit hex ONLY) */
+  --district-1: #6B5E93;
+  --district-2: #9C5A77;
+  --district-3: #3F7D8C;
+  --district-4: #557E5B;
+  --district-5: #A3812F;
+  --district-6: #5D6B9E;
+  --district-7: #45806F;
+  --district-8: #8A5E96;
+  --district-9: #4A7CA3;
+  --district-10: #7A8437;
+  --district-11: #A26136;
+  --district-12: #837E6E;
+
+  /* Community overlay: burnt ochre ink */
+  --canvas-community: #8F5A0E;
+  --canvas-community-deep: #5E3B09;
+
+  /* Population heat: printed choropleth, fades to paper */
+  --canvas-pop-gain: #4E7D43;
+  --canvas-pop-loss: #A55B33;
+  --canvas-pop-neutral: #E9E2D0;
+  --canvas-pop-outline: rgba(23, 19, 16, 0.30);
+
+  /* Overlays / chrome */
+  --modal-scrim: rgba(48, 42, 32, 0.45);
+  --lower-third-bg: rgba(250, 247, 240, 0.97);
+  --tooltip-bg: #FDFBF4;
+  --accent-gold-bright: #8A6116;
+  --btn-primary-active: #27496C;
+  --party-tint-blue: rgba(63, 101, 146, 0.08);
+  --party-tint-red: rgba(163, 74, 62, 0.08);
+  --blue-party-soft: rgba(63, 101, 146, 0.45);
+  --red-party-soft: rgba(163, 74, 62, 0.45);
+  --blue-party-faint: rgba(63, 101, 146, 0.06);
+
+  /* Status inks */
+  --success-color: #2E6B44;
+  --success-light: rgba(46, 107, 68, 0.12);
+  --warning-color: #8A6116;
+  --warning-light: rgba(138, 97, 22, 0.12);
+  --error-color: #9E3A33;
+  --error-light: rgba(158, 58, 51, 0.10);
+
+  /* Print flattening: no rounded corners, no floating shadows */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-header: none;
+
+  /* Broadsheet type: Newsreader for display/prose, Libre Franklin for UI.
+     --font-ticker (Barlow Condensed) is deliberately NOT overridden — agate
+     numbers read identically in both editions. */
+  --font-family: 'Libre Franklin', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+}
+
+/* ============================================================
+   Section 2a — GLOBAL CHROME (P4a)
+   Every selector repeats the original behind the html[data-theme]
+   prefix, so specificity beats the broadcast rule regardless of
+   bundle order.
+   ============================================================ */
+
+/* Blanket flattening: print has no rounded corners and no floating
+   shadows, including every literal radius the tokens can't reach.
+   Functional inset-shadow "borders" are re-added right below. */
+html[data-theme='print'] *,
+html[data-theme='print'] *::before,
+html[data-theme='print'] *::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Re-added functional inset shadows (higher specificity than the blanket) */
+html[data-theme='print'] .decade-row.is-selected {
+  box-shadow: inset 0 0 0 1px var(--divider-color) !important;
+}
+html[data-theme='print'] .ghost-map-canvas {
+  box-shadow: inset 0 0 0 2px var(--navy-600) !important;
+}
+html[data-theme='print'] .district-bar > span {
+  box-shadow: inset -1px 0 0 var(--border-color) !important;
+}
+
+/* Header → paper masthead: no scanlines, Oxford double rule under the
+   nameplate, brick kicker rule above. */
+html[data-theme='print'] .app-header {
+  background-image: none;
+  border-top: 3px solid var(--accent-red);
+  border-bottom: 4px double var(--text-bright);
+  border-image: none;
+}
+html[data-theme='print'] .app-header h1 {
+  letter-spacing: 0.02em;
+}
+
+/* Buttons → square ink, uppercase Libre Franklin, no hover-lift. */
+html[data-theme='print'] button {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+}
+html[data-theme='print'] .btn-primary {
+  background-color: var(--text-bright);
+  color: var(--navy-900);
+}
+html[data-theme='print'] .btn-primary:hover {
+  background-color: #000000;
+  transform: none;
+}
+html[data-theme='print'] .btn-secondary {
+  border: 1px solid var(--text-bright);
+  color: var(--text-bright);
+  background: transparent;
+}
+html[data-theme='print'] .btn-secondary:hover {
+  transform: none;
+  background: var(--navy-700);
+}
+html[data-theme='print'] .card:hover {
+  transform: none;
+}
+html[data-theme='print'] .app-header__help {
+  background: transparent;
+  border: 1px solid var(--text-bright);
+  color: var(--text-bright);
+}
+
+/* Toggle groups → hairline chips; active = ink fill, paper text. */
+html[data-theme='print'] .toolbar-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-dark);
+}
+html[data-theme='print'] .toolbar-btn--active,
+html[data-theme='print'] .toolbar-btn--active:hover:not(:disabled) {
+  background: var(--text-bright);
+  color: var(--navy-900);
+  border-color: var(--text-bright);
+}
+html[data-theme='print'] .difficulty-btn,
+html[data-theme='print'] .district-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-dark);
+}
+html[data-theme='print'] .difficulty-btn.active,
+html[data-theme='print'] .district-btn.active {
+  background: var(--text-bright);
+  color: var(--navy-900);
+  border-color: var(--text-bright);
+}
+
+/* Canvas → atlas figure plate: 1px ink frame + offset hairline. */
+html[data-theme='print'] .game-canvas {
+  border: 1px solid var(--text-bright);
+  outline: 1px solid var(--border-color);
+  outline-offset: 4px;
+}
+
+/* Banners → ruled notices; kill the LIVE pulse. */
+html[data-theme='print'] .daily-objective-banner,
+html[data-theme='print'] .daily-lock-bar--locked {
+  background: transparent;
+  border: none;
+  border-top: 2px solid var(--text-bright);
+  border-bottom: 1px solid var(--border-color);
+}
+html[data-theme='print'] .daily-objective-banner__day::before {
+  animation: none;
+}
+
+/* Floating layers get an ink edge on paper. */
+html[data-theme='print'] .reveal-chyron,
+html[data-theme='print'] .lesson-guide {
+  border: 1px solid var(--text-bright);
+  color: var(--text-dark);
+}
+html[data-theme='print'] .reveal-chyron {
+  border-left: 6px solid var(--accent-red);
+}
+html[data-theme='print'] .lesson-guide {
+  border-top: 4px solid var(--accent-gold);
+}
+
+/* ============================================================
+   Section 2b — RESULT SURFACES (P4b)
+   The card-dense modals become ruled reports: transparent boxes,
+   hairline rules, one Oxford double rule at the top of the sheet.
+   ============================================================ */
+
+html[data-theme='print'] .modal-content {
+  border: 1px solid var(--text-bright);
+  border-top: 6px double var(--text-bright);
+}
+html[data-theme='print'] .result-card {
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--divider-color);
+}
+html[data-theme='print'] .result-card:hover {
+  transform: none;
+  background: transparent;
+}
+html[data-theme='print'] .stats-section,
+html[data-theme='print'] .swing-comparison,
+html[data-theme='print'] .durability,
+html[data-theme='print'] .map-anatomy {
+  background: transparent;
+  border: 1px solid var(--border-color);
+}
+html[data-theme='print'] .district-breakdown-row {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Tutorial → article card with the same double-rule sheet look. */
+html[data-theme='print'] .tutorial-card {
+  border: 1px solid var(--text-bright);
+  border-top: 6px double var(--text-bright);
+}
+
+/* Decade scorecard tiles → ruled figures. */
+html[data-theme='print'] .decade-stat {
+  background: transparent;
+  border-top: 1px solid var(--text-bright);
+}
+html[data-theme='print'] .decade-stat--hero {
+  background: transparent;
+  border-top: 3px solid var(--text-bright);
+}
+
+/* Community explainer boxes → ruled columns (outcome top-rules stay,
+   already muted via tokens). */
+html[data-theme='print'] .cx-panel {
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+/* Serif prose where the reader actually reads. */
+html[data-theme='print'] .modal-content p,
+html[data-theme='print'] .tutorial-card p,
+html[data-theme='print'] .cx-head,
+html[data-theme='print'] .cx-take,
+html[data-theme='print'] .decade-sub {
+  font-family: var(--font-display);
+}
+
+/* GameStats leftovers: ruled instead of filled. */
+html[data-theme='print'] .asymmetry-detail {
+  background: transparent;
+  border: 1px solid var(--border-color);
+}
+
+/* Tooltip needs an ink edge on paper. */
+html[data-theme='print'] .metric-tooltip,
+html[data-theme='print'] [class*='tooltip'] {
+  border-color: var(--divider-color);
+}

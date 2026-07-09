@@ -149,8 +149,8 @@
   margin-right: 5px;
   vertical-align: -1px;
 }
-.decade-swatch--gain { background: rgb(52, 211, 153); }
-.decade-swatch--loss { background: rgb(226, 132, 74); }
+.decade-swatch--gain { background: var(--canvas-pop-gain, #34D399); }
+.decade-swatch--loss { background: var(--canvas-pop-loss, #E2844A); }
 .decade-pop-since { font-style: italic; }
 
 .decade-map {

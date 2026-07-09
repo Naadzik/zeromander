@@ -1,3 +1,5 @@
+// .color/.lightColor are raw hexes for the PNG export (exportMap.js) ONLY —
+// DOM styling must use .cssColor so both visual themes resolve correctly.
 export const PARTY = {
   blue: {
     label: 'Urban Union',

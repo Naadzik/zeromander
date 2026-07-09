@@ -88,11 +88,11 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
   const playerParty = stats.playerParty || 'blue';
   const isThreeParty = !!stats.isThreeParty;
   const ourLabel = PARTY[playerParty]?.label ?? 'Unknown';
-  const ourColor = PARTY[playerParty]?.color ?? '#888';
+  const ourColor = PARTY[playerParty]?.cssColor ?? '#888';
   // 2-party only
   const theirParty = playerParty === 'blue' ? 'red' : 'blue';
   const theirLabel = PARTY[theirParty].label;
-  const theirColor = PARTY[theirParty].color;
+  const theirColor = PARTY[theirParty].cssColor;
 
   const CONSTRAINT_LABELS = { populationDeviation: 'strict population deviation', contiguity: 'contiguity' };
 
@@ -208,9 +208,9 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
                     const pct  = stats.allStats[`${party}SeatsPct`];
                     const isUs = party === playerParty;
                     return (
-                      <div key={party} className="result-card" style={{ outline: isUs ? `2px solid ${p.color}` : 'none' }}>
+                      <div key={party} className="result-card" style={{ outline: isUs ? `2px solid ${p.cssColor}` : 'none' }}>
                         <div className="result-label"><PartyIcon party={party} /> {p.label}{isUs ? ' (You)' : ''}</div>
-                        <div className="result-value" style={{ color: p.color }}>
+                        <div className="result-value" style={{ color: p.cssColor }}>
                           {wins} / {stats.totalDistricts}
                         </div>
                         <div className="result-percentage">{pct}%</div>

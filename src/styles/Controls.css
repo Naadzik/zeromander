@@ -135,7 +135,6 @@
   background: var(--primary-color);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(102, 51, 153, 0.4);
 }
 
 .district-buttons {
@@ -155,12 +154,10 @@
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition: all var(--transition-base);
-  box-shadow: 0 4px 12px rgba(102, 51, 153, 0.3);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 51, 153, 0.4);
 }
 
 .btn-primary:active {

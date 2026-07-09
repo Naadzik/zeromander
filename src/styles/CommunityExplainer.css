@@ -62,7 +62,7 @@
   stroke-width: 0.5;
 }
 /* The Riverlands community — matches the amber overlay on the live board. */
-.cx-cell--comm { fill: #FBBF24; stroke: #B4830E; stroke-width: 0.5; }
+.cx-cell--comm { fill: var(--canvas-community, #FBBF24); stroke: var(--canvas-community-deep, #B4830E); stroke-width: 0.5; }
 
 /* Ring around a district the community holds a majority of (a won seat). */
 .cx-seat-ring {

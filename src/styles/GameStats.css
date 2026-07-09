@@ -154,7 +154,6 @@
 
 .metric-card:hover {
   border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(102, 51, 153, 0.15);
 }
 
 .metric-label {
@@ -335,7 +334,7 @@
   /* Opaque near-black with a light border so it reads clearly as a floating
      layer over the dark panels — the old --text-dark background was nearly
      white, making the white body text unreadable. */
-  background: #070E1C;
+  background: var(--tooltip-bg);
   border: 1px solid rgba(148, 166, 194, 0.35);
   color: var(--text-bright);
   padding: 10px 12px;
@@ -374,7 +373,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: #070E1C;
+  border-top-color: var(--tooltip-bg);
 }
 
 .target-hint {

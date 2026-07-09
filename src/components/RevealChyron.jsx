@@ -34,7 +34,7 @@ export default function RevealChyron({ step, clusters, swingPct, gridSize, onSki
         <span className="reveal-chyron__live">LIVE</span>
         <span key={step} className="reveal-chyron__beat">
           {regionName(c.cells, gridSize)} cluster breaks{' '}
-          <strong style={{ color: PARTY[winner].color }}>{PARTY[winner].label}</strong>, {hi}–{100 - hi}
+          <strong style={{ color: PARTY[winner].cssColor }}>{PARTY[winner].label}</strong>, {hi}–{100 - hi}
         </span>
         <span className="reveal-chyron__skip">tap to skip</span>
       </button>

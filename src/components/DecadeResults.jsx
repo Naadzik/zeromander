@@ -130,7 +130,7 @@ export default function DecadeResults({ result, playerParty, numDistricts, best,
                     {shownSwing.text}
                   </span>
                   <span className="decade-map-seats">
-                    <strong style={{ color: party.color }}>{shownE.ourSeats}</strong>/{numDistricts} seats · {shownE.won ? 'held' : 'lost'}
+                    <strong style={{ color: party.cssColor }}>{shownE.ourSeats}</strong>/{numDistricts} seats · {shownE.won ? 'held' : 'lost'}
                   </span>
                 </>
               ) : (
@@ -167,7 +167,7 @@ export default function DecadeResults({ result, playerParty, numDistricts, best,
                   {s.text}
                 </span>
                 <span className="decade-seats">
-                  <strong style={{ color: party.color }}>{e.ourSeats}</strong>
+                  <strong style={{ color: party.cssColor }}>{e.ourSeats}</strong>
                   <span className="decade-seats-sep">/ {numDistricts}</span>
                 </span>
                 <span className="decade-outcome">{e.won ? 'HELD' : 'LOST'}</span>

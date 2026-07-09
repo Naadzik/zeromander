@@ -1,7 +1,7 @@
 .tutorial-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 5, 12, 0.7);
+  background: var(--modal-scrim);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;

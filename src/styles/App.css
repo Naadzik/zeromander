@@ -93,6 +93,16 @@ body {
   font-weight: 600;
 }
 
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-header__edition {
+  white-space: nowrap;
+}
+
 .app-container {
   display: flex;
   flex: 1;

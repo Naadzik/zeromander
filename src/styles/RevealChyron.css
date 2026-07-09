@@ -10,7 +10,7 @@
   gap: 12px;
   max-width: min(680px, calc(100vw - 32px));
   padding: 10px 16px 10px 10px;
-  background: rgba(7, 14, 28, 0.96);
+  background: var(--lower-third-bg);
   border: 1px solid rgba(148, 166, 194, 0.35);
   border-left: 4px solid var(--accent-red);
   border-radius: 3px;

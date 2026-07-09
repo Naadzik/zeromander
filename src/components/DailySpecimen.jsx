@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTheme } from '../hooks/useTheme'
 import { getDailyChallenge } from '../utils/dailyChallenge'
 import { generatePopulationMap } from '../utils/mapGenerator'
 import { generateCounties, rebalanceCountyPopulations } from '../utils/countyGenerator'
@@ -11,6 +12,9 @@ import { getCanvasTheme, parseHex, strokeAllBoundaries } from '../utils/canvasDr
 // it looks identical for every visitor until UTC midnight.
 export default function DailySpecimen({ size = 400, className = '' }) {
   const ref = useRef(null);
+  // Redraw trigger on edition change — regenerating the small deterministic
+  // board is negligible, and the colors re-resolve from the new tokens.
+  const { theme: edition } = useTheme();
 
   useEffect(() => {
     // The Warm-up tier — the board a new visitor will actually play first.
@@ -43,7 +47,7 @@ export default function DailySpecimen({ size = 400, className = '' }) {
     ctx.strokeStyle = theme.countyBorder;
     ctx.lineWidth = 0.5;
     strokeAllBoundaries(ctx, counties, cell);
-  }, []);
+  }, [edition]);
 
   return <canvas ref={ref} width={size} height={size} className={className} aria-label="Today's daily board" />;
 }

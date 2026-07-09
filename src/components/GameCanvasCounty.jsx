@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTheme } from '../hooks/useTheme'
 import { extractPopulationData } from '../utils/formatUtils'
 import {
   parseHex,
@@ -9,13 +10,6 @@ import {
   getCanvasTheme
 } from '../utils/canvasDraw'
 import '../styles/GameCanvas.css'
-
-// Lifted lightness/saturation so district overlays stay legible on the navy map.
-const DISTRICT_COLORS = [
-  '#A78BFA', '#F472B6', '#22D3EE', '#34D399',
-  '#FBBF24', '#818CF8', '#2DD4BF', '#E879F9',
-  '#38BDF8', '#A3E635', '#FB923C', '#94A3B8'
-];
 
 export default function GameCanvasCounty({
   populationMap,
@@ -32,12 +26,15 @@ export default function GameCanvasCounty({
   const canvasRef = useRef(null);
   const [hoveredCounty, setHoveredCounty] = useState(null);
   const dragStateRef = useRef({ active: false, mode: null, lastCountyId: null, pointerId: null });
+  // `edition` is only a redraw trigger — colors resolve from CSS vars inside
+  // drawMap via getCanvasTheme(), which re-reads them per call.
+  const { theme: edition } = useTheme();
 
   useEffect(() => {
     if (canvasRef.current && populationMap && (populationMap.party || populationMap.length > 0)) {
       drawMap();
     }
-  }, [populationMap, counties, districts, currentDistrict, hoveredCounty, highlightedDistrict, showUnassignedCounties, mapView]);
+  }, [populationMap, counties, districts, currentDistrict, hoveredCounty, highlightedDistrict, showUnassignedCounties, mapView, edition]);
 
   function drawMap() {
     const canvas = canvasRef.current;
@@ -86,7 +83,7 @@ export default function GameCanvasCounty({
     if (mapView === 'districts') {
       const numDistricts = Math.max(...districts.flat().filter(d => d > 0), 0);
       for (let districtId = 1; districtId <= numDistricts; districtId++) {
-        const color = DISTRICT_COLORS[(districtId - 1) % DISTRICT_COLORS.length];
+        const color = theme.districts[(districtId - 1) % theme.districts.length];
         const isHighlighted = highlightedDistrict === districtId;
         const isCurrent = currentDistrict === districtId;
         const opacity = isHighlighted ? 'E6' : (isCurrent ? 'AA' : '99');
@@ -132,7 +129,7 @@ export default function GameCanvasCounty({
     // the protected community you must not crack or pack is always visible.
     if (communityMap) {
       ctx.save();
-      ctx.strokeStyle = '#FBBF24';
+      ctx.strokeStyle = theme.community;
       ctx.lineWidth = 2.5;
       ctx.setLineDash([5, 3]);
       strokeRegionBoundary(ctx, communityMap, v => v === true, cellSize);
