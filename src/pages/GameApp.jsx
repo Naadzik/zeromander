@@ -246,6 +246,11 @@ export default function GameApp() {
   const [decadeResult, setDecadeResult] = useState(null);
   const [decadeBest, setDecadeBest] = useState(null);
   const [decadeIsNewBest, setDecadeIsNewBest] = useState(false);
+  // Sandbox opt-in: run a decade on the board you drew (2-party). The ?decade
+  // route is the dedicated version; this toggle brings the same flow to any
+  // sandbox board without touching its config, party, or controls.
+  const [decadeMode, setDecadeMode] = useState(false);
+  const decadeActive = isDecade || decadeMode;
   const completion = useGameCompletion({
     populationMap: map.populationMap,
     districts: map.districts,
@@ -254,8 +259,8 @@ export default function GameApp() {
     difficulty: config.difficulty,
     targetSeatPercentage: config.targetSeatPercentage,
     constraints: legalConstraints.constraints,
-    electionUncertainty: (isDaily || isLesson || isDecade) ? false : electionUncertainty,
-    manual: isDaily || isDecade
+    electionUncertainty: (isDaily || isLesson || decadeActive) ? false : electionUncertainty,
+    manual: isDaily || decadeActive
   });
   gameCompleteRef.current = completion.gameComplete;
   // boardLocked = the daily's post-lock-in state (drives daily-specific UI);
@@ -369,6 +374,13 @@ export default function GameApp() {
   useEffect(() => {
     completion.resetCompletion();
   }, [map.populationMap]);
+
+  // Toggling the sandbox decade switch swaps the whole end-game flow, so clear
+  // any single-election completion (or stale decade result) that was in flight.
+  useEffect(() => {
+    completion.resetCompletion();
+    setDecadeResult(null);
+  }, [decadeMode]);
 
   const fairMap = useFairMap({
     // Revealed electorate once election night has happened — the neutral
@@ -546,7 +558,7 @@ export default function GameApp() {
         <LessonGuide signals={lessonSignals} onSkip={() => finishLesson('/game?daily')} />
       )}
 
-      {isDecade && decadeResult && (
+      {decadeActive && decadeResult && (
         <DecadeResults
           result={decadeResult}
           playerParty={effectiveParty}
@@ -555,6 +567,9 @@ export default function GameApp() {
           isNewBest={decadeIsNewBest}
           onNewMap={handleDecadeNewMap}
           onBack={() => navigate('/')}
+          districts={map.districts}
+          counties={map.counties}
+          populationMap={map.populationMap}
         />
       )}
 
@@ -605,6 +620,8 @@ export default function GameApp() {
             onElectionUncertaintyChange={setElectionUncertainty}
             durabilityReport={durabilityReport}
             onDurabilityReportChange={setDurabilityReport}
+            decadeMode={decadeMode}
+            onDecadeModeChange={setDecadeMode}
             includeCommunity={sandboxConfig.includeCommunity}
             onIncludeCommunityChange={sandboxConfig.setIncludeCommunity}
             greyPercentage={config.greyPercentage}
@@ -654,7 +671,7 @@ export default function GameApp() {
               </span>
             </div>
           )}
-          {isDecade && !decadeResult && (
+          {decadeActive && !decadeResult && (
             <div className="daily-lock-bar">
               <button
                 className="btn-primary"

@@ -29,6 +29,8 @@ export default function Controls({
   includeCommunity,
   onIncludeCommunityChange,
   onDurabilityReportChange,
+  decadeMode,
+  onDecadeModeChange,
   greyPercentage,
   onGreyPercentageChange
 }) {
@@ -259,6 +261,19 @@ export default function Controls({
             </label>
             <span className="constraint-hint">
               After you lock in, stress-test the map: how big a wave it survives, and how it holds across the ways the undecideds could break. A greedy map wins big but shatters in a wave — a "dummymander".
+            </span>
+          </div>
+          <div className="control-group constraint-row">
+            <label className="constraint-toggle">
+              <input
+                type="checkbox"
+                checked={decadeMode}
+                onChange={(e) => onDecadeModeChange(e.target.checked)}
+              />
+              Decade campaign
+            </label>
+            <span className="constraint-hint">
+              Instead of one election night, play your map across five elections of national swings and slow population drift. "Run the decade" replaces the finish, and you can step through each year's seat map to see how it aged.
             </span>
           </div>
         </div>
