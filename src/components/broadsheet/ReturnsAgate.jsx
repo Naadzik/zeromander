@@ -70,6 +70,8 @@ export default function ReturnsAgate({
         Each district must hold <strong>{fmt(lo)}–{fmt(hi)}</strong> residents
         {outOfBounds > 0 && <span className="paper-parity-alert"> · {outOfBounds} outside the bound</span>}
       </p>
+      {/* Visible legend — the hover titles have no touch equivalent. */}
+      <p className="paper-agate-foot paper-parity-legend">✓ within bound · ▽ needs residents · ▲ over</p>
       <table className="paper-agate-table">
         <thead>
           <tr><th>Dist.</th><th>U.U.</th><th>H.A.</th>{isThreeParty && <th>F.C.</th>}<th>Pop.</th><th></th></tr>
