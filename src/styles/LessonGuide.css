@@ -3,7 +3,7 @@
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 24px;
+  bottom: calc(24px + var(--safe-bottom));
   z-index: 940;
   width: min(520px, calc(100vw - 32px));
   padding: 16px 18px 14px;
@@ -83,6 +83,6 @@
 .lesson-guide__next:hover { background: var(--accent-gold-bright); }
 
 @media (max-width: 600px) {
-  .lesson-guide { bottom: 12px; }
+  .lesson-guide { bottom: calc(12px + var(--safe-bottom)); }
   .lesson-guide__body { font-size: 0.85rem; }
 }

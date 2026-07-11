@@ -155,6 +155,9 @@
   --transition-base: 0.2s ease-in-out;
   --transition-slow: 0.3s ease-in-out;
   --transition-slower: 0.4s ease-in-out;
+
+  /* iOS home-indicator inset (needs viewport-fit=cover in index.html) */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Base Styles */
@@ -505,8 +508,41 @@ button:focus {
   h2 {
     font-size: var(--font-size-xl);
   }
+}
 
-  button {
-    width: 100%;
+/* ── Mobile tap-target floor ─────────────────────────────────────────────
+   Components zero out the global 44px button floor (min-height: 0) for
+   desktop density; on touch (or narrow) screens restore a thumbable size.
+   The (max-width: 768px) OR-clause lets desktop previews exercise it. */
+@media (pointer: coarse), (max-width: 768px) {
+  .toolbar-btn,
+  .district-btn,
+  .party-btn,
+  .paper-numeral,
+  .paper-tab,
+  .paper-desk-btn,
+  .ghost-view-toggle button,
+  .paper-maproom summary {
+    min-height: 44px;
+  }
+  .district-btn,
+  .paper-numeral {
+    min-width: 44px;
+  }
+  .panel-collapse-btn {
+    width: 44px;
+    height: 44px;
+  }
+  /* Hit-area expansion without layout shift for inline text links. */
+  .paper-agate-link {
+    padding: 12px 8px;
+    margin: -12px -8px;
+  }
+  .metric-info-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .paper-agate-table td {
+    padding-block: 8px; /* ~35px rows: agate density compromise, ≥WCAG 24px */
   }
 }
