@@ -19,7 +19,7 @@ export function analyzeMap(districtBreakdown, playerParty) {
     let label = 'clean';
     if (theirShare >= 0.65) label = 'pack';
     else if (weWin && theirShare >= 0.40) label = 'crack';
-    return { id: d.id, our, their, theirSharePct: Math.round(theirShare * 100), weWin, label };
+    return { id: d.id, our, their, total, theirSharePct: Math.round(theirShare * 100), weWin, label };
   });
 
   const packIds = rows.filter(r => r.label === 'pack').map(r => r.id);
@@ -33,7 +33,37 @@ export function analyzeMap(districtBreakdown, playerParty) {
     ? Math.max(...rows.filter(r => r.label === 'pack').map(r => r.theirSharePct))
     : 0;
 
-  return { rows, packIds, crackIds, worstPackPct };
+  // ── Quantitative readouts (as drawn, decided voters) ──────────────────
+  // Margins are % of the district's two-party vote; voter counts are the
+  // density-weighted tallies already in the breakdown.
+  const margin = r => r.total > 0 ? Math.abs(r.our - r.their) / r.total * 100 : 0;
+
+  // The closest seat WE hold — the hinge the whole majority swings on.
+  let tippingPoint = null;
+  for (const r of rows) {
+    if (!r.weWin || r.total === 0) continue;
+    const marginPct = margin(r);
+    if (!tippingPoint || marginPct < tippingPoint.marginPct) {
+      tippingPoint = { id: r.id, marginVoters: r.our - r.their, marginPct };
+    }
+  }
+
+  // Average winning margin, ours vs. theirs — pack/crack in one number.
+  const ourWins = rows.filter(r => r.weWin && r.total > 0);
+  const theirWins = rows.filter(r => !r.weWin && r.total > 0);
+  const mean = list => list.reduce((s, r) => s + margin(r), 0) / list.length;
+  const margins = (ourWins.length && theirWins.length)
+    ? { ourAvg: Math.round(mean(ourWins)), theirAvg: Math.round(mean(theirWins)) }
+    : null;
+
+  // Voters who backed a losing candidate: their ballots elected no one.
+  let loserVotes = 0, allVotes = 0;
+  for (const r of rows) { loserVotes += Math.min(r.our, r.their); allVotes += r.total; }
+  const wasted = allVotes > 0
+    ? { voters: Math.round(loserVotes), pct: Math.round(loserVotes / allVotes * 100) }
+    : null;
+
+  return { rows, packIds, crackIds, worstPackPct, tippingPoint, margins, wasted };
 }
 
 // One dry, cited line placing an efficiency gap next to reality. Returns null
