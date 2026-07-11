@@ -422,6 +422,8 @@
 
 .anatomy-tag--pack { background: var(--red-party); color: white; }
 .anatomy-tag--crack { background: var(--accent-gold); }
+/* Neutral chip for the quantitative readouts, distinct from the tactic tags. */
+.anatomy-tag--stat { background: var(--navy-600); color: var(--text-bright); }
 
 .gap-context {
   margin: var(--spacing-sm) 0 0;
