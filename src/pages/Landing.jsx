@@ -5,6 +5,7 @@ import DailySpecimen from '../components/DailySpecimen'
 import { getDailyChallenge } from '../utils/dailyChallenge'
 import { hasPlayedToday, currentStreak, bestStreak } from '../utils/dailyHistory'
 import { useUtcMidnightCountdown } from '../hooks/useUtcMidnightCountdown'
+import BroadsheetLanding from '../components/broadsheet/BroadsheetLanding'
 import Icon from '../components/ui/Icons'
 import styles from './Landing.module.css'
 
@@ -37,6 +38,23 @@ export default function Landing() {
       navigate(`/game?${params.toString()}`, { replace: true });
     }
   }, [location.search]);
+
+  // The Broadsheet edition gets its own front page — a newspaper cover, not
+  // the broadcast/print dashboard landing. Same hooks run above so cycling
+  // editions here never loses the redirect or the streak read.
+  if (edition === 'paper') {
+    return (
+      <BroadsheetLanding
+        daily={daily}
+        dailyCta={dailyCta}
+        dailyHref={dailyHref}
+        lessonDone={lessonDone}
+        streak={streak}
+        best={best}
+        countdown={countdown}
+      />
+    );
+  }
 
   return (
     <div className={styles.landing}>

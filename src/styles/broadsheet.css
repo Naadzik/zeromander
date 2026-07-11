@@ -468,3 +468,267 @@ html[data-edition='paper'] .paper-sharebar {
     padding-bottom: calc(90px + var(--safe-bottom));
   }
 }
+
+/* ============================================================
+   THE FRONT PAGE — paper edition landing (BroadsheetLanding.jsx).
+   Reuses the masthead + type system above; adds the cover layout.
+   ============================================================ */
+
+/* Masthead: big centered nameplate over a slogan rule. */
+html[data-edition='paper'] .paper-front__nameplate {
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  text-align: center;
+  line-height: 1;
+  padding: var(--spacing-sm) 0 2px;
+}
+html[data-edition='paper'] .paper-front__slogan-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 4px double var(--text-bright);
+}
+html[data-edition='paper'] .paper-front__motto {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+/* The mobile tap-floor gives agate links margin:-12px -8px; the negative side
+   margin overlaps adjacent masthead links. Keep the vertical tap expansion,
+   drop the horizontal pull so the toggle and GitHub don't collide. */
+@media (pointer: coarse), (max-width: 768px) {
+  html[data-edition='paper'] .paper-mast-actions .paper-agate-link {
+    margin-inline: 0;
+  }
+}
+
+/* Lead story: text column + the day's board as the front-page engraving. */
+html[data-edition='paper'] .paper-front__lead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+  gap: var(--spacing-2xl);
+  align-items: start;
+  padding: var(--spacing-lg) 0;
+  border-bottom: 2px solid var(--text-bright);
+}
+
+/* A pull quote fills the story column to the board's height — and earns its
+   place: it is the whole thesis in one line. */
+html[data-edition='paper'] .paper-front__pull {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  color: var(--text-bright);
+  border-top: 2px solid var(--text-bright);
+  border-bottom: 2px solid var(--text-bright);
+  padding: var(--spacing-sm) 0;
+  margin: 0 0 var(--spacing-lg);
+}
+html[data-edition='paper'] .paper-front__hed {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 4.4vw, 3.3rem);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  color: var(--text-bright);
+  margin: var(--spacing-xs) 0;
+}
+html[data-edition='paper'] .paper-byline {
+  font-family: var(--font-ticker);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin: 0 0 var(--spacing-sm);
+  border-bottom: 1px solid var(--divider-color);
+  padding-bottom: var(--spacing-sm);
+}
+html[data-edition='paper'] .paper-front__lede {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--text-dark);
+  margin: 0 0 var(--spacing-lg);
+}
+html[data-edition='paper'] .paper-front__dropcap {
+  float: left;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 3.4rem;
+  line-height: 0.72;
+  padding: 4px 8px 0 0;
+  color: var(--text-bright);
+}
+
+/* CTA buttons — bigger than the desk buttons: ink primary + outline. */
+html[data-edition='paper'] .paper-front__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+html[data-edition='paper'] .paper-cta {
+  display: inline-block;
+  font-family: var(--font-ticker);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 10px 18px;
+  border: 1px solid var(--text-bright);
+  color: var(--text-bright);
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+html[data-edition='paper'] .paper-cta:hover {
+  background: var(--text-bright);
+  color: var(--bg-white);
+  text-decoration: none;
+}
+html[data-edition='paper'] .paper-cta--ink {
+  background: var(--text-bright);
+  color: var(--bg-white);
+}
+html[data-edition='paper'] .paper-cta--ink:hover {
+  background: #000000;
+  color: var(--bg-white);
+}
+html[data-edition='paper'] .paper-front__meta {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+html[data-edition='paper'] .paper-front__streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ticker);
+  font-weight: 700;
+  color: var(--accent-red);
+}
+
+/* The engraving (front-page board). */
+html[data-edition='paper'] .paper-front__engraving { margin: 0; }
+html[data-edition='paper'] .paper-front__plate {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+  border: 1px solid var(--text-bright);
+}
+
+/* Method (three ruled columns), section index, and fine-print prose. */
+html[data-edition='paper'] .paper-front__method,
+html[data-edition='paper'] .paper-front__inside,
+html[data-edition='paper'] .paper-front__fineprint {
+  padding-top: var(--spacing-xl);
+}
+html[data-edition='paper'] .paper-front__method .paper-slug,
+html[data-edition='paper'] .paper-front__inside .paper-slug,
+html[data-edition='paper'] .paper-front__fineprint .paper-slug {
+  border-top: 3px solid var(--text-bright);
+  padding-top: var(--spacing-xs);
+}
+html[data-edition='paper'] .paper-front__cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-xl);
+  margin-top: var(--spacing-md);
+}
+html[data-edition='paper'] .paper-front__col {
+  border-top: 1px solid var(--divider-color);
+  padding-top: var(--spacing-sm);
+}
+html[data-edition='paper'] .paper-front__colnum {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--accent-red);
+}
+html[data-edition='paper'] .paper-front__colhed {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  margin: 2px 0 var(--spacing-xs);
+  color: var(--text-bright);
+}
+html[data-edition='paper'] .paper-front__col p {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--text-dark);
+  margin: 0;
+}
+html[data-edition='paper'] .paper-front__index {
+  list-style: none;
+  margin: var(--spacing-md) 0 0;
+  padding: 0;
+}
+html[data-edition='paper'] .paper-front__index li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px dotted var(--divider-color);
+}
+html[data-edition='paper'] .paper-front__index-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--accent-blue);
+  text-decoration: none;
+  white-space: nowrap;
+}
+html[data-edition='paper'] .paper-front__index-title:hover { text-decoration: underline; }
+html[data-edition='paper'] .paper-front__index-dek {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  flex: 1 1 12rem;
+}
+html[data-edition='paper'] .paper-front__prose {
+  margin-top: var(--spacing-md);
+  columns: 2;
+  column-gap: var(--spacing-2xl);
+  column-rule: 1px solid var(--divider-color);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-dark);
+}
+html[data-edition='paper'] .paper-front__prose p {
+  margin: 0 0 var(--spacing-sm);
+  break-inside: avoid;
+}
+html[data-edition='paper'] .paper-front__prose a { color: var(--accent-blue); }
+
+/* Front page stacks on narrow screens: headline + CTA lead (a landing wants
+   the pitch and the Play button early); the board follows as the day's art. */
+@media (max-width: 900px) {
+  html[data-edition='paper'] .paper-front__lead { grid-template-columns: 1fr; }
+  html[data-edition='paper'] .paper-front__pull { margin-bottom: var(--spacing-md); }
+  html[data-edition='paper'] .paper-front__cols { grid-template-columns: 1fr; gap: var(--spacing-md); }
+  html[data-edition='paper'] .paper-front__prose { columns: 1; }
+}
+@media (max-width: 600px) {
+  html[data-edition='paper'] .paper-front__nameplate {
+    font-size: clamp(1.6rem, 8.5vw, 2.1rem);
+    padding-top: var(--spacing-xs);
+  }
+  html[data-edition='paper'] .paper-front__slogan-row {
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding-top: 4px;
+  }
+  html[data-edition='paper'] .paper-front__motto { display: none; }
+  html[data-edition='paper'] .paper-front__hed { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+  html[data-edition='paper'] .paper-cta { flex: 1 1 100%; text-align: center; }
+  html[data-edition='paper'] .paper-front__plate { max-width: 380px; margin: 0 auto; }
+}
