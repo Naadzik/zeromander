@@ -193,6 +193,11 @@ html[data-theme='print'] .app-header__help {
   border: 1px solid var(--text-bright);
   color: var(--text-bright);
 }
+/* The back control is white for the dark broadcast header; on paper it needs
+   ink or it vanishes (bare ← arrow makes the low contrast obvious). */
+html[data-theme='print'] .app-header__back {
+  color: var(--text-bright);
+}
 
 /* Toggle groups → hairline chips; active = ink fill, paper text. */
 html[data-theme='print'] .toolbar-btn {

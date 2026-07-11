@@ -149,12 +149,40 @@ body {
 }
 
 @media (max-width: 768px) {
-  .app-header h1 {
-    font-size: 1.25rem;
+  /* Fit the masthead row to a phone: back arrow · title · edition · help.
+     Without this the fixed-width buttons shove Help past the viewport and
+     it spills onto the black page backdrop, outside the navy header. */
+  .app-header {
+    padding: 0.6rem 0.75rem;
   }
-
-  .app-header p {
-    display: none; /* the tagline yields its row to the board on phones */
+  .app-header__inner {
+    gap: 0.5rem;
+  }
+  /* The centered wordmark is decorative — on a phone the board and the Daily
+     Heist banner orient the player, and dropping it lets back · edition · help
+     sit at full size without the wide serif title squeezing them off-screen. */
+  .app-header__title {
+    display: none;
+  }
+  .app-header__back {
+    font-size: 1.25rem;
+    padding: 0.4rem;
+    flex-shrink: 0;
+  }
+  .app-header__back-label {
+    display: none; /* the ← arrow alone is the back affordance on phones */
+  }
+  .app-header__actions {
+    gap: 0.375rem;
+    flex-shrink: 0;
+    margin-left: auto; /* push edition + help to the right edge */
+  }
+  .app-header__help {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
+  .app-header__edition-suffix {
+    display: none; /* mobile shows just "Print" / "Broadsheet" / "Broadcast" */
   }
 
   .app-container {
