@@ -124,6 +124,63 @@ function countCountyCells(counties, countyId) {
   return count;
 }
 
+// Guarantee every county is a single rook-connected region. Re-Voronoi passes
+// (in rebalanceCountyPopulations) can pinch a region into corner-only-touching
+// cells, leaving a county the game's rook contiguity check rightly reads as
+// "split" — which then makes any district drawn from it impossible to lock in
+// or edit. This absorbs every stray fragment (any component that isn't its
+// county's main body, plus any component below MIN_SIZE) into its largest
+// adjacent county, iterating to convergence. rng-free, so it never shifts the
+// deterministic draw order. No-op on already-clean counties (e.g. the output
+// of generateCounties), so unrebalanced boards are byte-identical.
+const MIN_COUNTY_SIZE = 4;
+export function repairCountyContiguity(counties, gridSize) {
+  let changed = true;
+  let iteration = 0;
+  const maxIterations = 200;
+
+  while (changed && iteration < maxIterations) {
+    changed = false;
+    iteration++;
+
+    const visited = Array(gridSize).fill(null).map(() => Array(gridSize).fill(false));
+    const components = [];
+    for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < gridSize; x++) {
+        if (!visited[y][x] && counties[y][x] > 0) {
+          const cells = floodFill(counties, visited, x, y, gridSize);
+          if (cells.length > 0) components.push({ id: counties[y][x], cells });
+        }
+      }
+    }
+
+    // Largest component per county id — that one keeps the id; the rest are strays.
+    const largestSize = new Map();
+    for (const comp of components) {
+      largestSize.set(comp.id, Math.max(largestSize.get(comp.id) ?? 0, comp.cells.length));
+    }
+    const keptMain = new Set();
+
+    for (const comp of components) {
+      const isMain = comp.cells.length === largestSize.get(comp.id) && !keptMain.has(comp.id);
+      if (isMain) keptMain.add(comp.id);
+      const absorb = !isMain || comp.cells.length < MIN_COUNTY_SIZE;
+      if (!absorb) continue;
+
+      const adjacent = findAdjacentCounties(counties, comp.cells, gridSize)
+        .filter(id => id !== comp.id && id > 0);
+      if (adjacent.length === 0) continue;
+      const target = adjacent.reduce((a, b) =>
+        countCountyCells(counties, b) > countCountyCells(counties, a) ? b : a
+      );
+      for (const { x, y } of comp.cells) counties[y][x] = target;
+      changed = true;
+    }
+  }
+
+  return counties;
+}
+
 export function getCountyCells(counties, countyId) {
   const cells = [];
   for (let y = 0; y < counties.length; y++) {
@@ -205,7 +262,7 @@ export function rebalanceCountyPopulations(populationMap, counties, numCounties,
     }
 
     if (allValid) {
-      return counties;
+      return repairCountyContiguity(counties, gridSize);
     }
 
     if (attempt < maxAttempts - 1) {
@@ -255,5 +312,5 @@ export function rebalanceCountyPopulations(populationMap, counties, numCounties,
     }
   }
 
-  return counties;
+  return repairCountyContiguity(counties, gridSize);
 }

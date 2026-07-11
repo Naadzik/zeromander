@@ -61,43 +61,50 @@ export default function GameToolbar({
         </button>
       )}
 
-      {[
-        { key: 'original', label: 'Original' },
-        { key: 'districts', label: 'Districts' },
-        { key: 'party', label: 'Party Colors' },
-      ].map(({ key, label }) => (
-        <button
-          key={key}
-          className={`toolbar-btn${mapView === key ? ' toolbar-btn--active' : ''}`}
-          onClick={() => onMapViewChange(key)}
-        >
-          {label}
-        </button>
-      ))}
+      {/* Wrappers flatten on desktop (display: contents) and become the
+          mobile segmented rows — button class names are untouched, which the
+          print theme's selectors depend on. */}
+      <div className="game-toolbar__views">
+        {[
+          { key: 'original', label: 'Original' },
+          { key: 'districts', label: 'Districts' },
+          { key: 'party', label: 'Party Colors' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            className={`toolbar-btn${mapView === key ? ' toolbar-btn--active' : ''}`}
+            onClick={() => onMapViewChange(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-      <button
-        className="toolbar-btn toolbar-btn--action"
-        onClick={onUndo}
-        disabled={!canUndo}
-        title="Undo (Ctrl+Z)"
-      >
-        <Icon name="undo" /> Undo
-      </button>
-      <button
-        className="toolbar-btn toolbar-btn--action"
-        onClick={onRedo}
-        disabled={!canRedo}
-        title="Redo (Ctrl+Shift+Z)"
-      >
-        <Icon name="redo" /> Redo
-      </button>
-      <button
-        className="toolbar-btn toolbar-btn--action"
-        onClick={onExport}
-        title="Download current map view as PNG"
-      >
-        <Icon name="download" /> Export
-      </button>
+      <div className="game-toolbar__actions">
+        <button
+          className="toolbar-btn toolbar-btn--action"
+          onClick={onUndo}
+          disabled={!canUndo}
+          title="Undo (Ctrl+Z)"
+        >
+          <Icon name="undo" /> Undo
+        </button>
+        <button
+          className="toolbar-btn toolbar-btn--action"
+          onClick={onRedo}
+          disabled={!canRedo}
+          title="Redo (Ctrl+Shift+Z)"
+        >
+          <Icon name="redo" /> Redo
+        </button>
+        <button
+          className="toolbar-btn toolbar-btn--action"
+          onClick={onExport}
+          title="Download current map view as PNG"
+        >
+          <Icon name="download" /> Export
+        </button>
+      </div>
     </div>
   );
 }

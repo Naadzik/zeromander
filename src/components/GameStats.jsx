@@ -229,16 +229,16 @@ export default function GameStats({
             >
               <div className="district-name">
                 D{district.id}
-                {withinBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: '#22C55E' }}>✓</span>}
-                {overBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: '#EF4444' }}>!</span>}
-                {underBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: '#F59E0B' }}>…</span>}
-                {isTossup && <span title="Tossup — undecided voters here could flip this district" style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: '#94A3B8', fontWeight: 700 }}>?</span>}
+                {withinBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: 'var(--success-color)' }}>✓</span>}
+                {overBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: 'var(--error-color)' }}>!</span>}
+                {underBounds && <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: 'var(--warning-color)' }}>…</span>}
+                {isTossup && <span title="Tossup — undecided voters here could flip this district" style={{ marginLeft: '0.25rem', fontSize: '0.75rem', color: 'var(--grey-party)', fontWeight: 700 }}>?</span>}
               </div>
               <div className="district-votes">
                 <span className="blue-votes"><PartyIcon party="blue" /> {district.blue}</span>
                 <span className="red-votes"><PartyIcon party="red" /> {district.red}</span>
                 {isThreeParty && <span style={{ color: 'var(--green-party)' }}><PartyIcon party="green" /> {district.green}</span>}
-                {classifiedRow?.greyPop > 0 && <span style={{ color: '#94A3B8' }}><Icon name="undecided" size={11} /> {classifiedRow.greyPop}</span>}
+                {classifiedRow?.greyPop > 0 && <span style={{ color: 'var(--grey-party)' }}><Icon name="undecided" size={11} /> {classifiedRow.greyPop}</span>}
               </div>
             </div>
           );

@@ -43,16 +43,58 @@
   --blue-party-deep: #1E5FBF;
   --red-party-deep: #C22F2F;
   --green-party-deep: #1F7A4D;
+  --grey-party: #94A3B8;
+  --grey-party-deep: #64748B;
 
   /* Canvas map theme */
   --canvas-bg: #0B1424;
   --canvas-blue-border: #7CB8FF;
   --canvas-red-border: #FF8C8C;
   --canvas-green-border: #7FE8B5;
+  --canvas-grey-border: #64748B;
   --canvas-county-border: rgba(230, 238, 250, 0.35);
   --canvas-county-border-party: rgba(230, 238, 250, 0.12);
   --canvas-hover: #F5B942;
   --canvas-unassigned: rgba(245, 185, 66, 0.18);
+
+  /* District overlay palette. MUST stay 6-digit #RRGGBB — draw code appends
+     hex alpha pairs ('99'/'AA'/'E6') to these strings. Same constraint for
+     --canvas-hover and --canvas-community. */
+  --district-1: #A78BFA;
+  --district-2: #F472B6;
+  --district-3: #22D3EE;
+  --district-4: #34D399;
+  --district-5: #FBBF24;
+  --district-6: #818CF8;
+  --district-7: #2DD4BF;
+  --district-8: #E879F9;
+  --district-9: #38BDF8;
+  --district-10: #A3E635;
+  --district-11: #FB923C;
+  --district-12: #94A3B8;
+
+  /* Community-of-interest (VRA) overlay — canvas dash + explainer swatch */
+  --canvas-community: #FBBF24;
+  --canvas-community-deep: #B4830E;
+
+  /* Population-change heat (GhostMapCanvas 'population' view + DecadeResults
+     legend). Gain/loss/neutral MUST stay 6-digit hex — JS parses the channels. */
+  --canvas-pop-gain: #34D399;
+  --canvas-pop-loss: #E2844A;
+  --canvas-pop-neutral: #222C3E;
+  --canvas-pop-outline: rgba(233, 238, 245, 0.28);
+
+  /* Overlay / chrome literals promoted to tokens (P1b hygiene) */
+  --modal-scrim: rgba(2, 5, 12, 0.75);
+  --lower-third-bg: rgba(7, 14, 28, 0.96);
+  --tooltip-bg: #070E1C;
+  --accent-gold-bright: #FFCB5C;
+  --btn-primary-active: #1D4FA0;
+  --party-tint-blue: rgba(47, 127, 232, 0.10);
+  --party-tint-red: rgba(228, 70, 63, 0.09);
+  --blue-party-soft: rgba(77, 159, 255, 0.45);
+  --red-party-soft: rgba(255, 90, 90, 0.45);
+  --blue-party-faint: rgba(77, 159, 255, 0.05);
 
   /* Status Colors */
   --success-color: #2FA35C;
@@ -113,6 +155,9 @@
   --transition-base: 0.2s ease-in-out;
   --transition-slow: 0.3s ease-in-out;
   --transition-slower: 0.4s ease-in-out;
+
+  /* iOS home-indicator inset (needs viewport-fit=cover in index.html) */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Base Styles */
@@ -251,7 +296,7 @@ button:focus {
 .btn-primary:active {
   transform: translateY(0);
   box-shadow: var(--shadow-sm);
-  background-color: #1D4FA0;
+  background-color: var(--btn-primary-active);
 }
 
 .btn-primary:disabled {
@@ -463,8 +508,41 @@ button:focus {
   h2 {
     font-size: var(--font-size-xl);
   }
+}
 
-  button {
-    width: 100%;
+/* ── Mobile tap-target floor ─────────────────────────────────────────────
+   Components zero out the global 44px button floor (min-height: 0) for
+   desktop density; on touch (or narrow) screens restore a thumbable size.
+   The (max-width: 768px) OR-clause lets desktop previews exercise it. */
+@media (pointer: coarse), (max-width: 768px) {
+  .toolbar-btn,
+  .district-btn,
+  .party-btn,
+  .paper-numeral,
+  .paper-tab,
+  .paper-desk-btn,
+  .ghost-view-toggle button,
+  .paper-maproom summary {
+    min-height: 44px;
+  }
+  .district-btn,
+  .paper-numeral {
+    min-width: 44px;
+  }
+  .panel-collapse-btn {
+    width: 44px;
+    height: 44px;
+  }
+  /* Hit-area expansion without layout shift for inline text links. */
+  .paper-agate-link {
+    padding: 12px 8px;
+    margin: -12px -8px;
+  }
+  .metric-info-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .paper-agate-table td {
+    padding-block: 8px; /* ~35px rows: agate density compromise, ≥WCAG 24px */
   }
 }

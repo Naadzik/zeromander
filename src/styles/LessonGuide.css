@@ -3,11 +3,11 @@
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 24px;
+  bottom: calc(24px + var(--safe-bottom));
   z-index: 940;
   width: min(520px, calc(100vw - 32px));
   padding: 16px 18px 14px;
-  background: rgba(7, 14, 28, 0.97);
+  background: var(--lower-third-bg);
   border: 1px solid rgba(148, 166, 194, 0.35);
   border-top: 4px solid var(--accent-gold);
   border-radius: 3px;
@@ -80,9 +80,9 @@
   cursor: pointer;
 }
 
-.lesson-guide__next:hover { background: #FFCB5C; }
+.lesson-guide__next:hover { background: var(--accent-gold-bright); }
 
 @media (max-width: 600px) {
-  .lesson-guide { bottom: 12px; }
+  .lesson-guide { bottom: calc(12px + var(--safe-bottom)); }
   .lesson-guide__body { font-size: 0.85rem; }
 }

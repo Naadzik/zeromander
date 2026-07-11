@@ -100,3 +100,12 @@
 .ghost-stat-row strong {
   color: var(--text-bright);
 }
+
+/* The share button keeps a comfortable width on phones now that the old
+   global mobile button{width:100%} rule is gone. */
+@media (max-width: 768px) {
+  .ghost-share-row .btn-secondary {
+    width: 100%;
+    max-width: 320px;
+  }
+}

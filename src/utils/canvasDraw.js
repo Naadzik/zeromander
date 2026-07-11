@@ -93,8 +93,20 @@ export function computeDistrictWinners(partyMap, densityMap, districts) {
   return winners;
 }
 
+// District overlay palette fallbacks — the tokens (--district-1..12) are the
+// source of truth; this array only covers a missing token. Lifted lightness/
+// saturation so overlays stay legible on the navy map.
+const DISTRICT_FALLBACKS = [
+  '#A78BFA', '#F472B6', '#22D3EE', '#34D399',
+  '#FBBF24', '#818CF8', '#2DD4BF', '#E879F9',
+  '#38BDF8', '#A3E635', '#FB923C', '#94A3B8'
+];
+
 // All canvas colors in one place, resolved from CSS variables with the current
 // look as fallback — restyling the map means changing tokens, not draw code.
+// NOTE: `districts`, `community` and `hover` must stay 6-digit #RRGGBB (draw
+// code appends hex alpha pairs); popGain/Loss/Neutral are returned pre-parsed
+// as [r,g,b] because the population view lerps channels.
 export function getCanvasTheme() {
   const cssVars = getComputedStyle(document.documentElement);
   const v = (name, fallback) => (cssVars.getPropertyValue(name) || fallback).trim();
@@ -123,6 +135,12 @@ export function getCanvasTheme() {
     countyBorder: v('--canvas-county-border', 'rgba(80, 80, 80, 0.6)'),
     countyBorderParty: v('--canvas-county-border-party', 'rgba(80, 80, 80, 0.15)'),
     hover: v('--canvas-hover', '#FFEB3B'),
-    unassignedFill: v('--canvas-unassigned', 'rgba(245, 158, 11, 0.2)')
+    unassignedFill: v('--canvas-unassigned', 'rgba(245, 158, 11, 0.2)'),
+    districts: DISTRICT_FALLBACKS.map((fb, i) => v(`--district-${i + 1}`, fb)),
+    community: v('--canvas-community', '#FBBF24'),
+    popGain: parseHex(v('--canvas-pop-gain', '#34D399')),
+    popLoss: parseHex(v('--canvas-pop-loss', '#E2844A')),
+    popNeutral: parseHex(v('--canvas-pop-neutral', '#222C3E')),
+    popOutline: v('--canvas-pop-outline', 'rgba(233, 238, 245, 0.28)')
   };
 }

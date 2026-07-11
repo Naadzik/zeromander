@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(2, 5, 12, 0.75);
+  background: var(--modal-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,7 +349,7 @@
   border: 1px solid var(--border-color);
   border-left: 3px solid var(--accent-blue, #4D9FFF);
   border-radius: var(--radius-sm);
-  background: rgba(77, 159, 255, 0.05);
+  background: var(--blue-party-faint);
 }
 .durability h4 {
   margin: 0 0 var(--spacing-sm);
@@ -422,6 +422,8 @@
 
 .anatomy-tag--pack { background: var(--red-party); color: white; }
 .anatomy-tag--crack { background: var(--accent-gold); }
+/* Neutral chip for the quantitative readouts, distinct from the tactic tags. */
+.anatomy-tag--stat { background: var(--navy-600); color: var(--text-bright); }
 
 .gap-context {
   margin: var(--spacing-sm) 0 0;
@@ -577,12 +579,12 @@
 
 /* Late deciders (grey voters after the reveal): same camp, lighter shade. */
 .bar-blue.bar--late {
-  background: rgba(77, 159, 255, 0.45);
+  background: var(--blue-party-soft);
   color: var(--text-bright);
 }
 
 .bar-red.bar--late {
-  background: rgba(255, 90, 90, 0.45);
+  background: var(--red-party-soft);
   color: var(--text-bright);
 }
 
@@ -669,5 +671,42 @@
 
   .modal-footer {
     padding: var(--spacing-lg) var(--spacing-xl);
+  }
+}
+
+/* ── The daily's share hero: the emoji seat grid IS the shareable artifact,
+   so it leads the result body with the share sheet one thumb away. */
+.heist-hero {
+  text-align: center;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--spacing-lg);
+}
+.heist-grid {
+  font-size: 1.3rem;
+  letter-spacing: 0.18em;
+  line-height: 1.4;
+  word-break: break-all;
+  margin-bottom: var(--spacing-sm);
+}
+.heist-streak {
+  font-family: var(--font-ticker);
+  font-size: var(--font-size-sm);
+  color: var(--accent-gold);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.heist-share {
+  width: 100%;
+  max-width: 340px;
+}
+
+@media (max-width: 480px) {
+  .modal-footer {
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
   }
 }

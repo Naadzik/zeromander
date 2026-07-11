@@ -1,8 +1,11 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useTheme, NEXT_LABEL } from '../hooks/useTheme'
 import DailySpecimen from '../components/DailySpecimen'
 import { getDailyChallenge } from '../utils/dailyChallenge'
-import { hasPlayedToday } from '../utils/dailyHistory'
+import { hasPlayedToday, currentStreak, bestStreak } from '../utils/dailyHistory'
+import { useUtcMidnightCountdown } from '../hooks/useUtcMidnightCountdown'
+import Icon from '../components/ui/Icons'
 import styles from './Landing.module.css'
 
 export default function Landing() {
@@ -18,6 +21,10 @@ export default function Landing() {
   const dailyHref = smallDone && !fullDone ? '/game?daily&tier=full' : '/game?daily';
   const navigate = useNavigate();
   const location = useLocation();
+  const { edition, cycleEdition } = useTheme();
+  const countdown = useUtcMidnightCountdown();
+  const streak = currentStreak();
+  const best = bestStreak();
 
   // Shared links use the short form naadzik.github.io/zeromander/?daily —
   // forward straight into the day's board.
@@ -40,9 +47,14 @@ export default function Landing() {
             <h1>Zeromander</h1>
             <span className={styles.mastKicker}>Special coverage: who draws the lines?</span>
           </div>
-          <a href="https://github.com/Naadzik/zeromander" target="_blank" rel="noopener noreferrer" className={styles.githubLink}>
-            GitHub
-          </a>
+          <div className={styles.mastActions}>
+            <button className={styles.editionToggle} onClick={cycleEdition} title="Switch visual edition">
+              {NEXT_LABEL[edition]}
+            </button>
+            <a href="https://github.com/Naadzik/zeromander" target="_blank" rel="noopener noreferrer" className={styles.githubLink}>
+              GitHub
+            </a>
+          </div>
         </div>
       </header>
 
@@ -78,6 +90,18 @@ export default function Landing() {
                 </>
               )}
             </div>
+            <p className={styles.dailyMeta}>
+              {streak >= 1 ? (
+                <>
+                  <span className={styles.streakChip}><Icon name="flame" size={12} /> {streak}-day streak{best > streak ? ` · best ${best}` : ''}</span>
+                  {' '}— next board in {countdown.label}
+                </>
+              ) : best >= 2 ? (
+                <>Best streak: <strong>{best}</strong> — next board in {countdown.label}</>
+              ) : (
+                <>New board in {countdown.label} — same map for everyone</>
+              )}
+            </p>
             <p className={styles.smallPrint}>Free · No account · Fictional parties, real formulas</p>
             <p className={styles.modes}>
               More ways to play: <Link to="/game?decade">The Decade</Link>

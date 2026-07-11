@@ -12,6 +12,7 @@
 .game-canvas {
   display: block;
   width: min(640px, 100%, calc(100vh - 220px));
+  width: min(640px, 100%, calc(100dvh - 220px)); /* dvh: mobile URL bar aware */
   height: auto;
   aspect-ratio: 1;
   /* Studio-monitor bezel: dark ring + hairline, square-ish corners. */
@@ -31,5 +32,15 @@
 @media (max-width: 1100px) {
   .game-canvas {
     width: min(640px, 100%);
+  }
+}
+
+/* Phones: the square board absorbs whatever the fixed-height chrome rows
+   (header, banners, lock bar, toolbar, score strip) leave of the viewport —
+   --game-chrome-mobile is pinned in App.css with the budget breakdown. */
+@media (max-width: 768px) {
+  .game-canvas {
+    width: min(100%, calc(100vh - var(--game-chrome-mobile, 348px)));
+    width: min(100%, calc(100dvh - var(--game-chrome-mobile, 348px)));
   }
 }
