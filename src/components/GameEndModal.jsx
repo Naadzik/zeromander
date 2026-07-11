@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import '../styles/GameEndModal.css'
 import Icon from './ui/Icons'
+import { shareText } from '../utils/share'
+import { currentStreak } from '../utils/dailyHistory'
 import {
   verdictStatus,
   buildShareText,
@@ -26,15 +28,12 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
   const [copied, setCopied] = useState(false);
   const [challengeCopied, setChallengeCopied] = useState(false);
 
-  function handleChallengeFriend() {
+  async function handleChallengeFriend() {
     if (!challengeShare) return;
-    const text = buildChallengeText(challengeShare);
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => {
-        setChallengeCopied(true);
-        setTimeout(() => setChallengeCopied(false), 2000);
-      });
-    }
+    const outcome = await shareText(buildChallengeText(challengeShare));
+    if (outcome === 'failed') return;
+    setChallengeCopied(outcome);
+    setTimeout(() => setChallengeCopied(false), 2000);
   }
 
   // Election-night counting beat — only for swing-WITHOUT-grey games. When
@@ -73,14 +72,11 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
 
   const { title: statusText, message: statusMessage } = verdictStatus({ stats, daily, lesson });
 
-  function handleShare() {
-    const text = buildShareText({ stats, daily, fairStats });
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      });
-    }
+  async function handleShare() {
+    const outcome = await shareText(buildShareText({ stats, daily, fairStats }));
+    if (outcome === 'failed') return;
+    setCopied(outcome);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -102,6 +98,18 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
         </div>
 
         <div className="modal-body">
+              {daily?.result?.seatGrid && (
+                <div className="heist-hero">
+                  <div className="heist-grid" aria-label="Your seat results">{daily.result.seatGrid}</div>
+                  {currentStreak() > 1 && !daily.archive && (
+                    <div className="heist-streak"><Icon name="flame" size={14} /> Streak: {currentStreak()}</div>
+                  )}
+                  <button className="btn-primary heist-share" onClick={handleShare}>
+                    {copied === 'shared' ? '✓ Shared' : copied === 'copied' ? '✓ Copied — paste it anywhere' : 'Share your heist'}
+                  </button>
+                </div>
+              )}
+
               <h3>Final Results</h3>
 
               <FinalResultsGrid stats={stats} />
@@ -134,22 +142,24 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
         </div>
 
         <div className="modal-footer">
+          {/* Share leads — most readers are on phones and this is the viral
+              moment; the daily's hero button above stays the primary. */}
+          {!lesson && (
+            <button className="btn-secondary" onClick={handleShare}>
+              {copied === 'shared' ? '✓ Shared' : copied === 'copied' ? '✓ Copied!' : 'Share Result'}
+            </button>
+          )}
+          {challengeShare && (
+            <button className="btn-secondary" onClick={handleChallengeFriend}>
+              {challengeCopied === 'shared' ? '✓ Sent' : challengeCopied === 'copied' ? '✓ Link copied!' : 'Challenge a friend'}
+            </button>
+          )}
           <button
             className="btn-secondary"
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? 'Hide Details' : 'Show All Stats'}
           </button>
-          {!lesson && (
-            <button className="btn-secondary" onClick={handleShare}>
-              {copied ? '✓ Copied!' : 'Share Result'}
-            </button>
-          )}
-          {challengeShare && (
-            <button className="btn-secondary" onClick={handleChallengeFriend}>
-              {challengeCopied ? '✓ Link copied!' : 'Challenge a friend'}
-            </button>
-          )}
           {expanded && (
             <button className="btn-secondary" onClick={onClose}>
               Close & View Game

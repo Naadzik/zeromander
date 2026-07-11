@@ -1,16 +1,18 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import GameCanvasCounty from '../GameCanvasCounty'
 import GhostMapComparison from '../GhostMapComparison'
 import RevealChyron from '../RevealChyron'
 import DecadeResults from '../DecadeResults'
 import Tutorial, { STEPS_3PARTY } from '../Tutorial'
 import ReturnsAgate from './ReturnsAgate'
+import MobileScoreStrip from '../MobileScoreStrip'
 import PaperCompositor from './PaperCompositor'
 import PaperMapRoom from './PaperMapRoom'
 import PaperVerdictArticle from './PaperVerdictArticle'
 import { useTheme, NEXT_LABEL } from '../../hooks/useTheme'
 import { liveHeadline } from '../../utils/liveHeadline'
-import { verdictStatus } from '../../utils/verdictCopy'
+import { shareText } from '../../utils/share'
+import { verdictStatus, buildShareText, buildChallengeText } from '../../utils/verdictCopy'
 import { PARTY } from '../../utils/partyConfig'
 import { TIER_LABELS } from '../../utils/dailyChallenge'
 import '../../styles/broadsheet.css'
@@ -28,6 +30,20 @@ export default function BroadsheetGamePage({ session }) {
   const { edition, cycleEdition } = useTheme();
 
   const complete = completion.gameComplete && !reveal.revealAnimating && !reveal.revealPending;
+  // Mobile sticky share bar (viral moment lives at the flipped headline, but
+  // NOTICES is far below the fold — the bar makes it one thumb-tap).
+  const [barShared, setBarShared] = useState(false);
+  const showShareBar = complete && completion.gameStats
+    && !(decade.active && decade.result && !decade.dismissed);
+  const dailyForShare = daily.isDaily
+    ? { dayNumber: daily.challenge?.dayNumber, party: daily.challenge?.party, tier: daily.dailyTier, date: daily.challenge?.date, result: daily.dailyResult, archive: daily.isArchive }
+    : null;
+  const handleBarShare = async () => {
+    const outcome = await shareText(buildShareText({ stats: completion.gameStats, daily: dailyForShare, fairStats: fairMap.fairStats }));
+    if (outcome === 'failed') return;
+    setBarShared(outcome);
+    setTimeout(() => setBarShared(false), 2000);
+  };
   const phase = flags.boardLocked && !completion.gameComplete ? 'locked'
     : complete ? 'complete'
     : (reveal.revealAnimating || reveal.revealPending) ? 'revealing'
@@ -85,7 +101,7 @@ export default function BroadsheetGamePage({ session }) {
     : 'SANDBOX PRINTING';
 
   return (
-    <div className="paper-page">
+    <div className={`paper-page${showShareBar ? ' paper-page--sharebar' : ''}`}>
       {tutorial.showTutorial && <Tutorial onClose={tutorial.dismissTutorial} />}
       {tutorial.show3PartyTutorial && <Tutorial steps={STEPS_3PARTY} onClose={tutorial.dismiss3PartyTutorial} />}
       {decade.active && decade.result && !decade.dismissed && (
@@ -163,6 +179,16 @@ export default function BroadsheetGamePage({ session }) {
             highlightedDistrict={view.highlightedDistrict}
             showUnassignedCounties={view.showUnassignedCounties}
             mapView={view.mapView}
+          />
+          <MobileScoreStrip
+            populationMap={effectiveMap}
+            districts={map.districts}
+            numDistricts={config.numDistricts}
+            currentDistrict={map.currentDistrict}
+            playerParty={effectiveParty}
+            isThreeParty={config.isThreeParty}
+            variant="paper"
+            onExpand={() => document.querySelector('.paper-agate-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />
           <figcaption className="paper-plate-caption">
             FIG. 1 — {config.numDistricts} districts, drawn by the reader. Hatch direction = party; engraving weight = population.
@@ -256,6 +282,22 @@ export default function BroadsheetGamePage({ session }) {
             isComputing={fairMap.isComputing}
           />
         </figure>
+      )}
+
+      {showShareBar && (
+        <div className="paper-sharebar">
+          <button className="paper-desk-btn paper-desk-btn--recount" onClick={handleBarShare}>
+            {barShared === 'shared' ? '✓ Clipping shared' : barShared === 'copied' ? '✓ Clipping copied' : 'Share the clipping'}
+          </button>
+          {challengeShare && (
+            <button className="paper-desk-btn" onClick={async () => {
+              const o = await shareText(buildChallengeText(challengeShare));
+              if (o !== 'failed') { setBarShared(o === 'shared' ? 'shared' : false); }
+            }}>
+              Challenge a rival
+            </button>
+          )}
+        </div>
       )}
 
       <footer className="paper-colophon">

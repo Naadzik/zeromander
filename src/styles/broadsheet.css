@@ -440,3 +440,31 @@ html[data-edition='paper'] .paper-parity-legend {
   color: var(--text-tertiary);
   margin-top: 2px;
 }
+
+/* ── Mobile sticky share bar: the viral action pinned to the thumb zone the
+   moment the verdict lands. Desktop keeps NOTICES in the article flow. */
+html[data-edition='paper'] .paper-sharebar {
+  display: none;
+}
+@media (max-width: 768px) {
+  html[data-edition='paper'] .paper-sharebar {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900; /* under the chyron (950) and modals (1000) */
+    padding: 10px 16px calc(10px + var(--safe-bottom));
+    background: var(--bg-white);
+    border-top: 2px solid var(--text-bright);
+  }
+  html[data-edition='paper'] .paper-sharebar .paper-desk-btn {
+    flex: 1;
+    max-width: 240px;
+  }
+  html[data-edition='paper'] .paper-page--sharebar {
+    padding-bottom: calc(90px + var(--safe-bottom));
+  }
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { shareText } from '../../utils/share'
 import {
   buildShareText, buildChallengeText,
   FinalResultsGrid, DailyComparison, SwingComparison,
@@ -19,13 +20,11 @@ export default function PaperVerdictArticle({ stats, daily, fairStats, durabilit
   const [copied, setCopied] = useState(false);
   const [challengeCopied, setChallengeCopied] = useState(false);
 
-  const copy = (text, set) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => {
-        set(true);
-        setTimeout(() => set(false), 2000);
-      });
-    }
+  const copy = async (text, set) => {
+    const outcome = await shareText(text);
+    if (outcome === 'failed') return;
+    set(outcome);
+    setTimeout(() => set(false), 2000);
   };
 
   return (
@@ -45,11 +44,11 @@ export default function PaperVerdictArticle({ stats, daily, fairStats, durabilit
       <Slug>Notices</Slug>
       <div className="paper-notices">
         <button className="paper-desk-btn" onClick={() => copy(buildShareText({ stats, daily, fairStats }), setCopied)}>
-          {copied ? '✓ Clipping copied' : 'Share the clipping'}
+          {copied === 'shared' ? '✓ Clipping shared' : copied === 'copied' ? '✓ Clipping copied' : 'Share the clipping'}
         </button>
         {challengeShare && (
           <button className="paper-desk-btn" onClick={() => copy(buildChallengeText(challengeShare), setChallengeCopied)}>
-            {challengeCopied ? '✓ Notice posted' : 'Challenge a rival'}
+            {challengeCopied === 'shared' ? '✓ Notice sent' : challengeCopied === 'copied' ? '✓ Notice posted' : 'Challenge a rival'}
           </button>
         )}
         {onTryAgain && (

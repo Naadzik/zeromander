@@ -673,3 +673,40 @@
     padding: var(--spacing-lg) var(--spacing-xl);
   }
 }
+
+/* ── The daily's share hero: the emoji seat grid IS the shareable artifact,
+   so it leads the result body with the share sheet one thumb away. */
+.heist-hero {
+  text-align: center;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--spacing-lg);
+}
+.heist-grid {
+  font-size: 1.3rem;
+  letter-spacing: 0.18em;
+  line-height: 1.4;
+  word-break: break-all;
+  margin-bottom: var(--spacing-sm);
+}
+.heist-streak {
+  font-family: var(--font-ticker);
+  font-size: var(--font-size-sm);
+  color: var(--accent-gold);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.heist-share {
+  width: 100%;
+  max-width: 340px;
+}
+
+@media (max-width: 480px) {
+  .modal-footer {
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+  }
+}

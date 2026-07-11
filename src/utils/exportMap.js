@@ -88,10 +88,12 @@ export function exportMapPng(gameCanvas, { populationMap, districts, numDistrict
   ctx.fillStyle = SUBTEXT;
   ctx.fillText('naadzik.github.io/zeromander/', W - 16, BY);
 
-  const link = document.createElement('a');
-  link.download = `zeromander-${mapView}-${difficulty}.png`;
-  link.href = out.toDataURL('image/png');
-  link.click();
+  // Mobile gets the native share sheet (image + caption); desktop downloads —
+  // same path the comparison PNG already uses.
+  return shareOrDownloadCanvas(out, {
+    filename: `zeromander-${mapView}-${difficulty}.png`,
+    text: 'My district map — Zeromander. naadzik.github.io/zeromander/'
+  });
 }
 
 // Stitches the player's map and the neutral map side by side into one PNG —
