@@ -24,13 +24,18 @@
        Franklin = Print edition. One request keeps it simple; display=swap. -->
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@500;600;700&family=Libre+Franklin:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,700;0,6..72,800;1,6..72,400&display=swap" rel="stylesheet">
   <script>
-    // Apply the saved visual edition BEFORE first paint so a Print-edition
-    // reader never flashes the dark broadcast theme. Counterpart lives in
-    // src/hooks/useTheme.jsx — keep the key in sync: zeromander.ui.theme
+    // Apply the saved visual edition BEFORE first paint so a Print- or
+    // Broadsheet-edition reader never flashes the dark broadcast theme.
+    // Counterpart lives in src/hooks/useTheme.jsx — keep the key + values
+    // in sync: zeromander.ui.theme = broadcast | print | paper
     (function () {
       try {
-        if (localStorage.getItem('zeromander.ui.theme') === 'print') {
+        var v = localStorage.getItem('zeromander.ui.theme');
+        if (v === 'print' || v === 'paper') {
           document.documentElement.dataset.theme = 'print';
+        }
+        if (v === 'paper') {
+          document.documentElement.dataset.edition = 'paper';
         }
       } catch (e) { /* private mode — broadcast default */ }
     })();

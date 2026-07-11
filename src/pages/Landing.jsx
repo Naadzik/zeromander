@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useTheme } from '../hooks/useTheme'
+import { useTheme, NEXT_LABEL } from '../hooks/useTheme'
 import DailySpecimen from '../components/DailySpecimen'
 import { getDailyChallenge } from '../utils/dailyChallenge'
 import { hasPlayedToday } from '../utils/dailyHistory'
@@ -19,7 +19,7 @@ export default function Landing() {
   const dailyHref = smallDone && !fullDone ? '/game?daily&tier=full' : '/game?daily';
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  const { edition, cycleEdition } = useTheme();
 
   // Shared links use the short form naadzik.github.io/zeromander/?daily —
   // forward straight into the day's board.
@@ -43,8 +43,8 @@ export default function Landing() {
             <span className={styles.mastKicker}>Special coverage: who draws the lines?</span>
           </div>
           <div className={styles.mastActions}>
-            <button className={styles.editionToggle} onClick={toggleTheme} title="Switch visual edition">
-              {theme === 'print' ? 'Broadcast edition' : 'Print edition'}
+            <button className={styles.editionToggle} onClick={cycleEdition} title="Switch visual edition">
+              {NEXT_LABEL[edition]}
             </button>
             <a href="https://github.com/Naadzik/zeromander" target="_blank" rel="noopener noreferrer" className={styles.githubLink}>
               GitHub
