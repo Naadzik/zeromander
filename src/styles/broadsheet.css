@@ -1,0 +1,361 @@
+/* ============================================================
+   THE BROADSHEET — the paper edition's own page architecture.
+   Scoped html[data-edition='paper']; the print tokens (data-theme
+   ='print') supply every color/font. All class names paper-*.
+   ============================================================ */
+
+html[data-edition='paper'] .paper-page {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg) var(--spacing-3xl);
+  color: var(--text-dark);
+  font-family: var(--font-family);
+}
+
+/* ── Masthead ── */
+html[data-edition='paper'] .paper-folio {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+html[data-edition='paper'] .paper-nameplate-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xs) 0 var(--spacing-xs);
+  border-bottom: 4px double var(--text-bright);
+}
+html[data-edition='paper'] .paper-nameplate {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: 0.01em;
+  margin: 0;
+  color: var(--text-bright);
+}
+html[data-edition='paper'] .paper-mast-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+/* ── Headline block ── */
+html[data-edition='paper'] .paper-head {
+  padding: var(--spacing-md) 0 var(--spacing-sm);
+  border-bottom: 1px solid var(--divider-color);
+  margin-bottom: var(--spacing-md);
+}
+html[data-edition='paper'] .paper-kicker {
+  font-family: var(--font-ticker);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-red);
+  border-top: 3px solid var(--accent-red);
+  display: inline-block;
+  padding-top: 3px;
+  margin: 0 0 var(--spacing-xs);
+}
+html[data-edition='paper'] .paper-headline {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.35rem, 2.6vw, 2rem);
+  line-height: 1.05;
+  margin: 0 0 var(--spacing-xs);
+  color: var(--text-bright);
+  text-transform: none;
+}
+html[data-edition='paper'] .paper-standfirst {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  max-width: 46rem;
+  margin: 0;
+}
+html[data-edition='paper'] .paper-standfirst--small { font-size: 0.95rem; }
+
+/* ── Sheet grid: plate + rail ── */
+html[data-edition='paper'] .paper-sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(240px, 4fr);
+  gap: var(--spacing-2xl);
+  align-items: start;
+}
+html[data-edition='paper'] .paper-plate {
+  margin: 0;
+}
+html[data-edition='paper'] .paper-plate .game-canvas-container {
+  background: transparent;
+  padding: 0;
+}
+html[data-theme='print'][data-edition='paper'] .game-canvas {
+  /* Square plate sized so masthead + headline + compositor + caption + plate
+     all fit one laptop screen; falls back to column width when narrower. */
+  width: min(100%, calc(100vh - 335px));
+  max-width: none;
+  margin: 0 auto;
+}
+html[data-edition='paper'] .paper-plate-caption {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0;
+}
+
+/* ── Compositor's row ── */
+html[data-edition='paper'] .paper-compositor__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs) var(--spacing-md);
+  padding: 2px 0;
+}
+html[data-edition='paper'] .paper-compositor__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  min-width: 92px;
+}
+html[data-edition='paper'] .paper-numeral {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  padding: 2px 7px;
+  min-height: 0;
+  cursor: pointer;
+}
+html[data-edition='paper'] .paper-numeral.is-set {
+  color: var(--text-bright);
+  border-bottom-color: var(--accent-red);
+}
+html[data-edition='paper'] .paper-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  min-height: 0;
+  cursor: pointer;
+}
+html[data-edition='paper'] .paper-tab.is-open {
+  color: var(--text-bright);
+  border-bottom-color: var(--text-bright);
+}
+html[data-edition='paper'] .paper-compositor__desk {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+html[data-edition='paper'] .paper-desk-btn {
+  background: transparent;
+  border: 1px solid var(--divider-color);
+  color: var(--text-dark);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  min-height: 0;
+  cursor: pointer;
+}
+html[data-edition='paper'] .paper-desk-btn:disabled { opacity: 0.4; cursor: default; }
+html[data-edition='paper'] .paper-desk-btn--recount {
+  border: 1px solid var(--text-bright);
+  background: var(--text-bright);
+  color: var(--navy-900);
+  font-weight: 700;
+}
+html[data-edition='paper'] .paper-pressbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+  border-top: 2px solid var(--text-bright);
+  margin-top: var(--spacing-sm);
+}
+
+/* ── Agate rail ── */
+html[data-edition='paper'] .paper-agate-box {
+  border-top: 2px solid var(--text-bright);
+  padding-top: var(--spacing-sm);
+}
+html[data-edition='paper'] .paper-agate-head,
+html[data-edition='paper'] .paper-slug {
+  font-family: var(--font-ticker);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  margin: 0 0 var(--spacing-sm);
+}
+html[data-edition='paper'] .paper-agate-tally {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-sm);
+}
+html[data-edition='paper'] .paper-agate-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-ticker);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+}
+html[data-edition='paper'] .paper-agate-table th {
+  text-align: right;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--divider-color);
+  padding: 2px 6px;
+}
+html[data-edition='paper'] .paper-agate-table th:first-child { text-align: left; }
+html[data-edition='paper'] .paper-agate-table td {
+  text-align: right;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-dark);
+  cursor: pointer;
+}
+html[data-edition='paper'] .paper-agate-table td:first-child { text-align: left; font-weight: 700; }
+html[data-edition='paper'] .paper-agate-table tr.is-lit td { background: var(--warning-light); }
+html[data-edition='paper'] .paper-lead-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+}
+html[data-edition='paper'] .paper-lead-dot[data-party='blue'] { background: var(--blue-party); }
+html[data-edition='paper'] .paper-lead-dot[data-party='red'] { background: var(--red-party); }
+html[data-edition='paper'] .paper-lead-dot[data-party='green'] { background: var(--green-party); }
+/* Population-parity column: which district still blocks the presses. */
+html[data-edition='paper'] .paper-parity { white-space: nowrap; }
+html[data-edition='paper'] .paper-parity--ok { color: var(--success-color); }
+html[data-edition='paper'] .paper-parity--light { color: var(--warning-color); font-weight: 700; }
+html[data-edition='paper'] .paper-parity--heavy { color: var(--error-color); font-weight: 700; }
+html[data-edition='paper'] .paper-parity--empty { color: var(--text-tertiary); }
+html[data-edition='paper'] .paper-parity-alert { color: var(--error-color); font-weight: 700; }
+
+html[data-edition='paper'] .paper-agate-foot {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin: var(--spacing-sm) 0 0;
+}
+html[data-edition='paper'] .paper-agate-link {
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--accent-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  text-transform: none;
+}
+html[data-edition='paper'] .paper-agate-notice {
+  font-size: 0.78rem;
+  color: var(--error-color);
+  border-left: 3px solid var(--error-color);
+  padding-left: var(--spacing-sm);
+  margin: var(--spacing-sm) 0 0;
+}
+
+/* ── The Map Room (classifieds) ── */
+html[data-edition='paper'] .paper-maproom {
+  margin-top: var(--spacing-xl);
+  border-top: 2px solid var(--text-bright);
+  padding-top: var(--spacing-sm);
+}
+html[data-edition='paper'] .paper-maproom summary {
+  font-family: var(--font-ticker);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  cursor: pointer;
+}
+html[data-edition='paper'] .paper-maproom__body { padding-top: var(--spacing-sm); }
+html[data-edition='paper'] .paper-classified {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.82rem;
+  color: var(--text-dark);
+  border-bottom: 1px dotted var(--divider-color);
+  padding: 4px 0;
+}
+html[data-edition='paper'] .paper-classified input[type='number'] {
+  width: 4.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--text-bright);
+  font-family: var(--font-ticker);
+  font-size: 0.9rem;
+  color: var(--text-bright);
+  text-align: right;
+}
+html[data-edition='paper'] .paper-classified--tick {
+  justify-content: flex-start;
+}
+html[data-edition='paper'] .paper-classified--tick input { accent-color: var(--text-bright); }
+html[data-edition='paper'] .paper-maproom__ticks { margin-top: var(--spacing-xs); }
+html[data-edition='paper'] .paper-maproom__difficulties { display: flex; flex-wrap: wrap; gap: 2px; }
+html[data-edition='paper'] .paper-maproom__commission {
+  margin-top: var(--spacing-md);
+  width: 100%;
+}
+
+/* ── Article ── */
+html[data-edition='paper'] .paper-article,
+html[data-edition='paper'] .paper-neutral {
+  margin-top: var(--spacing-3xl);
+  border-top: 6px double var(--text-bright);
+  padding-top: var(--spacing-lg);
+}
+html[data-edition='paper'] .paper-neutral { margin-left: 0; margin-right: 0; }
+html[data-edition='paper'] .paper-article .results-grid { margin-bottom: var(--spacing-lg); }
+html[data-edition='paper'] .paper-notices {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+/* ── Colophon ── */
+html[data-edition='paper'] .paper-colophon {
+  margin-top: var(--spacing-3xl);
+  border-top: 1px solid var(--divider-color);
+  padding-top: var(--spacing-md);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* ── Stack on narrow pages ── */
+@media (max-width: 900px) {
+  html[data-edition='paper'] .paper-sheet { grid-template-columns: 1fr; }
+  html[data-edition='paper'] .paper-nameplate-row { flex-wrap: wrap; justify-content: center; text-align: center; }
+  html[data-edition='paper'] .paper-folio { flex-wrap: wrap; justify-content: center; }
+}

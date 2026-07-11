@@ -28,7 +28,7 @@ function swingLabel(swingPct) {
   return { text: `${who} +${mag}`, wave: Math.abs(swingPct) >= 7, who: swingPct >= 0 ? 'blue' : 'red' };
 }
 
-export default function DecadeResults({ result, playerParty, numDistricts, best, isNewBest, onNewMap, onBack, districts, counties, populationMap }) {
+export default function DecadeResults({ result, playerParty, numDistricts, best, isNewBest, onNewMap, onBack, onInspect, districts, counties, populationMap }) {
   const { elections, totalElections, heldMajority, cumulativeOurSeats, avgSeats, targetSeats } = result;
   const party = PARTY[playerParty];
 
@@ -215,6 +215,9 @@ export default function DecadeResults({ result, playerParty, numDistricts, best,
             </p>
 
             <div className="decade-actions">
+              {onInspect && (
+                <button className="btn-secondary" onClick={onInspect}>Full results &amp; map</button>
+              )}
               <button className="btn-primary" onClick={onNewMap}>Draw a new map</button>
               <button className="btn-secondary" onClick={onBack}>Back to menu</button>
             </div>

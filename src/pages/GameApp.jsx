@@ -12,6 +12,8 @@ import RevealChyron from '../components/RevealChyron'
 import LessonGuide from '../components/LessonGuide'
 import DecadeResults from '../components/DecadeResults'
 import CommunityExplainer from '../components/CommunityExplainer'
+import BroadsheetGamePage from '../components/broadsheet/BroadsheetGamePage'
+import { useTheme } from '../hooks/useTheme'
 import { classifyDistricts, getPopulationShares } from '../utils/gameLogic'
 import Tutorial, { STEPS_3PARTY } from '../components/Tutorial'
 import '../styles/Tutorial.css'
@@ -246,6 +248,9 @@ export default function GameApp() {
   const [decadeResult, setDecadeResult] = useState(null);
   const [decadeBest, setDecadeBest] = useState(null);
   const [decadeIsNewBest, setDecadeIsNewBest] = useState(false);
+  // Scorecard dismissed to inspect the map — the decade report stays on file
+  // (a reopen bar renders) instead of being lost with the modal.
+  const [decadeDismissed, setDecadeDismissed] = useState(false);
   // Sandbox opt-in: run a decade on the board you drew (2-party). The ?decade
   // route is the dedicated version; this toggle brings the same flow to any
   // sandbox board without touching its config, party, or controls.
@@ -311,12 +316,15 @@ export default function GameApp() {
 
   useEffect(() => {
     if (completion.gameComplete && orderedClusters && revealStep === null) {
-      setRevealStep(0);
+      // Decade mode: the decade already played five election nights — the
+      // undecideds resolve instantly and silently at inspect time instead of
+      // re-running the staged single-election reveal after the scorecard.
+      setRevealStep(decadeActive ? 'done' : 0);
     }
     if (!completion.gameComplete && revealStep !== null) {
       setRevealStep(null);
     }
-  }, [completion.gameComplete, orderedClusters, revealStep]);
+  }, [completion.gameComplete, orderedClusters, revealStep, decadeActive]);
 
   useEffect(() => {
     if (revealStep === null || revealStep === 'done' || !orderedClusters) return;
@@ -380,6 +388,7 @@ export default function GameApp() {
   useEffect(() => {
     completion.resetCompletion();
     setDecadeResult(null);
+    setDecadeDismissed(false);
   }, [decadeMode]);
 
   const fairMap = useFairMap({
@@ -485,7 +494,23 @@ export default function GameApp() {
     completion.resetCompletion();
     setHighlightedDistrict(null);
     setShowUnassignedCounties(false);
+    // A fresh board voids any decade report on file.
+    setDecadeResult(null);
+    setDecadeIsNewBest(false);
+    setDecadeDismissed(false);
     map.generateNewGame();
+  }
+
+  // "Full results & map": close the scorecard and run the STANDARD end-game
+  // surfaces (modal with stats/anatomy + neutral-map comparison) on the map as
+  // drawn — the same read every other mode gets. The decade report stays on
+  // file behind a reopen bar.
+  function handleDecadeInspect() {
+    setDecadeDismissed(true);
+    // Always finalize — it re-arms the modal after a dismissal (the same
+    // sanctioned "view result again" call the daily's locked bar uses), so
+    // inspecting works every time, not just the first.
+    completion.finalize();
   }
 
   // Decade mode: play the finished map out across five elections. The decade is
@@ -498,11 +523,17 @@ export default function GameApp() {
     setDecadeBest(readBestDecade());     // the record BEFORE this run, for the comparison line
     setDecadeIsNewBest(saveBestDecade(result));
     setDecadeResult(result);
+    // The decade IS election night(s): resolve the board's undecideds NOW so
+    // the plate behind the scorecard already shows them broken, instead of
+    // them snapping only after the scorecard closes. The staged reveal is
+    // suppressed in decade mode, so this is instant and silent.
+    completion.finalize();
   }
 
   function handleDecadeNewMap() {
     setDecadeResult(null);
     setDecadeIsNewBest(false);
+    setDecadeDismissed(false);
     setHighlightedDistrict(null);
     setShowUnassignedCounties(false);
     map.generateNewGame();
@@ -533,11 +564,105 @@ export default function GameApp() {
 
   const noop = () => {};
   const stolen = dailyResult?.seatsStolen;
+  const { edition } = useTheme();
 
   // Dev-only test seam (stripped from production builds): lets automated
   // checks install a districts grid without simulating 475 county clicks.
   if (import.meta.env.DEV && typeof window !== 'undefined') {
     window.__zmTest = { restoreDistricts: map.restoreDistricts };
+  }
+
+  // ── The Broadsheet (paper edition): a distinct front-page shell over the
+  // SAME state above. Hooks all live above this branch, so cycling editions
+  // mid-game re-renders without remounting — the board survives. Modes with
+  // dashboard-only furniture fall back to the print-themed dashboard.
+  // Decade plays fully inside the Broadsheet; lesson/duel/community still
+  // fall back to the print dashboard (they depend on dashboard-only coaching
+  // and meters).
+  const paperSupported = !isLesson && !duel && !isCommunityScenario;
+  if (edition === 'paper' && paperSupported && hasMap) {
+    return (
+      <BroadsheetGamePage
+        session={{
+          config,
+          map,
+          effectiveMap,
+          effectiveParty,
+          completion,
+          fairMap,
+          playerCoreStats,
+          reveal: { revealStep, orderedClusters, revealAnimating, revealPending, skipReveal },
+          durability,
+          challengeShare,
+          daily: { isDaily, challenge, tierData, dailyTier, dailyResult, stolen, isArchive },
+          decade: {
+            active: decadeActive,
+            result: decadeResult,
+            dismissed: decadeDismissed,
+            setDismissed: setDecadeDismissed,
+            best: decadeBest,
+            isNewBest: decadeIsNewBest,
+            handleRunDecade,
+            handleDecadeNewMap,
+            handleDecadeInspect,
+          },
+          flags: { editLocked, boardLocked },
+          handlers: {
+            handleLockIn,
+            handleTryAgain,
+            handleExportMap,
+            onCountyClick: editLocked ? noop : map.handleCountyClick,
+            onCountyPaint: editLocked ? noop : map.handleCountyPaint,
+            onDragStart: editLocked ? noop : map.undoRedo.snapshot,
+            onPartyToggle: editLocked ? noop : togglePlayerParty,
+            canUndo: !editLocked && map.undoRedo.canUndo,
+            canRedo: !editLocked && map.undoRedo.canRedo,
+            onUndo: editLocked ? noop : map.undoRedo.undo,
+            onRedo: editLocked ? noop : map.undoRedo.redo,
+          },
+          sandbox: {
+            difficulty: config.difficulty,
+            onDifficultyChange: handleDifficultyChange,
+            numDistricts: config.numDistricts,
+            onDistrictsChange: config.setNumDistricts,
+            maxDistricts: config.maxDistricts,
+            numCounties: config.numCounties,
+            onCountiesChange: config.setNumCounties,
+            numCities: config.numCities,
+            onNumCitiesChange: config.setNumCities,
+            numTowns: config.numTowns,
+            onNumTownsChange: config.setNumTowns,
+            bluePercentage: config.bluePercentage,
+            onBluePercentageChange: config.handleBluePercentageChange,
+            greenPercentage: config.greenPercentage,
+            onGreenPercentageChange: config.setGreenPercentage,
+            greyPercentage: config.greyPercentage,
+            onGreyPercentageChange: config.setGreyPercentage,
+            electionUncertainty,
+            onElectionUncertaintyChange: setElectionUncertainty,
+            durabilityReport,
+            onDurabilityReportChange: setDurabilityReport,
+            includeCommunity: sandboxConfig.includeCommunity,
+            onIncludeCommunityChange: sandboxConfig.setIncludeCommunity,
+            decadeMode,
+            onDecadeModeChange: setDecadeMode,
+            constraints: legalConstraints.constraints,
+            onPopDeviationEnabledChange: legalConstraints.setPopDeviationEnabled,
+            onResetGame: map.generateNewGame,
+          },
+          view: {
+            mapView,
+            setMapView,
+            highlightedDistrict,
+            setHighlightedDistrict,
+            showUnassignedCounties,
+            onToggleUnassigned: () => setShowUnassignedCounties(!showUnassignedCounties),
+          },
+          tutorial,
+          navigate,
+        }}
+      />
+    );
   }
 
   return (
@@ -558,7 +683,7 @@ export default function GameApp() {
         <LessonGuide signals={lessonSignals} onSkip={() => finishLesson('/game?daily')} />
       )}
 
-      {decadeActive && decadeResult && (
+      {decadeActive && decadeResult && !decadeDismissed && (
         <DecadeResults
           result={decadeResult}
           playerParty={effectiveParty}
@@ -567,6 +692,7 @@ export default function GameApp() {
           isNewBest={decadeIsNewBest}
           onNewMap={handleDecadeNewMap}
           onBack={() => navigate('/')}
+          onInspect={handleDecadeInspect}
           districts={map.districts}
           counties={map.counties}
           populationMap={map.populationMap}
@@ -679,6 +805,16 @@ export default function GameApp() {
                 onClick={handleRunDecade}
               >
                 {completion.isMapValid ? '▶ Run the decade' : 'Assign every district to run the decade'}
+              </button>
+            </div>
+          )}
+          {decadeActive && decadeResult && decadeDismissed && (
+            <div className="daily-lock-bar daily-lock-bar--locked">
+              <span>
+                Decade on file — {decadeResult.heldMajority}/{decadeResult.totalElections} majorities held, {decadeResult.cumulativeOurSeats} cumulative seats
+              </span>
+              <button className="btn-secondary" onClick={() => setDecadeDismissed(false)}>
+                Reopen the scorecard
               </button>
             </div>
           )}
