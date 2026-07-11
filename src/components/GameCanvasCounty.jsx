@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
+import { getEngravedPattern, getEngravedSeatPattern, drawDistrictNumerals } from '../utils/engraved'
 import { extractPopulationData } from '../utils/formatUtils'
 import {
   parseHex,
@@ -54,7 +55,10 @@ export default function GameCanvasCounty({
       ? computeDistrictWinners(partyMap, densityMap, districts)
       : {};
 
-    // Draw base cells
+    // Draw base cells. Engraved (Broadsheet edition): party = hatch direction,
+    // density = hatch weight — patterns are canvas-global so the engraving
+    // flows continuously across regions. Standard: flat fills, density alpha.
+    const engraved = edition === 'paper';
     for (let y = 0; y < gridSize; y++) {
       for (let x = 0; x < gridSize; x++) {
         const party = partyMap[y][x];
@@ -62,8 +66,12 @@ export default function GameCanvasCounty({
         const d = districts[y][x];
 
         if (mapView === 'party' && d > 0) {
-          const [r, g, b] = parseHex(theme.party[districtWinner[d]]);
-          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          ctx.fillStyle = engraved
+            ? getEngravedSeatPattern(ctx, theme, districtWinner[d])
+            : `rgb(${parseHex(theme.party[districtWinner[d]]).join(', ')})`;
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        } else if (engraved) {
+          ctx.fillStyle = getEngravedPattern(ctx, theme, party, density);
           ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
         } else {
           const [r, g, b] = parseHex(theme.party[party]);
@@ -79,17 +87,21 @@ export default function GameCanvasCounty({
       }
     }
 
-    // 'districts' mode: colored overlay per district
+    // 'districts' mode: colored overlay per district. Engraved: a faint tint
+    // WASH over the hatching (so the engraving stays visible) + a heavy ink
+    // contour — the atlas-plate treatment — instead of the strong color fill.
     if (mapView === 'districts') {
       const numDistricts = Math.max(...districts.flat().filter(d => d > 0), 0);
       for (let districtId = 1; districtId <= numDistricts; districtId++) {
         const color = theme.districts[(districtId - 1) % theme.districts.length];
         const isHighlighted = highlightedDistrict === districtId;
         const isCurrent = currentDistrict === districtId;
-        const opacity = isHighlighted ? 'E6' : (isCurrent ? 'AA' : '99');
+        const opacity = engraved
+          ? (isHighlighted ? '59' : (isCurrent ? '40' : '2E'))
+          : (isHighlighted ? 'E6' : (isCurrent ? 'AA' : '99'));
         fillCells(ctx, districts, v => v === districtId, cellSize, color + opacity);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = isHighlighted ? 3 : 2;
+        ctx.strokeStyle = engraved ? theme.denseOutline[3] : color;
+        ctx.lineWidth = engraved ? (isHighlighted ? 3.5 : 2.5) : (isHighlighted ? 3 : 2);
         strokeRegionBoundary(ctx, districts, v => v === districtId, cellSize);
       }
     }
@@ -101,7 +113,7 @@ export default function GameCanvasCounty({
         const isHighlighted = highlightedDistrict === districtId;
         const isCurrent = currentDistrict === districtId;
         ctx.strokeStyle = theme.partyBorder[districtWinner[districtId]];
-        ctx.lineWidth = isHighlighted ? 3 : (isCurrent ? 2.5 : 2);
+        ctx.lineWidth = engraved ? (isHighlighted ? 3.5 : 2.5) : (isHighlighted ? 3 : (isCurrent ? 2.5 : 2));
         strokeRegionBoundary(ctx, districts, v => v === districtId, cellSize);
       }
     }
@@ -134,6 +146,12 @@ export default function GameCanvasCounty({
       ctx.setLineDash([5, 3]);
       strokeRegionBoundary(ctx, communityMap, v => v === true, cellSize);
       ctx.restore();
+    }
+
+    // Engraved plates label each district with a typeset numeral at its
+    // centroid — the current district's numeral is inked in the hover ochre.
+    if (engraved && mapView !== 'original') {
+      drawDistrictNumerals(ctx, districts, cellSize, theme, currentDistrict);
     }
 
     // Hovered county highlight

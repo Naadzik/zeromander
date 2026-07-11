@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useTheme } from '../hooks/useTheme'
+import { getEngravedPattern, getEngravedSeatPattern, drawDistrictNumerals } from '../utils/engraved'
 import { extractPopulationData } from '../utils/formatUtils'
 import {
   parseHex,
@@ -66,12 +67,24 @@ export default function GhostMapCanvas({ populationMap, counties, districts, siz
         }
     }
 
+    // Engraved (Broadsheet): hatch-direction party, hatch-weight density —
+    // same engine as the live plate, so the comparison reads as twin plates.
+    const engraved = edition === 'paper';
     for (let y = 0; y < gridSize; y++) {
       for (let x = 0; x < gridSize; x++) {
         const d = districts[y][x];
         if (view === 'party' && d > 0 && districtWinner[d] !== undefined) {
+          if (engraved) {
+            ctx.fillStyle = getEngravedSeatPattern(ctx, theme, districtWinner[d]);
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            continue;
+          }
           const [r, g, b] = parseHex(theme.party[districtWinner[d]]);
           ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        } else if (engraved && !popMode) {
+          ctx.fillStyle = getEngravedPattern(ctx, theme, partyMap[y][x], densityMap ? densityMap[y][x] : 1);
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          continue;
         } else if (popMode) {
           const base = baselineDensity[y][x];
           const rel = base > 0 ? (densityMap[y][x] - base) / base : 0;
@@ -98,15 +111,16 @@ export default function GhostMapCanvas({ populationMap, counties, districts, siz
       for (let districtId = 1; districtId <= numDistricts; districtId++) {
         if (view === 'districts') {
           const color = theme.districts[(districtId - 1) % theme.districts.length];
-          fillCells(ctx, districts, v => v === districtId, cellSize, color + '99');
-          ctx.strokeStyle = color;
+          // Engraved: faint tint wash keeps the hatching legible; ink contour.
+          fillCells(ctx, districts, v => v === districtId, cellSize, color + (engraved ? '2E' : '99'));
+          ctx.strokeStyle = engraved ? theme.denseOutline[3] : color;
         } else if (view === 'population') {
           // Faint outlines just for context — the heat is the story here.
           ctx.strokeStyle = theme.popOutline;
         } else {
           ctx.strokeStyle = theme.partyBorder[districtWinner[districtId]] ?? 'rgba(233, 238, 245, 0.6)';
         }
-        ctx.lineWidth = view === 'population' ? 1.2 : 2;
+        ctx.lineWidth = view === 'population' ? 1.2 : (engraved ? 2.5 : 2);
         strokeRegionBoundary(ctx, districts, v => v === districtId, cellSize);
       }
     }
@@ -124,6 +138,11 @@ export default function GhostMapCanvas({ populationMap, counties, districts, siz
       ctx.setLineDash([5, 3]);
       strokeRegionBoundary(ctx, communityMap, v => v === true, cellSize);
       ctx.restore();
+    }
+
+    // Typeset district numerals on engraved plates (seat + district views).
+    if (engraved && (view === 'districts' || view === 'party')) {
+      drawDistrictNumerals(ctx, districts, cellSize, theme);
     }
   }, [populationMap, counties, districts, view, districtWinners, baselineDensity, popScale, edition]);
 
