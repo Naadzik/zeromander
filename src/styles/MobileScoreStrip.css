@@ -1,0 +1,58 @@
+/* Phone scoreboard strip — hidden on desktop; the panels serve there. */
+.score-strip {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .score-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 10px;
+    margin: 0;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    background: var(--navy-900);
+    color: var(--text-dark);
+    font-family: var(--font-ticker);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-align: left;
+  }
+  .score-strip__cell {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .score-strip__sub {
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+  }
+  .score-strip__chip {
+    font-size: 0.72rem;
+    padding: 0 5px;
+    background: var(--warning-light);
+    color: var(--warning-color);
+  }
+  .score-strip__parity--ok { color: var(--success-color); }
+  .score-strip__parity--light { color: var(--warning-color); font-weight: 700; }
+  .score-strip__parity--heavy { color: var(--error-color); font-weight: 700; }
+  .score-strip__parity--empty { color: var(--text-tertiary); }
+  .score-strip__alert { color: var(--error-color); font-weight: 700; }
+  .score-strip__ok { color: var(--success-color); }
+}
+
+/* Paper skin: transparent on the sheet, ink top rule. Shown ≤600 only. */
+html[data-edition='paper'] .score-strip { display: none; }
+@media (max-width: 600px) {
+  html[data-edition='paper'] .score-strip {
+    display: flex;
+    background: transparent;
+    border-top: 2px solid var(--text-bright);
+  }
+}

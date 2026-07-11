@@ -13,6 +13,7 @@ import LessonGuide from '../components/LessonGuide'
 import DecadeResults from '../components/DecadeResults'
 import CommunityExplainer from '../components/CommunityExplainer'
 import BroadsheetGamePage from '../components/broadsheet/BroadsheetGamePage'
+import MobileScoreStrip from '../components/MobileScoreStrip'
 import { useTheme } from '../hooks/useTheme'
 import { classifyDistricts, getPopulationShares } from '../utils/gameLogic'
 import Tutorial, { STEPS_3PARTY } from '../components/Tutorial'
@@ -872,6 +873,17 @@ export default function GameApp() {
               highlightedDistrict={highlightedDistrict}
               showUnassignedCounties={showUnassignedCounties}
               mapView={mapView}
+            />
+          )}
+          {hasMap && (
+            <MobileScoreStrip
+              populationMap={effectiveMap}
+              districts={map.districts}
+              numDistricts={config.numDistricts}
+              currentDistrict={map.currentDistrict}
+              playerParty={effectiveParty}
+              isThreeParty={config.isThreeParty}
+              onExpand={() => { if (statsCollapsed) toggleStats(); }}
             />
           )}
         </div>
