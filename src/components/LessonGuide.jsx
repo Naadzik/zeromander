@@ -27,6 +27,9 @@ const STEPS = [
 
 export default function LessonGuide({ signals, onSkip }) {
   const [step, setStep] = useState(0);
+  // Foldable so the coach can be tucked out of the way to reach the counties
+  // beneath it (Step 3 fills the whole board).
+  const [folded, setFolded] = useState(false);
 
   // Auto-advance the instant the current step's goal is achieved.
   useEffect(() => {
@@ -41,20 +44,37 @@ export default function LessonGuide({ signals, onSkip }) {
   const isLast = step === STEPS.length - 1;
 
   return (
-    <div className="lesson-guide">
-      <div className="lesson-guide__dots">
-        {STEPS.map((_, i) => (
-          <span key={i} className={`lesson-guide__dot${i === step ? ' is-active' : ''}${i < step ? ' is-done' : ''}`} />
-        ))}
-      </div>
-      <div className="lesson-guide__title">{s.title}</div>
-      <p className="lesson-guide__body">{s.body}</p>
-      <div className="lesson-guide__actions">
-        <button className="lesson-guide__skip" onClick={onSkip}>Skip lesson</button>
-        {!isLast && (
-          <button className="lesson-guide__next" onClick={() => setStep(step + 1)}>Next ›</button>
+    <div className={`lesson-guide${folded ? ' lesson-guide--folded' : ''}`}>
+      <div className="lesson-guide__head">
+        <div className="lesson-guide__dots">
+          {STEPS.map((_, i) => (
+            <span key={i} className={`lesson-guide__dot${i === step ? ' is-active' : ''}${i < step ? ' is-done' : ''}`} />
+          ))}
+        </div>
+        {folded && (
+          <button className="lesson-guide__peek" onClick={() => setFolded(false)}>{s.title}</button>
         )}
+        <button
+          className="lesson-guide__fold"
+          onClick={() => setFolded(f => !f)}
+          aria-expanded={!folded}
+          title={folded ? 'Show the lesson coach' : 'Fold the coach out of the way'}
+        >
+          {folded ? 'Show ⌃' : 'Fold ⌄'}
+        </button>
       </div>
+      {!folded && (
+        <>
+          <div className="lesson-guide__title">{s.title}</div>
+          <p className="lesson-guide__body">{s.body}</p>
+          <div className="lesson-guide__actions">
+            <button className="lesson-guide__skip" onClick={onSkip}>Skip lesson</button>
+            {!isLast && (
+              <button className="lesson-guide__next" onClick={() => setStep(step + 1)}>Next ›</button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
