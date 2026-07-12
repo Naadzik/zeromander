@@ -78,13 +78,16 @@ function CollapsiblePanel({ title, side, collapsed, onToggle, children }) {
 // The First Heist teaching board: fixed seed, small, 3 districts, two blue
 // cities in red countryside, no grey/swing — so pack+crack always works.
 const LESSON = {
-  // Seed chosen so the taught pack+crack wins 2/3 with CONTIGUOUS, balanced
-  // districts (two blue cities, red packed between — a clean 3-strip split
-  // wins). Re-verified against the natural model (N4): seed 29 still holds, a
-  // vertical strip split wins each blue district by ~14% at ~2% pop deviation.
-  seed: 29,
+  // Kept deliberately COARSE — one tap claims a whole county, so ~15 counties
+  // means the whole heist is ~15 taps and finishes well inside 60 seconds (the
+  // old 90-county board took far longer and lost first-comers). Seed 37 chosen
+  // (solver-verified) so the taught pack+crack wins 2/3 with CONTIGUOUS,
+  // population-balanced districts and COMFORTABLE margins: two clear blue blobs
+  // (left + bottom-centre) each hold ~59–74% once carved, so a rough split
+  // still wins — a beginner can't easily fumble it.
+  seed: 37,
   config: {
-    difficulty: 'small', gridSize: 50, numDistricts: 3, numCounties: 90,
+    difficulty: 'small', gridSize: 50, numDistricts: 3, numCounties: 15,
     numCities: 2, numTowns: 0, bluePercentage: 40, greyPercentage: 0,
     targetSeatPercentage: 50, isThreeParty: false
   }
