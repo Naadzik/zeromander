@@ -167,6 +167,8 @@ export default function BroadsheetGamePage({ session }) {
             onUndo={handlers.onUndo}
             onRedo={handlers.onRedo}
             onExport={handlers.handleExportMap}
+            addUnclaimedOnly={handlers.addUnclaimedOnly}
+            onToggleAddUnclaimed={handlers.onToggleAddUnclaimed}
           />
           <GameCanvasCounty
             populationMap={effectiveMap}

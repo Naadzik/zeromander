@@ -184,6 +184,13 @@ html[data-edition='paper'] .paper-desk-btn--recount {
   color: var(--navy-900);
   font-weight: 700;
 }
+/* "empty only" toggle — inked when engaged, like a stamped checkbox. */
+html[data-edition='paper'] .paper-desk-btn--on {
+  border: 1px solid var(--text-bright);
+  background: var(--text-bright);
+  color: var(--bg-white);
+  font-weight: 700;
+}
 html[data-edition='paper'] .paper-pressbar {
   display: flex;
   align-items: center;

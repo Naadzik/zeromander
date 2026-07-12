@@ -1,4 +1,11 @@
 const PATHS = {
+  plusSquare: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M12 8.5v7" />
+      <path d="M8.5 12h7" />
+    </>
+  ),
   ballot: (
     <>
       <rect x="3" y="10" width="18" height="10" rx="1.5" />

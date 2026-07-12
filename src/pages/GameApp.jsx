@@ -233,9 +233,14 @@ export default function GameApp() {
   // A ref carries last render's completion state across the hook-order cycle
   // (useMapState ← completion ← map); the one-render lag is sub-frame.
   const gameCompleteRef = useRef(false);
+  // Mobile drawing aid: "add to empty only" mode (see useMapState) — a stray
+  // finger-drag then claims unassigned counties without stealing from districts
+  // you've already drawn.
+  const [addUnclaimedOnly, setAddUnclaimedOnly] = useState(false);
   const map = useMapState(config, legalConstraints.constraints, {
     seed: tierData?.seed ?? duel?.seed ?? (isLesson ? LESSON.seed : isCommunityScenario ? COMMUNITY_SCENARIO.seed : undefined),
-    locked: (isDaily && !!dailyResult) || gameCompleteRef.current
+    locked: (isDaily && !!dailyResult) || gameCompleteRef.current,
+    addUnclaimedOnly
   });
   const { playerParty, setPlayerParty, togglePlayerParty } = usePlayerParty();
   // The daily assigns your party; a duel puts you in the challenger's seat;
@@ -620,6 +625,8 @@ export default function GameApp() {
             canRedo: !editLocked && map.undoRedo.canRedo,
             onUndo: editLocked ? noop : map.undoRedo.undo,
             onRedo: editLocked ? noop : map.undoRedo.redo,
+            addUnclaimedOnly,
+            onToggleAddUnclaimed: () => setAddUnclaimedOnly(v => !v),
           },
           sandbox: {
             difficulty: config.difficulty,
@@ -860,6 +867,8 @@ export default function GameApp() {
             onUndo={editLocked ? noop : map.undoRedo.undo}
             onRedo={editLocked ? noop : map.undoRedo.redo}
             onExport={handleExportMap}
+            addUnclaimedOnly={addUnclaimedOnly}
+            onToggleAddUnclaimed={() => setAddUnclaimedOnly(v => !v)}
           />
           {hasMap && (
             <GameCanvasCounty
