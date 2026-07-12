@@ -651,22 +651,53 @@
 @media (max-width: 600px) {
   .modal-content {
     width: 95%;
+    max-height: 92dvh;
   }
 
+  /* Slim the header so the scrollable body isn't squeezed to a sliver on
+     phones — the title and blurb are the biggest fixed-height offenders. */
   .modal-header {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    border-bottom-width: 3px;
   }
 
   .modal-header h2 {
     font-size: var(--font-size-2xl);
   }
 
+  .modal-header .modal-status-title {
+    font-size: 1.3rem;
+    line-height: 1.15;
+  }
+
+  .modal-header .modal-status-message {
+    font-size: 0.9rem;
+    line-height: 1.35;
+    margin-top: var(--spacing-sm);
+  }
+
   .modal-body {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  .modal-body h3 {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-lg);
   }
 
   .results-grid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  /* Single-column cards don't need the desktop hero sizing. */
+  .result-card {
+    padding: var(--spacing-lg);
+  }
+
+  .result-value {
+    font-size: 2rem;
   }
 
   .modal-footer {
@@ -708,5 +739,17 @@
   .modal-footer {
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
+  }
+
+  /* Shrink the button padding/type so the action row packs into fewer
+     lines and gives the scrollable results more of the viewport. */
+  .modal-footer .btn-primary,
+  .modal-footer .btn-secondary {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+  }
+
+  .modal-methodology-link {
+    font-size: 0.72rem;
   }
 }
