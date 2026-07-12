@@ -122,7 +122,8 @@ export default function Landing() {
             </p>
             <p className={styles.smallPrint}>Free · No account · Fictional parties, real formulas</p>
             <p className={styles.modes}>
-              More ways to play: <Link to="/game?decade">The Decade</Link>
+              More ways to play: <Link to="/game?lesson">60-second lesson</Link>
+              {' · '}<Link to="/game?decade">The Decade</Link>
               {' · '}<Link to="/game?scenario=community">Community scenario</Link>
               {' · '}<Link to="/game">Sandbox</Link>
             </p>

@@ -16,10 +16,64 @@
   animation: chyronIn 0.25s ease-out;
 }
 
+.lesson-guide__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
 .lesson-guide__dots {
   display: flex;
   gap: 6px;
-  margin-bottom: 10px;
+}
+
+/* Folded: a slim bar — dots + the current step title + a Show toggle. */
+.lesson-guide__peek {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-ticker);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lesson-guide__fold {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid rgba(148, 166, 194, 0.35);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.lesson-guide__fold:hover {
+  color: var(--text-bright);
+  border-color: rgba(148, 166, 194, 0.6);
+}
+
+.lesson-guide--folded {
+  padding: 10px 16px;
+}
+
+.lesson-guide--folded .lesson-guide__head {
+  margin-bottom: 0;
 }
 
 .lesson-guide__dot {
@@ -32,6 +86,23 @@
 
 .lesson-guide__dot.is-active { background: var(--accent-gold); }
 .lesson-guide__dot.is-done { background: rgba(255, 203, 92, 0.45); }
+
+/* Side-by-side layout (the board sits left of the stats rail): dock the coach
+   to the bottom-right, over the rail — clear of the board, which stays fully
+   visible at full size. Below 1100 the layout stacks, so keep it centred. */
+@media (min-width: 1101px) {
+  .lesson-guide {
+    left: auto;
+    right: 24px;
+    transform: none;
+    /* chyronIn animates transform, which would override the reset above and
+       drag the card back toward centre — opt out of it here. */
+    animation: none;
+    /* 380px on roomy screens; near the 1100 breakpoint the board sits closer
+       to the rail, so shrink to the gap that's actually left of it. */
+    width: min(380px, calc(100vw - 800px));
+  }
+}
 
 .lesson-guide__title {
   font-family: var(--font-ticker);
