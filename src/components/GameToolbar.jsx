@@ -17,7 +17,9 @@ export default function GameToolbar({
   canRedo,
   onUndo,
   onRedo,
-  onExport
+  onExport,
+  addUnclaimedOnly,
+  onToggleAddUnclaimed
 }) {
   return (
     <div className="game-toolbar">
@@ -58,6 +60,20 @@ export default function GameToolbar({
           title="Switch which party you're playing for"
         >
           Playing as: <PartyIcon party={playerParty} /> {PARTY[playerParty].shortLabel}
+        </button>
+      )}
+
+      {/* Drawing aid, esp. on touch: when on, a drag only fills counties that
+          aren't in a district yet — so a stray stroke can't steal from the
+          districts you've already drawn. */}
+      {onToggleAddUnclaimed && (
+        <button
+          className={`toolbar-btn paint-mode-toggle${addUnclaimedOnly ? ' toolbar-btn--active' : ''}`}
+          onClick={onToggleAddUnclaimed}
+          aria-pressed={addUnclaimedOnly}
+          title="When on, dragging only fills empty counties — you won't take counties from districts you've already drawn."
+        >
+          <Icon name="plusSquare" /> Add empty only
         </button>
       )}
 

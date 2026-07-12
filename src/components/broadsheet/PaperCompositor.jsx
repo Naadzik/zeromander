@@ -9,6 +9,7 @@ export default function PaperCompositor({
   isThreeParty, playerParty, onPartyToggle,
   mapView, onMapViewChange,
   canUndo, canRedo, onUndo, onRedo, onExport,
+  addUnclaimedOnly, onToggleAddUnclaimed,
 }) {
   const p = PARTY[playerParty];
   const views = [
@@ -46,6 +47,16 @@ export default function PaperCompositor({
           ))}
         </span>
         <span className="paper-compositor__desk">
+          {onToggleAddUnclaimed && (
+            <button
+              className={`paper-desk-btn${addUnclaimedOnly ? ' paper-desk-btn--on' : ''}`}
+              onClick={onToggleAddUnclaimed}
+              aria-pressed={addUnclaimedOnly}
+              title="When on, dragging only fills empty counties — you won't take counties from districts you've already drawn."
+            >
+              {addUnclaimedOnly ? '☑' : '☐'} empty only
+            </button>
+          )}
           <button className="paper-desk-btn" disabled={!canUndo} onClick={onUndo}>↶ undo</button>
           <button className="paper-desk-btn" disabled={!canRedo} onClick={onRedo}>↷ redo</button>
           <button className="paper-desk-btn" onClick={onExport}>⤓ plate</button>

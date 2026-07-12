@@ -33,6 +33,13 @@ export function useMapState(config, constraints, options = {}) {
   const [boardSeed, setBoardSeed] = useState(null);
   const [lastRejection, setLastRejection] = useState(null);
   const rejectionRef = useRef(null);
+  // "Add to empty only" mode (a mobile drawing aid): when on, painting skips
+  // any county already in another district, so a stray finger-drag can't
+  // cannibalise districts you've drawn — you only claim unassigned ground.
+  // Mirrored into a ref because paint handlers read off refs mid-drag, not the
+  // render closure, so a stale flag would leak into a stroke already underway.
+  const addUnclaimedOnlyRef = useRef(false);
+  addUnclaimedOnlyRef.current = !!options.addUnclaimedOnly;
   // Synchronous mirror of `districts`: paint/click handlers compute the next
   // state from this instead of a setState updater, because rejections must be
   // detectable inside the SAME event (a deferred updater runs after the
@@ -106,6 +113,10 @@ export function useMapState(config, constraints, options = {}) {
       const d = newDistricts[y][x];
       if (d > 0 && d !== currentDistrict) donorDistricts.add(d);
     }
+
+    // "Add to empty only": never steal — silently skip any county owned by
+    // another district (no rejection toast; a drag across the map stays quiet).
+    if (addUnclaimedOnlyRef.current && donorDistricts.size > 0) return null;
 
     let currentPopulation = 0;
     for (let y = 0; y < newDistricts.length; y++)
