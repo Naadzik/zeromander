@@ -137,7 +137,11 @@ export function buildShareText({ stats, daily, fairStats }) {
     `${ourLabel}: ${popPct}% votes → ${seatsPct}% seats`,
     seatGridString(stats.allStats?.districtBreakdown),
     stats.struckDown ? '⚖️ Struck down by court' : null,
-    fairStats ? `Neutral map: ${fairStats.ourSeatCount}/${stats.totalDistricts} seats` : null,
+    // v2 baseline: the median of the party-blind ensemble, with its range —
+    // "the typical neutral map", not one arbitrary draw.
+    fairStats?.ensemble
+      ? `Neutral maps: median ${fairStats.ensemble.median}/${stats.totalDistricts} seats (range ${fairStats.ensemble.min}–${fairStats.ensemble.max})`
+      : fairStats ? `Neutral map: ${fairStats.ourSeatCount}/${stats.totalDistricts} seats` : null,
     'naadzik.github.io/zeromander/'
   ].filter(Boolean).join('\n');
 }
@@ -198,11 +202,18 @@ export function DailyComparison({ daily, stats }) {
   const dailyResult = daily?.result ?? null;
   if (!dailyResult) return null;
   const stolen = dailyResult.seatsStolen;
+  // v2 records carry the ensemble context (median of n party-blind maps +
+  // their range); v1 records in stored history predate it — render the old
+  // single-map line for those, never invent a range.
+  const hasEnsemble = dailyResult.ensembleN != null;
   return (
     <div className="swing-comparison">
       <div className="stat-line">
-        <span><Icon name="scale" size={14} /> Neutral map ({ourLabel}):</span>
-        <strong>{dailyResult.neutralSeats}/{dailyResult.numDistricts} seats</strong>
+        <span><Icon name="scale" size={14} /> {hasEnsemble ? `Party-blind maps, median of ${dailyResult.ensembleN} (${ourLabel}):` : `Neutral map (${ourLabel}):`}</span>
+        <strong>
+          {dailyResult.neutralSeats}/{dailyResult.numDistricts} seats
+          {hasEnsemble ? ` (range ${dailyResult.neutralMin}–${dailyResult.neutralMax})` : ''}
+        </strong>
       </div>
       <div className="stat-line">
         <span><Icon name="spy" size={14} /> Seats stolen:</span>

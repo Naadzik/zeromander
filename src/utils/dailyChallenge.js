@@ -85,6 +85,9 @@ export const TIER_LABELS = { small: 'The Warm-up', full: 'The Full Job' };
 
 // THE score: seats beyond what a party-blind process would have produced.
 // Both cores must be computed with playerParty === the day's assigned party.
+// Under the v2 ensemble baseline, fairCore is the GHOST map's core — whose
+// seat count equals the 25-map ensemble MEDIAN by construction — so this is
+// "seats beyond the typical party-blind map", not beyond one arbitrary draw.
 export function seatsStolen(playerCore, fairCore) {
   return playerCore.ourSeatCount - fairCore.ourSeatCount;
 }
@@ -101,7 +104,11 @@ export function seatGridString(districtBreakdown) {
 
 // The canonical persisted/shareable record — exactly what a future backend
 // POST would send verbatim. Keep additive (bump `v` on shape changes).
-export function buildDailyResult({ date, dayNumber, party, playerCore, fairCore, districtBreakdown, numDistricts }) {
+// v2 (the ensemble baseline): neutralSeats is now the 25-map ensemble MEDIAN
+// (fairCore is the ghost/median member, so the field's meaning upgraded in
+// place) and the additive fields carry the ensemble context. v1 records in
+// stored history lack them; every reader must treat them as optional.
+export function buildDailyResult({ date, dayNumber, party, playerCore, fairCore, districtBreakdown, numDistricts, ensemble = null }) {
   return {
     date,
     dayNumber,
@@ -113,6 +120,7 @@ export function buildDailyResult({ date, dayNumber, party, playerCore, fairCore,
     numDistricts,
     seatGrid: seatGridString(districtBreakdown),
     submittedAt: new Date().toISOString(),
-    v: 1
+    ...(ensemble ? { neutralMin: ensemble.min, neutralMax: ensemble.max, ensembleN: ensemble.n } : {}),
+    v: ensemble ? 2 : 1
   };
 }

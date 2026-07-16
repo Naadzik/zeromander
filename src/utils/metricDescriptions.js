@@ -51,6 +51,6 @@ export const METRIC_DESCRIPTIONS = {
   }
 };
 
-// Shown in the Methodology section: what the "neutral map" is and is not.
+// Shown in the Methodology section: what the party-blind baseline is and is not.
 export const NEUTRAL_MAP_NOTE =
-  'The neutral map is drawn by a party-blind algorithm: it grows contiguous, population-balanced districts from spread-out seeds and never reads any party data — neutrality comes from what it cannot see, not from an added fairness target. It is one reasonable apolitical baseline (in the spirit of the ensemble methods popularized by MGGG at mggg.org), not a canonical "correct" map.';
+  'The baseline is an ensemble of 25 party-blind maps (15 on the largest boards), each grown from a fixed seed schedule by an algorithm that only sees population and geography — never party data — and filtered to the same ±10% population rule that binds you. Your score compares your seats to the ensemble MEDIAN, and the full range is shown; the map displayed is the ensemble member that matches the median. This is a deliberately small, browser-scale version of the ensemble analyses used in redistricting litigation (DeFord, Duchin & Solomon 2021; Common Cause v. Rucho). Two honest limits: 25 seed-and-grow maps are not a uniform sample of all legal plans (samplers of this family are known to be biased — Fifield et al. 2020), so we claim only "what this party-blind procedure typically draws"; and party-blind is not automatically outcome-neutral — on real maps, blind drawing systematically costs the party clustered in cities (Chen & Rodden 2013). Zeromander\'s boards are calibrated so the blind baseline treats both parties symmetrically — a property of our board model, not of blindness itself.';

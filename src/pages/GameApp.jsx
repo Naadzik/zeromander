@@ -465,8 +465,12 @@ export default function GameApp() {
     if (isDaily || config.isThreeParty) return null;
     if (!completion.gameComplete || !completion.gameStats || !fairMap.fairStats || map.boardSeed == null) return null;
     const stats = completion.gameStats;
-    const finalSeats = stats.swung?.ourSeatCount ?? stats.ourWins;
-    const stolen = finalSeats - fairMap.fairStats.ourSeatCount;
+    // The duel goal is defined on NOMINAL ("as drawn") seats for both sides:
+    // the baseline is unswung, so comparing a post-swing seat count against
+    // it made the goal depend on the sharer's election-night luck — and the
+    // recipient replays the same board with different luck. Nominal-vs-median
+    // is the same quantity for everyone.
+    const stolen = stats.ourWins - fairMap.fairStats.ourSeatCount;
     const params = new URLSearchParams({
       board: String(map.boardSeed),
       dif: config.difficulty,
@@ -568,7 +572,8 @@ export default function GameApp() {
       playerCore: { ourSeatCount: stats.ourWins, ourPopPercent: stats.allStats.ourPopPercent },
       fairCore: fairMap.fairStats,
       districtBreakdown: stats.allStats.districtBreakdown,
-      numDistricts: config.numDistricts
+      numDistricts: config.numDistricts,
+      ensemble: fairMap.fairStats.ensemble ?? null
     });
     // `districts` is a local-only extra so the locked map can be redrawn on
     // re-entry; buildDailyResult itself stays the clean backend-ready record.
