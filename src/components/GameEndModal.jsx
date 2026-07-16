@@ -138,7 +138,7 @@ export default function GameEndModal({ stats, difficulty, fairStats, daily, chal
 
               <AnatomyPanel stats={stats} />
 
-              {expanded && stats.allStats && <DetailedStats stats={stats} />}
+              {expanded && stats.allStats && <DetailedStats stats={stats} fairStats={fairStats} />}
         </div>
 
         <div className="modal-footer">

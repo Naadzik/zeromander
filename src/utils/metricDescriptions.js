@@ -1,8 +1,8 @@
 export const METRIC_DESCRIPTIONS = {
   efficiencyGap: {
     title: 'Efficiency Gap',
-    body: 'Measures partisan gerrymandering by counting "wasted votes" — votes cast for a losing candidate plus surplus votes beyond what was needed to win. The gap is the difference between the two parties\' wasted votes, divided by all votes cast (Stephanopoulos & McGhee, 2015). A lower gap means fairer representation; below ~7-8% is commonly cited as acceptable.',
-    source: 'Stephanopoulos & McGhee, "Partisan Gerrymandering and the Efficiency Gap", 82 U. Chi. L. Rev. 831 (2015)'
+    body: 'Counts each side\'s "wasted votes" — every vote for a losing candidate, plus winning votes beyond the half needed to carry the district — nets them, and divides by all votes cast (Stephanopoulos & McGhee, 2015). The sign says who the map favors; we also convert it to seats, the honest unit here. The 8%/two-seat (S&M) and 7% (Whitford plaintiffs) thresholds were proposed for real statewide legislatures — on a board this size one flipped seat moves the gap by ~10 points, and even the party-blind map can score above those lines from geography alone. So judge your gap against this board\'s party-blind map, not the statewide numbers.',
+    source: 'Stephanopoulos & McGhee, 82 U. Chi. L. Rev. 831 (2015); granularity critique per Bernstein & Duchin (2017); courts treated the gap as evidence, never a verdict (Gill v. Whitford, 2018, decided on standing; Rucho v. Common Cause, 2019, closed federal courts)'
   },
   compactness: {
     title: 'Compactness (grid-adjusted Polsby-Popper)',

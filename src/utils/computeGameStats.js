@@ -194,6 +194,11 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
       bluePopPercent: round1(shares.blue),
       redPopPercent: round1(100 - shares.blue),
       efficiencyGap: round1(gap.gap),
+      // Who the gap favors and its seat-equivalent (|signed| × districts) —
+      // the honest unit on 8–12 district boards, where one seat moves the
+      // percentage by ~10 points.
+      gapFavors: gap.favors,
+      gapSeats: round1(Math.abs(gap.gapSeats)),
       // Wasted votes are people — the model carries the exact half-vote the
       // winner's-surplus term can produce on odd district totals, the display
       // shows whole voters.

@@ -18,6 +18,7 @@
 
 import { buildDailyBoards } from '../lib/board.mjs';
 import { calculateEfficiencyGap, calculateSeats } from '../../src/utils/gameLogic.js';
+import { litigationRisk } from '../../src/utils/litigation.js';
 import { generateFairMap } from '../../src/utils/fairMapGenerator.js';
 import { fairSeedFrom } from '../../src/utils/dailyChallenge.js';
 import { createRng } from '../../src/utils/rng.js';
@@ -146,8 +147,37 @@ export function run({ assert }) {
       );
 
       if (date === '2026-07-16' && tier === 'full') neutralFullEG = got.gap;
+
+      // The recalibrated litigation contract (Spec 1A item 3): the EG factor
+      // is seat-denominated and relative to the neutral baseline, so the
+      // neutral map can never be named a lawsuit driver on its own board —
+      // under the old (gap−7)/13 percentage ramp this exact plan scored
+      // risk 0.44 on tail boards with zero gerrymandering.
+      const gauge = litigationRisk({ gapSeats: got.gapSeats, fairGapSeats: got.gapSeats, numDistricts: n });
+      assert.ok(
+        `${date} ${tier}: neutral map never trips its own EG gauge`,
+        !gauge.drivers.includes('efficiency gap beyond baseline'),
+        `|EG| ${got.gap.toFixed(2)}% (${got.gapSeats.toFixed(2)} seats), drivers: [${gauge.drivers.join(', ') || 'none'}]`
+      );
     }
   }
+
+  // Ramp shape: flags at half a stolen seat beyond baseline, saturates at two.
+  const rel = (p, f) => litigationRisk({ gapSeats: p, fairGapSeats: f, numDistricts: 10 });
+  assert.ok('EG risk 0 within half a seat of baseline; 1.0 at two beyond',
+    rel(1.6, 1.27).drivers.length === 0 &&
+    !rel(1.6, 1.27).drivers.includes('efficiency gap beyond baseline') &&
+    rel(3.27, 1.27).score >= 60,
+    `Δ0.33 seats → [${rel(1.6, 1.27).drivers.join(', ') || 'none'}]; Δ2.0 seats → score ${rel(3.27, 1.27).score}`);
+
+  // Fallback (no neutral in scope): onset sits just above the measured
+  // neutral tail (~1.3 seat-equivalents), so a sandbox mid-game gauge can't
+  // flag baseline geography as cheating.
+  const fb = (g) => litigationRisk({ gapSeats: g, numDistricts: 10 });
+  assert.ok('EG fallback: measured neutral tail (1.27 seats) does not flag',
+    !fb(1.27).drivers.includes('efficiency gap beyond baseline') &&
+    fb(2.5).drivers.includes('efficiency gap beyond baseline'),
+    `1.27 seats → [${fb(1.27).drivers.join(', ') || 'none'}]; 2.5 seats → flagged`);
 
   // ── Target 3 — the audit's headline ────────────────────────────────────
   assert.range(

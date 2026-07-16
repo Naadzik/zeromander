@@ -49,7 +49,11 @@ export default function GameStats({
   fairCompactness = null,
   // The neutral map's seat count for the player — drives the v2 target
   // ("beat the neutral map by one"); null falls back to the proportional rule.
-  fairSeats = null
+  fairSeats = null,
+  // The neutral map's efficiency gap (signed seat-equivalents + unsigned %):
+  // anchors the litigation EG factor and the tile's baseline line.
+  fairGapSeats = null,
+  fairGapPct = null
 }) {
   const ourLabel = PARTY[playerParty].label;
   const ourColor = PARTY[playerParty].cssColor;
@@ -109,7 +113,8 @@ export default function GameStats({
     const litigation = litigationRisk({
       compactness: core.compactness.average,
       fairCompactness,
-      gap: core.gap.gap,
+      gapSeats: core.gap.gapSeats,
+      fairGapSeats,
       meanMedian: core.meanMedian.valid ? core.meanMedian.mm : null,
       numDistricts,
       worstDeviationPct: dev.worstDeviationPct,
@@ -128,6 +133,11 @@ export default function GameStats({
       blueSeats: round1((core.seats.blue / numDistricts) * 100),
       popPercent: round1(core.shares.blue),
       gap: round1(core.gap.gap),
+      gapFavors: core.gap.favors,
+      gapSeatsAbs: round1(Math.abs(core.gap.gapSeats)),
+      // The same board's party-blind gap — the fair comparison; null until
+      // the neutral map is computed (daily: eagerly; sandbox: at completion).
+      fairGap: fairGapSeats != null && fairGapPct != null ? round1(fairGapPct) : null,
       // Wasted votes are people — the model carries the exact half-vote the
       // winner's-surplus term can produce on odd district totals, the display
       // shows whole voters.
@@ -144,7 +154,7 @@ export default function GameStats({
       meanMedian: core.meanMedian.valid ? round1(core.meanMedian.mm) : null,
       districtStats: core.districtStats
     };
-  }, [populationMap, districts, numDistricts, playerParty, isThreeParty, fairCompactness, fairSeats]);
+  }, [populationMap, districts, numDistricts, playerParty, isThreeParty, fairCompactness, fairSeats, fairGapSeats, fairGapPct]);
 
   const violations = useMemo(
     () => constraints ? checkConstraintViolations(populationMap, districts, numDistricts, constraints) : null,
@@ -276,6 +286,12 @@ export default function GameStats({
           <div className="stat-label">Efficiency Gap <MetricInfo metric="efficiencyGap" /></div>
           <div className="stat-value ticker-number">{stats.gap}%</div>
           <div className="gap-breakdown">
+            {stats.gapFavors !== 'none' && (
+              <div>favoring {PARTY[stats.gapFavors]?.label} · ≈{stats.gapSeatsAbs} seats</div>
+            )}
+            {stats.fairGap != null && (
+              <div>party-blind map here: {stats.fairGap}%</div>
+            )}
             <div>Blue wasted: {stats.blueWasted}</div>
             <div>Red wasted: {stats.redWasted}</div>
           </div>

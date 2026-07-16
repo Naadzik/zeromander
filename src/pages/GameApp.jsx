@@ -924,6 +924,8 @@ export default function GameApp() {
             constraints={legalConstraints.constraints}
             fairCompactness={fairMap.fairStats?.compactness?.average ?? null}
             fairSeats={fairMap.fairStats?.ourSeatCount ?? null}
+            fairGapSeats={fairMap.fairStats?.gap?.gapSeats ?? null}
+            fairGapPct={fairMap.fairStats?.gap?.gap ?? null}
           />
           </CollapsiblePanel>
         )}

@@ -97,7 +97,7 @@ export function anatomyData(stats) {
   const anatomy = !isThreeParty && stats.allStats?.districtBreakdown
     ? analyzeMap(stats.allStats.districtBreakdown, playerParty) : null;
   const gapContextLine = (!isThreeParty && stats.allStats)
-    ? efficiencyGapContext(stats.allStats.efficiencyGap) : null;
+    ? efficiencyGapContext(stats.allStats.efficiencyGap, stats.totalDistricts) : null;
   const votePct = stats.allStats?.ourPopPercent;
   const seatPct = stats.ourSeats;
   const seatBonus = (votePct != null && seatPct != null) ? Math.round(seatPct - votePct) : null;
@@ -374,9 +374,15 @@ export function DistrictBreakdownBars({ stats }) {
   );
 }
 
-export function DetailedStats({ stats }) {
+// `fairStats`: the neutral map's core stats when computed — anchors the gap
+// to the same board's party-blind baseline (the honest comparison; statewide
+// thresholds mislead at this district count).
+export function DetailedStats({ stats, fairStats = null }) {
   const isThreeParty = !!stats.isThreeParty;
   const { gapContextLine } = anatomyData(stats);
+  const favors = stats.allStats?.gapFavors;
+  const favorsLabel = favors && favors !== 'none' ? PARTY[favors]?.label : null;
+  const fairGapPct = fairStats?.gap ? Math.round(fairStats.gap.gap * 10) / 10 : null;
   return (
     <div className="detailed-stats">
       <h3>Detailed Statistics</h3>
@@ -402,8 +408,18 @@ export function DetailedStats({ stats }) {
           <h4>Efficiency Gap</h4>
           <div className="stat-line">
             <span>Gap:</span>
-            <strong>{stats.allStats.efficiencyGap}%</strong>
+            <strong>
+              {stats.allStats.efficiencyGap}%
+              {favorsLabel ? ` favoring ${favorsLabel}` : ''}
+              {stats.allStats.gapSeats != null ? ` (≈${stats.allStats.gapSeats} seats)` : ''}
+            </strong>
           </div>
+          {fairGapPct != null && (
+            <div className="stat-line">
+              <span>Party-blind map on this board:</span>
+              <strong>{fairGapPct}%</strong>
+            </div>
+          )}
           <div className="stat-line">
             <span><PartyIcon party="blue" /> Urban Union Wasted Votes:</span>
             <strong>{stats.allStats.blueWasted}</strong>

@@ -51,14 +51,32 @@ function mmThresholdsFor(numDistricts) {
   return MM_THRESHOLDS[nearest];
 }
 
+// Efficiency-gap risk in SEAT units, relative to the party-blind map when one
+// is in scope: risk 0 within half a seat-equivalent of the neutral baseline,
+// 1.0 at two beyond it (mirroring S&M's two-seat congressional standard).
+// Percentage ramps fail at this district count — one flipped seat moves the
+// gap ~10 points, and the game's own neutral baselines measure up to ~1.3
+// seat-equivalents (12.7% on a real daily) with zero gerrymandering, which
+// the old (gap−7)/13 ramp flagged as a lawsuit driver. The absolute fallback
+// (no neutral in scope: sandbox mid-game) therefore has its onset just above
+// that measured neutral tail.
+function efficiencyGapRisk(gapSeats, fairGapSeats) {
+  if (gapSeats == null) return 0;
+  if (fairGapSeats != null) {
+    return clamp01((Math.abs(gapSeats - fairGapSeats) - 0.5) / 1.5);
+  }
+  return clamp01((Math.abs(gapSeats) - 1.3) / 1.2);
+}
+
 // `meanMedian` is the signed mean–median difference in pp (null when not yet
 // defined — undrawn or all-grey districts); direction doesn't matter to a
-// court, so the ramp reads |MM|.
-export function litigationRisk({ compactness = null, fairCompactness = null, gap = 0, meanMedian = null, numDistricts = 10, worstDeviationPct = 0, communityDilution = null } = {}) {
+// court, so the ramp reads |MM|. `gapSeats`/`fairGapSeats` are SIGNED
+// seat-equivalents (calculateEfficiencyGap().gapSeats) for player and neutral.
+export function litigationRisk({ compactness = null, fairCompactness = null, gapSeats = null, fairGapSeats = null, meanMedian = null, numDistricts = 10, worstDeviationPct = 0, communityDilution = null } = {}) {
   const { amber, red } = mmThresholdsFor(numDistricts);
   const factors = [
     { label: 'contorted districts', risk: compactnessRisk(compactness, fairCompactness), weight: 0.25 },
-    { label: 'large efficiency gap', risk: clamp01((gap - 7) / 13), weight: 0.30 },
+    { label: 'efficiency gap beyond baseline', risk: efficiencyGapRisk(gapSeats, fairGapSeats), weight: 0.30 },
     // Replaced 'seats far from votes' (disproportionality): winner-take-all
     // produces seats≠votes on perfectly fair maps, so it was flagging normal
     // FPTP behavior. District-distribution skew is the symmetry-family signal
