@@ -64,11 +64,28 @@ this. **Frozen (do not casually change):**
   (Warm-up) tier. History schema `{date: {small?, full?}}` is additive-only.
 
 **Determinism protocol (run before AND after touching any generator file):**
-capture today's board hash in Node — build the config from `getDailyChallenge()`,
-seed with `createRng(seed)`, generate, and `sha256` the JSON — then assert it's
-byte-identical afterward. Reference hashes for the 2026-07-08 board:
-`SMALL 6a58c8fb70c7cdbc32e8cfd070d976c8c71bd01aa165e8206164480cede874d5`,
-`FULL 253ba49aec76db12dc35b9f097f2512dc2fd36bbe1ff9871c81205eee2543b84`.
+`npm run check:determinism`. It rebuilds frozen reference boards and fails if a
+byte moved; CI runs it on every push and it gates the deploy, so a board-rerolling
+change cannot reach the live site. Anchors live in `scripts/determinism-refs.json`
+(both tiers, both assigned parties, several seeds), and each board carries two
+hashes: `pop` = `sha256(populationMap)` — the documented protocol hash, still
+`SMALL 6a58c8fb70c7cdbc32e8cfd070d976c8c71bd01aa165e8206164480cede874d5` /
+`FULL 253ba49aec76db12dc35b9f097f2512dc2fd36bbe1ff9871c81205eee2543b84` for
+2026-07-08 — and `full` = `sha256({pop, counties})`, which also covers the county
+layer (counties draw from the same rng stream but *after* the population map, so
+a `countyGenerator.js` change re-rolls everyone's counties while leaving `pop`
+green — `full` is what catches that).
+
+A failure is never fixed by updating a hash: that silently redefines a board
+players have already seen. Either revert, or — if the change is intended —
+version-gate it as a new era (the `LAUNCH_UTC` pattern), keep the old era
+generating the old boards, and add the new era's anchors *alongside* the old.
+`--update` exists for opening an era, not for making CI green.
+
+**Model calibration:** `npm run check:models` asserts each model spec's
+calibration targets (`scripts/models/*.check.mjs`, auto-discovered). Per the
+MODEL-SPECS appendix, a target is renegotiated in the spec document first, never
+silently in code.
 
 **New optional generator features must consume ZERO rng draws when disabled**
 (see the hard `greyPercentage > 0` / `communityPercentage > 0` guards in

@@ -1,0 +1,32 @@
+name: Checks
+
+# Runs on every branch and PR so a determinism break surfaces where it is cheap
+# to fix — at push time, on the branch — rather than at deploy time on main.
+# deploy.yml runs the same checks again as a hard gate before publishing.
+on:
+  push:
+    branches-ignore: [gh-pages]
+  pull_request:
+
+jobs:
+  check:
+    name: Determinism & model calibration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Rebuilds known past boards and fails if a single byte moved. See
+      # scripts/check-determinism.mjs for what a failure means (short version:
+      # a board players have already seen just changed).
+      - name: Determinism guard
+        run: npm run check:determinism -- --today
+
+      # Asserts each model spec's calibration targets (MODEL-SPECS appendix).
+      - name: Model calibration
+        run: npm run check:models

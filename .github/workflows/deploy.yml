@@ -5,7 +5,24 @@ on:
     branches: [main]
 
 jobs:
+  # The gate: a change that re-rolls a past board or breaks a calibrated model
+  # target must not reach the live site. `build` needs this, so a failure here
+  # stops the deploy rather than shipping a broken daily to every player.
+  check:
+    name: Determinism & model calibration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run check
+
   build:
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
