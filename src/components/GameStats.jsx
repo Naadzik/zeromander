@@ -113,8 +113,11 @@ export default function GameStats({
       blueSeats: round1((core.seats.blue / numDistricts) * 100),
       popPercent: round1(core.shares.blue),
       gap: round1(core.gap.gap),
-      blueWasted: core.gap.blueWasted,
-      redWasted: core.gap.redWasted,
+      // Wasted votes are people — the model carries the exact half-vote the
+      // winner's-surplus term can produce on odd district totals, the display
+      // shows whole voters.
+      blueWasted: Math.round(core.gap.blueWasted),
+      redWasted: Math.round(core.gap.redWasted),
       competitiveness: round1(core.competitiveness.percentage),
       competitiveCount: core.competitiveness.competitive,
       totalDistricts: core.competitiveness.total,

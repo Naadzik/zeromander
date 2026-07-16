@@ -105,6 +105,21 @@ export function getPopulationShares(populationMap) {
   };
 }
 
+// Efficiency gap (Stephanopoulos & McGhee 2015): each side's wasted votes —
+// every vote in a district it lost, plus every winning vote beyond the half
+// needed to carry the district — netted and divided by all votes cast. Packing
+// and cracking both surface as one party wasting votes faster than the other.
+//
+// Returned SIGNED, and in seat-equivalents, because the bare percentage
+// misleads at this scale: the 7–8% lines in circulation were proposed for
+// ~99-seat legislatures, while one flipped seat moves the gap by ~10 points on
+// a 10-district board. `gapSeats` is the honest unit here, and the fair
+// comparison is this board's own party-blind baseline, not a statewide
+// threshold. (EG = 0 is not proportionality either — it is a slope-2
+// winner's-bonus standard, so even a fair map of a lopsided state scores well
+// above zero.)
+//
+// Pure: no rng draws, tallies only — safe on the frozen daily path.
 export function calculateEfficiencyGap(populationMap, districts, numDistricts) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
 
@@ -114,22 +129,42 @@ export function calculateEfficiencyGap(populationMap, districts, numDistricts) {
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
     const { blue: blueVotes, red: redVotes } = getDistrictVotes(partyMap, densityMap, districts, districtId);
     const total = blueVotes + redVotes;
+    // An undrawn district (or an all-grey one) has no votes and no winner —
+    // it contributes nothing rather than falling into the tie-break below.
+    if (total === 0) continue;
     totalCast += total;
+    // Winner's surplus is measured against EXACTLY half the district, not
+    // ceil(half). The half-vote this concedes on odd totals is what makes the
+    // identity to the shortcut form — EG = (S−½) − 2(V−½) — exact under equal
+    // turnout; ceil() left a systematic residue. Ties go red, mirroring
+    // calculateSeats (a tied district's red votes are exactly total/2, so red
+    // wastes nothing there).
     if (blueVotes > redVotes) {
-      blueWasted += Math.max(0, blueVotes - Math.ceil(total / 2));
+      blueWasted += Math.max(0, blueVotes - total / 2);
       redWasted += redVotes;
     } else {
       blueWasted += blueVotes;
-      redWasted += Math.max(0, redVotes - Math.ceil(total / 2));
+      redWasted += Math.max(0, redVotes - total / 2);
     }
   }
 
-  // Stephanopoulos–McGhee: net wasted votes over total votes CAST (not total
-  // wasted) — the canonical denominator, so figures are comparable to
-  // published efficiency gaps.
-  const gap = totalCast > 0 ? Math.abs(blueWasted - redWasted) / totalCast * 100 : 0;
+  // Net wasted votes over total votes CAST (not total wasted) — the canonical
+  // denominator, so figures stay comparable to published efficiency gaps. The
+  // full wasted-votes form is deliberate: the shortcut assumes equal district
+  // turnout, which these boards violate by design (measured divergence ~1pp).
+  //
+  // Sign: net > 0 means blue wasted more, i.e. the map favors red.
+  // The guard matters — a blank board is a live render state, not an error.
+  const net = totalCast > 0 ? (blueWasted - redWasted) / totalCast : 0;
 
-  return { blueWasted, redWasted, gap };
+  return {
+    blueWasted,
+    redWasted,
+    gap: Math.abs(net) * 100,              // unsigned percent — the existing display unit
+    signed: net * 100,                     // + favors red, − favors blue
+    favors: net > 0 ? 'red' : net < 0 ? 'blue' : 'none',
+    gapSeats: net * numDistricts           // signed seat-equivalents
+  };
 }
 
 export function checkWin(populationMap, districts, numDistricts, opts) {

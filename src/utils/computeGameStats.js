@@ -165,8 +165,11 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
       bluePopPercent: round1(shares.blue),
       redPopPercent: round1(100 - shares.blue),
       efficiencyGap: round1(gap.gap),
-      blueWasted: gap.blueWasted,
-      redWasted: gap.redWasted,
+      // Wasted votes are people — the model carries the exact half-vote the
+      // winner's-surplus term can produce on odd district totals, the display
+      // shows whole voters.
+      blueWasted: Math.round(gap.blueWasted),
+      redWasted: Math.round(gap.redWasted),
       compactness: Math.round(compactness.average * 100),
       competitiveness: round1(competitiveness.percentage),
       competitiveCount: competitiveness.competitive,
