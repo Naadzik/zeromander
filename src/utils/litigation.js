@@ -27,11 +27,43 @@ function compactnessRisk(compactness, fairCompactness) {
   return clamp01((0.35 - compactness) / 0.20);
 }
 
-export function litigationRisk({ compactness = null, fairCompactness = null, gap = 0, asymmetry = 0, worstDeviationPct = 0, communityDilution = null } = {}) {
+// Mean–median flag thresholds: the 95th ("amber") and 99th ("red") percentiles
+// of |MM| across 220 of this game's OWN party-blind neutral maps per board
+// size (scripts/calibrate-mm.mjs, run 2026-07-17, v1-era generator, splits
+// swept over the daily's 38–48% band; re-run at the Spec 5 era change).
+// Literature-scale thresholds do not transfer here: neutral maps on this
+// game's deliberately clustered geography carry mean |MM| ≈ 5.5pp with p95
+// ≈ 14pp — the urban party self-packs in cities (Chen & Rodden's
+// "unintentional gerrymandering"), so only a skew beyond what party-blind
+// drawing produces is evidence of intent. Keyed by district count; boards
+// between configs use the nearest (sandbox's 40-district extreme reads the
+// 12-district constants — coarse, disclosed).
+const MM_THRESHOLDS = {
+  8: { amber: 13.72, red: 18.45 },
+  10: { amber: 14.23, red: 20.43 },
+  12: { amber: 15.44, red: 17.35 },
+};
+
+function mmThresholdsFor(numDistricts) {
+  const keys = Object.keys(MM_THRESHOLDS).map(Number);
+  const nearest = keys.reduce((best, k) =>
+    Math.abs(k - numDistricts) < Math.abs(best - numDistricts) ? k : best, keys[0]);
+  return MM_THRESHOLDS[nearest];
+}
+
+// `meanMedian` is the signed mean–median difference in pp (null when not yet
+// defined — undrawn or all-grey districts); direction doesn't matter to a
+// court, so the ramp reads |MM|.
+export function litigationRisk({ compactness = null, fairCompactness = null, gap = 0, meanMedian = null, numDistricts = 10, worstDeviationPct = 0, communityDilution = null } = {}) {
+  const { amber, red } = mmThresholdsFor(numDistricts);
   const factors = [
     { label: 'contorted districts', risk: compactnessRisk(compactness, fairCompactness), weight: 0.25 },
     { label: 'large efficiency gap', risk: clamp01((gap - 7) / 13), weight: 0.30 },
-    { label: 'seats far from votes', risk: clamp01((asymmetry - 10) / 25), weight: 0.20 },
+    // Replaced 'seats far from votes' (disproportionality): winner-take-all
+    // produces seats≠votes on perfectly fair maps, so it was flagging normal
+    // FPTP behavior. District-distribution skew is the symmetry-family signal
+    // courts' experts actually compute (McDonald & Best 2015).
+    { label: 'skewed district distribution', risk: meanMedian == null ? 0 : clamp01((Math.abs(meanMedian) - amber) / (red - amber)), weight: 0.20 },
     { label: 'unequal populations', risk: clamp01((worstDeviationPct - 8) / 12), weight: 0.15 },
   ];
   if (communityDilution != null) {

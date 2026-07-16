@@ -42,7 +42,15 @@ function areAllDistrictsValid(populationMap, districts, numDistricts) {
 // `manual: true` (daily challenge) suppresses auto-completion: the hook only
 // tracks `isMapValid` so the player can keep optimizing, and the caller
 // decides when to `finalize()` — the one-shot "lock in heist" moment.
-export function useGameCompletion({ populationMap, districts, numDistricts, playerParty, difficulty, targetSeatPercentage, constraints, electionUncertainty, manual = false }) {
+// `fairSeatsRef`: ref holding the neutral map's seat count for the player,
+// when in scope — the v2 target is "beat the neutral map by one". A REF, not a
+// value, because the fair map hook sits below this one in GameApp (its
+// `enabled` reads gameComplete from here — circular as plain props). Read at
+// compute time: the daily computes its baseline eagerly so the ref is set
+// before finalize(); the sandbox only computes it after completion, so frozen
+// stats there use the proportional fallback (spec'd behavior, not an
+// accident). Same ref-mirror pattern as useMapState's addUnclaimedOnlyRef.
+export function useGameCompletion({ populationMap, districts, numDistricts, playerParty, difficulty, targetSeatPercentage, constraints, electionUncertainty, manual = false, fairSeatsRef = null }) {
   const [gameComplete, setGameComplete] = useState(false);
   const [gameStats, setGameStats] = useState(null);
   const [isMapValid, setIsMapValid] = useState(false);
@@ -92,7 +100,10 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
       };
     }
 
-    const stats = buildEndGameStats(core, { playerParty, isThreeParty, numDistricts, constraintViolations, swing });
+    const stats = buildEndGameStats(core, {
+      playerParty, isThreeParty, numDistricts, constraintViolations, swing,
+      fairSeats: fairSeatsRef?.current ?? null
+    });
     return { stats, revealed: hasGrey ? revealed : null, clusters };
   }
 

@@ -126,6 +126,13 @@ export function calculateCutEdges(districts, counties) {
   return { cut, adjacentPairs };
 }
 
+// A district is competitive when the winner's two-party share ≤ 55% (margin
+// ≤ 10 points) — the Cook Political Report swing-seat band (PVI D+5 to R+5,
+// per the 2023 release) and the marginal-seats tradition (Mayhew 1974). Real
+// indices normalize to a national baseline over two elections; a fictional
+// board has no nation, so the raw single-election share is the direct analog.
+// Grey (undecided) population is excluded — its uncertainty is the TOSSUP
+// indicator, a different concept.
 export function calculateCompetitiveness(populationMap, districts, numDistricts) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
 
@@ -149,6 +156,87 @@ export function calculateCompetitiveness(populationMap, districts, numDistricts)
   };
 }
 
+// Per-district blue two-party shares, the shared input of the symmetry family
+// below. `valid` is false if ANY of the N districts has zero two-party votes —
+// an undrawn district mid-game, or an all-grey district. The symmetry metrics
+// report "n/a" then rather than guessing (per spec: never guess).
+function districtTwoPartyShares(populationMap, districts, numDistricts) {
+  const { partyMap, densityMap } = extractPopulationData(populationMap);
+  const shares = [];
+  let blueTotal = 0, allTotal = 0;
+  for (let districtId = 1; districtId <= numDistricts; districtId++) {
+    const { blue, red } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    const total = blue + red;
+    if (total === 0) return { valid: false, shares: [], overallBlue: 0 };
+    shares.push(blue / total);
+    blueTotal += blue;
+    allTotal += total;
+  }
+  return { valid: true, shares, overallBlue: blueTotal / allTotal };
+}
+
+// Mean–median difference (McDonald & Best 2015) — the headline symmetry-family
+// diagnostic: the party's MEDIAN district two-party share minus its MEAN
+// district share (simple mean of district shares, per the paper — not the
+// population-weighted overall share). Positive = the map is skewed FOR the
+// player: they reach half the seats with less than their average vote share,
+// i.e. the opponent's voters are packed. Detects skew of the district
+// DISTRIBUTION — a different concept from disproportionality (seats − votes),
+// which winner-take-all inflates even on fair maps.
+//
+// Small-N caveat, owned rather than hidden: on 8–12 district boards |MM| is
+// noisy, so the amber/red flags in litigation.js are calibrated to the 95th /
+// 99th percentiles of |MM| across this game's OWN party-blind maps (see
+// MM_THRESHOLDS there), not to congressional-scale values from the literature.
+export function calculateMeanMedian(populationMap, districts, numDistricts, playerParty) {
+  const { valid, shares } = districtTwoPartyShares(populationMap, districts, numDistricts);
+  if (!valid) return { mm: null, valid: false };
+
+  const oriented = playerParty === 'red' ? shares.map(v => 1 - v) : shares;
+  const sorted = [...oriented].sort((a, b) => a - b);
+  const n = sorted.length;
+  const median = n % 2 === 1 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+  const mean = oriented.reduce((s, v) => s + v, 0) / n;
+
+  return { mm: (median - mean) * 100, valid: true };
+}
+
+// Partisan bias at 50% (Gelman & King 1994, as operationalized by PlanScore):
+// shift every district's two-party share uniformly until the overall vote is
+// tied, then count the player's seats. Reported in SEATS ("in a tied election
+// you'd win 7/12"), never as a smooth percentage — with N ≤ 12 the measure
+// quantizes in steps of 1/N and a percentage would be false precision. An
+// exactly tied shifted district counts half a seat for each side, keeping the
+// metric antisymmetric between the parties. Relies on the uniform-swing
+// assumption; same validity rule as the mean–median.
+export function calculateBias50(populationMap, districts, numDistricts, playerParty) {
+  const { valid, shares, overallBlue } = districtTwoPartyShares(populationMap, districts, numDistricts);
+  if (!valid) return { seats50: null, biasPct: null, valid: false };
+
+  const shift = 0.5 - overallBlue;
+  let blueWins = 0;
+  for (const v of shares) {
+    const shifted = v + shift;
+    if (shifted > 0.5) blueWins += 1;
+    else if (shifted === 0.5) blueWins += 0.5;
+  }
+  const seats50 = playerParty === 'red' ? numDistricts - blueWins : blueWins;
+
+  return { seats50, biasPct: (seats50 / numDistricts - 0.5) * 100, valid: true };
+}
+
+// Disproportionality: |seat share − vote share|, the two-party reduction of
+// the Loosemore–Hanby (1971) / Gallagher (1991) indices. RENAMED from
+// "Partisan Asymmetry" — that name belongs to a different concept (the
+// Gelman–King symmetry standard; see calculateMeanMedian and calculateBias50
+// for true symmetry-family diagnostics). Descriptive, not a verdict:
+// winner-take-all systems hand the leading party a seat bonus as a matter of
+// course (the cube-law tradition, Kendall & Stuart 1950; Tufte 1973), and
+// U.S. courts expressly reject proportionality as an entitlement (Davis v.
+// Bandemer 1986; Rucho 2019) — drift alone isn't cheating.
+//
+// The function name and `asymmetry` field are kept for consumer compatibility;
+// display layers say "Disproportionality".
 export function calculatePartisanAsymmetry(populationMap, districts, numDistricts) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
 
@@ -170,10 +258,11 @@ export function calculatePartisanAsymmetry(populationMap, districts, numDistrict
   }
 
   const blueSeatPercent = (blueSeats / numDistricts) * 100;
-  const asymmetry = Math.abs(blueSeatPercent - blueVotePercent);
+  const signedBlue = blueSeatPercent - blueVotePercent; // + = blue over-rewarded
 
   return {
-    asymmetry: Math.round(asymmetry * 100) / 100,
+    asymmetry: Math.round(Math.abs(signedBlue) * 100) / 100,
+    signedBlue: Math.round(signedBlue * 100) / 100,
     blueVotePercent: Math.round(blueVotePercent * 100) / 100,
     blueSeatPercent: Math.round(blueSeatPercent * 100) / 100
   };

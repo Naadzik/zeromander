@@ -11,13 +11,23 @@ export const METRIC_DESCRIPTIONS = {
   },
   competitiveness: {
     title: 'Competitiveness',
-    body: 'The share of districts where the winning party has between 45% and 55% of the votes. Higher means closer elections; lower means districts are "safe" for one side.',
-    source: 'Game heuristic — the 45–55% band is a common working definition of a competitive district, not a single canonical academic measure'
+    body: 'The share of districts where the winner has 55% of the two-party vote or less (a margin within 10 points) — close enough that a normal election-to-election swing could flip them. Competitive districts are what make seats respond to voters at all; a map of safe seats has already decided the election.',
+    source: 'Matches the Cook Political Report swing-seat band (PVI D+5 to R+5, 2023) and the marginal-seats tradition (Mayhew, 1974); responsiveness framing per Gelman & King (1994)'
   },
   asymmetry: {
-    title: 'Partisan Asymmetry',
-    body: 'The absolute difference between a party\'s seat share and its vote share (|seats% − votes%|). Lower means more proportional representation.',
-    source: 'Simplified seats–votes disproportionality; the formal partisan-symmetry standard is Gelman & King (1994)'
+    title: 'Disproportionality',
+    body: 'How far your seat share drifts from your vote share (|seats% − votes%|). Important: winner-take-all elections normally hand the bigger party a seat bonus — drift alone isn\'t cheating, which is why this number is descriptive, not a verdict. For a metric that detects deliberate skew, see Mean–Median.',
+    source: 'Two-party reduction of the Loosemore–Hanby (1971) / Gallagher (1991) disproportionality indices; courts reject proportionality as an entitlement (Davis v. Bandemer, 1986; Rucho v. Common Cause, 2019)'
+  },
+  meanMedian: {
+    title: 'Mean–Median Difference',
+    body: 'Line your districts up from worst to best for your party: if your middle district is stronger than your average district, the map leans your way — the other side\'s voters are packed. Positive = skewed for you. Shown once every district has votes. On boards this size the number is naturally noisy, so the litigation gauge only flags a skew bigger than what 95% of party-blind maps produce on this game\'s own geography.',
+    source: 'McDonald & Best, "Unfair Partisan Gerrymanders in Politics and Law" (2015); small-N and near-50/50 caveats per Katz, King & Rosenblatt (2020)'
+  },
+  bias50: {
+    title: 'Partisan Bias at 50%',
+    body: 'Pretend the election ended exactly 50–50: shift every district by the same amount until the overall vote is tied, then count who wins. Whoever still takes most districts has the map on their side. Reported in seats, not a percentage — with this few districts a smooth number would be false precision.',
+    source: 'Gelman & King (1994), as operationalized by PlanScore; relies on the uniform-swing assumption'
   },
   undecided: {
     title: 'Undecided Voters',
@@ -31,8 +41,8 @@ export const METRIC_DESCRIPTIONS = {
   },
   litigationRisk: {
     title: 'Litigation Risk',
-    body: 'A 0–100 estimate of how likely this map is to draw a court challenge, blending the signals lawsuits actually cite: contorted districts (low compactness), a large partisan efficiency gap, seats far from vote share, unequal district populations, and — when present — dilution of a protected community. It is a gauge, not a verdict — the game does not yet strike maps down.',
-    source: 'Composite of the metrics above; thresholds echo the ~7% efficiency-gap flag (Stephanopoulos & McGhee) and the ±10% population rule (Reynolds v. Sims)'
+    body: 'A 0–100 estimate of how likely this map is to draw a court challenge, blending the signals lawsuits actually cite: contorted districts (compactness well below what a party-blind map achieves on this board), a large partisan efficiency gap, a skewed district distribution (mean–median beyond what party-blind maps produce), unequal district populations, and — when present — dilution of a protected community. It is a gauge, not a verdict — the game does not yet strike maps down.',
+    source: 'Composite of the metrics above; shape and skew thresholds are calibrated against this game\'s own party-blind maps, the efficiency-gap flag echoes ~7% (Whitford plaintiffs), population echoes the ±10% rule (Reynolds v. Sims)'
   },
   communityRepresentation: {
     title: 'Community Representation',

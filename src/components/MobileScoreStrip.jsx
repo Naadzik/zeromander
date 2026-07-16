@@ -13,6 +13,9 @@ import '../styles/MobileScoreStrip.css'
 export default function MobileScoreStrip({
   populationMap, districts, numDistricts, currentDistrict,
   playerParty, isThreeParty, onExpand, variant = 'dashboard',
+  // Neutral map's player seats (v2 target = beat it by one); null → fallback.
+  // Must match GameStats' target or the strip and the rail disagree.
+  fairSeats = null,
 }) {
   const data = useMemo(() => {
     if (!populationMap?.party && !populationMap?.length) return null;
@@ -32,7 +35,7 @@ export default function MobileScoreStrip({
       const ourSafe = classified.filter(r => r.status === playerParty).length;
       tossups = classified.filter(r => r.status === 'tossup').length;
       const greyShare = core.shares.grey ?? 0;
-      target = targetSeatCount((core.shares[playerParty] ?? 0) * (1 - greyShare / 100), numDistricts);
+      target = targetSeatCount((core.shares[playerParty] ?? 0) * (1 - greyShare / 100), numDistricts, fairSeats);
       seatLabel = `${ourSafe}/${numDistricts}`;
     }
 
@@ -55,7 +58,7 @@ export default function MobileScoreStrip({
       if (pops[id] > 0 && (pops[id] < lo || pops[id] > hi)) outOfBounds++;
 
     return { seatLabel, tossups, target, pop, parity, d, outOfBounds, allDrawn: pops.slice(1).every(p => p > 0) };
-  }, [populationMap, districts, numDistricts, currentDistrict, playerParty, isThreeParty]);
+  }, [populationMap, districts, numDistricts, currentDistrict, playerParty, isThreeParty, fairSeats]);
 
   if (!data) return null;
   const p = PARTY[playerParty];

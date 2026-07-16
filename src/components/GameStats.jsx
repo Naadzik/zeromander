@@ -46,7 +46,10 @@ export default function GameStats({
   // (the daily computes it eagerly; sandbox only at completion). Anchors the
   // litigation gauge's shape factor to THIS board's achievable compactness
   // instead of a fixed threshold.
-  fairCompactness = null
+  fairCompactness = null,
+  // The neutral map's seat count for the player — drives the v2 target
+  // ("beat the neutral map by one"); null falls back to the proportional rule.
+  fairSeats = null
 }) {
   const ourLabel = PARTY[playerParty].label;
   const ourColor = PARTY[playerParty].cssColor;
@@ -73,7 +76,10 @@ export default function GameStats({
       // null until a first district is drawn — a blank board has no shape to
       // score, and the tile shows "—" instead of a fake 0%.
       compactness: core.compactness.average == null ? null : Math.round(core.compactness.average * 100),
-      targetSeats: targetSeatCount(electorateShare, numDistricts),
+      targetSeats: targetSeatCount(electorateShare, numDistricts, fairSeats),
+      // Which rule set the target — drives the caption under the seat bar.
+      targetFromNeutral: fairSeats != null,
+      fairSeats,
       districtStats: core.districtStats
     };
 
@@ -104,7 +110,8 @@ export default function GameStats({
       compactness: core.compactness.average,
       fairCompactness,
       gap: core.gap.gap,
-      asymmetry: core.asymmetry.asymmetry,
+      meanMedian: core.meanMedian.valid ? core.meanMedian.mm : null,
+      numDistricts,
       worstDeviationPct: dev.worstDeviationPct,
       communityDilution: community ? community.dilution : null
     });
@@ -132,9 +139,12 @@ export default function GameStats({
       asymmetry: round1(core.asymmetry.asymmetry),
       asymmetryBlueVote: core.asymmetry.blueVotePercent,
       asymmetryBlueSeat: core.asymmetry.blueSeatPercent,
+      // Signed pp toward the player; null (shown "—") until every district
+      // has two-party votes — the metric never guesses from a partial map.
+      meanMedian: core.meanMedian.valid ? round1(core.meanMedian.mm) : null,
       districtStats: core.districtStats
     };
-  }, [populationMap, districts, numDistricts, playerParty, isThreeParty, fairCompactness]);
+  }, [populationMap, districts, numDistricts, playerParty, isThreeParty, fairCompactness, fairSeats]);
 
   const violations = useMemo(
     () => constraints ? checkConstraintViolations(populationMap, districts, numDistricts, constraints) : null,
@@ -196,7 +206,12 @@ export default function GameStats({
           target={stats.targetSeats}
         />
         <div className="target-label">
-          Target: {stats.targetSeats}/{numDistricts} seats <span className="target-hint">(+1 vs. your {stats.ourPopPercent}% vote share)</span>
+          Target: {stats.targetSeats}/{numDistricts} seats{' '}
+          <span className="target-hint">
+            {stats.targetFromNeutral
+              ? `(a party-blind map wins ${stats.fairSeats} — beat it by one)`
+              : `(+1 vs. your ${stats.ourPopPercent}% vote share)`}
+          </span>
         </div>
         {!isThreeParty && stats.greyShare > 0 && (
           <div className="target-label">
@@ -288,9 +303,19 @@ export default function GameStats({
 
         {!isThreeParty && (
           <div className="metric-card">
-            <div className="metric-label">Partisan Asymmetry <MetricInfo metric="asymmetry" /></div>
+            <div className="metric-label">Disproportionality <MetricInfo metric="asymmetry" /></div>
             <div className="metric-value">{stats.asymmetry}%</div>
-            <div className="metric-desc">|seats% - votes%|</div>
+            <div className="metric-desc">|seats% − votes%| — a seat bonus is normal</div>
+          </div>
+        )}
+
+        {!isThreeParty && (
+          <div className="metric-card">
+            <div className="metric-label">Mean–Median <MetricInfo metric="meanMedian" /></div>
+            <div className="metric-value">
+              {stats.meanMedian == null ? '—' : `${stats.meanMedian > 0 ? '+' : ''}${stats.meanMedian}pp`}
+            </div>
+            <div className="metric-desc">middle vs. average district — + leans your way</div>
           </div>
         )}
 

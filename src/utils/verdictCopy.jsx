@@ -433,9 +433,21 @@ export function DetailedStats({ stats }) {
               <strong>{stats.allStats.competitiveCount}/{stats.totalDistricts}</strong>
             </div>
             <div className="stat-line">
-              <span>Partisan Asymmetry:</span>
+              <span>Disproportionality:</span>
               <strong>{stats.allStats.asymmetry}%</strong>
             </div>
+            {stats.allStats.meanMedian != null && (
+              <div className="stat-line">
+                <span>Mean–median (+ = your way):</span>
+                <strong>{stats.allStats.meanMedian > 0 ? '+' : ''}{stats.allStats.meanMedian}pp</strong>
+              </div>
+            )}
+            {stats.allStats.bias50Seats != null && (
+              <div className="stat-line">
+                <span>Seats in a tied election:</span>
+                <strong>{stats.allStats.bias50Seats}/{stats.totalDistricts}</strong>
+              </div>
+            )}
           </>
         )}
       </div>

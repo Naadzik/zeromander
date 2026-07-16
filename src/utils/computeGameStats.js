@@ -12,19 +12,33 @@ import {
   calculateCompactness,
   calculateCompetitiveness,
   calculatePartisanAsymmetry,
+  calculateMeanMedian,
+  calculateBias50,
   calculateCutEdges
 } from './metrics.js';
 
 export const round1 = v => Math.round(v * 10) / 10;
 
-// The gerrymandering goal: the FEWEST seats whose share strictly exceeds your
+// The gerrymandering goal, v2: ONE SEAT ABOVE what the party-blind neutral
+// map gives you on this exact board — the seat you stole with the pen. This is
+// the single-map version of the ensemble-baseline standard (Chen & Rodden
+// 2013; Chikina, Frieze & Pegden 2017): fairness judged against neutral
+// line-drawing on THIS geography, deliberately NOT against proportionality,
+// which single-member plurality does not promise (winner's bonus; Rucho 2019).
+// The neutral map is seed-pinned via fairSeedFrom, so the target is
+// byte-stable per board and comparable across players.
+//
+// Fallback (fairSeats == null — no neutral map in scope yet, e.g. sandbox
+// mid-game): the v1 rule, the FEWEST seats whose share strictly exceeds your
 // vote share. floor(share × districts) + 1 is the smallest integer greater
-// than your proportional entitlement, so this is exactly the classic
-// "seat% > vote%" win condition, just surfaced as a concrete seat count.
-// (Using round() instead demands +1 over the *rounded* share, which can be
-// unachievable — e.g. 20% across 4 districts cannot win 2 seats.)
-// Capped at the number of districts. Two-party framing.
-export function targetSeatCount(ourPopPercent, numDistricts) {
+// than your proportional entitlement — the classic "seat% > vote%" win
+// condition as a concrete count. (round() instead would demand +1 over the
+// *rounded* share, which can be unachievable — 20% across 4 districts cannot
+// win 2 seats.) Capped at the number of districts.
+export function targetSeatCount(ourPopPercent, numDistricts, fairSeats = null) {
+  if (fairSeats != null) {
+    return Math.min(numDistricts, fairSeats + 1);
+  }
   const proportional = Math.floor((ourPopPercent / 100) * numDistricts);
   return Math.min(numDistricts, proportional + 1);
 }
@@ -64,6 +78,9 @@ export function computeCoreStats(populationMap, districts, numDistricts, playerP
     core.gap = calculateEfficiencyGap(populationMap, districts, numDistricts);
     core.competitiveness = calculateCompetitiveness(populationMap, districts, numDistricts);
     core.asymmetry = calculatePartisanAsymmetry(populationMap, districts, numDistricts);
+    // Symmetry family (player-oriented, 'n/a' until every district has votes)
+    core.meanMedian = calculateMeanMedian(populationMap, districts, numDistricts, playerParty);
+    core.bias50 = calculateBias50(populationMap, districts, numDistricts, playerParty);
   }
 
   // Party-free, so computed for every mode. Only when the caller has the
@@ -84,15 +101,17 @@ function getStrikeDown(constraintViolations) {
 }
 
 // Builds the gameStats object consumed by GameEndModal.
-export function buildEndGameStats(core, { playerParty, isThreeParty, numDistricts, constraintViolations, swing }) {
+// `fairSeats`: the party-blind neutral map's seat count for the player on this
+// board, when one is in scope (daily computes it eagerly; sandbox only after
+// completion, so it falls back to the proportional rule there).
+export function buildEndGameStats(core, { playerParty, isThreeParty, numDistricts, constraintViolations, swing, fairSeats = null }) {
   const { seats, shares, compactness, districtStats } = core;
   const { struckDown, struckDownReason } = getStrikeDown(constraintViolations);
 
   if (isThreeParty) {
-    // Same target semantics as 2-party: the fewest seats that beat your
-    // proportional entitlement. Plurality wins make seats cheaper in a
-    // 3-way race, but the bar is still relative to your own vote share.
-    const targetSeats3 = targetSeatCount(core.ourPopPercent, numDistricts);
+    // Same target semantics as 2-party: beat the neutral map by one when it
+    // exists, else the fewest seats above your proportional entitlement.
+    const targetSeats3 = targetSeatCount(core.ourPopPercent, numDistricts, fairSeats);
     return {
       playerParty,
       isThreeParty: true,
@@ -126,9 +145,9 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
   const blueSeatsPct = getSeatPercentage(seats.blue, numDistricts);
   const ourSeats = core.ourSeatsPct;
   const ourPopPercent = core.ourPopPercent;
-  const { gap, competitiveness, asymmetry } = core;
+  const { gap, competitiveness, asymmetry, meanMedian, bias50 } = core;
 
-  const targetSeats = targetSeatCount(ourPopPercent, numDistricts);
+  const targetSeats = targetSeatCount(ourPopPercent, numDistricts, fairSeats);
   const nominalWon = core.ourSeatCount >= targetSeats;
 
   // When uncertainty mode is on, the swung result is what actually decides
@@ -180,6 +199,11 @@ export function buildEndGameStats(core, { playerParty, isThreeParty, numDistrict
       // shows whole voters.
       blueWasted: Math.round(gap.blueWasted),
       redWasted: Math.round(gap.redWasted),
+      // Symmetry family: mean–median signed toward the player (+ = map leans
+      // your way), tied-election seats quantized (may end in .5 on an exactly
+      // tied shifted district). Null when undefined (all-grey district).
+      meanMedian: meanMedian?.valid ? round1(meanMedian.mm) : null,
+      bias50Seats: bias50?.valid ? bias50.seats50 : null,
       compactness: Math.round(compactness.average * 100),
       competitiveness: round1(competitiveness.percentage),
       competitiveCount: competitiveness.competitive,

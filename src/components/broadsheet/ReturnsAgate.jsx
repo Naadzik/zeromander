@@ -13,13 +13,16 @@ export default function ReturnsAgate({
   populationMap, districts, numDistricts, isThreeParty, playerParty,
   highlightedDistrict, onDistrictSelect, showUnassignedCounties, onToggleUnassigned,
   lastRejection, greyPercentage,
+  // Neutral map's player seats (v2 target = beat it by one); null → fallback.
+  // Must match the dashboard's target or the two editions disagree.
+  fairSeats = null,
 }) {
   if (!populationMap?.party && !populationMap?.length) return null;
   const rows = getDistrictStats(populationMap, districts, numDistricts, isThreeParty);
   const shares = getPopulationShares(populationMap);
   const greyShare = shares.grey ?? 0;
   const ourShare = (shares[playerParty] ?? 0) * (1 - greyShare / 100);
-  const target = targetSeatCount(ourShare, numDistricts);
+  const target = targetSeatCount(ourShare, numDistricts, fairSeats);
 
   // Population parity: one pass over the grid — per-district resident counts
   // (undecideds count as people even before they vote) + the state total.

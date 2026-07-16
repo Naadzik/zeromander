@@ -265,6 +265,11 @@ export default function GameApp() {
   // sandbox board without touching its config, party, or controls.
   const [decadeMode, setDecadeMode] = useState(false);
   const decadeActive = isDecade || decadeMode;
+  // Mirror of fairMap.fairStats.ourSeatCount for the v2 target ("beat the
+  // neutral map by one"). A ref because useFairMap sits BELOW this hook (its
+  // `enabled` reads completion.gameComplete); assigned right after useFairMap
+  // runs, read inside completion's computeStats at freeze/finalize time.
+  const fairSeatsRef = useRef(null);
   const completion = useGameCompletion({
     populationMap: map.populationMap,
     districts: map.districts,
@@ -274,7 +279,8 @@ export default function GameApp() {
     targetSeatPercentage: config.targetSeatPercentage,
     constraints: legalConstraints.constraints,
     electionUncertainty: (isDaily || isLesson || decadeActive) ? false : electionUncertainty,
-    manual: isDaily || decadeActive
+    manual: isDaily || decadeActive,
+    fairSeatsRef
   });
   gameCompleteRef.current = completion.gameComplete;
   // boardLocked = the daily's post-lock-in state (drives daily-specific UI);
@@ -417,6 +423,7 @@ export default function GameApp() {
     // (For the daily, fairSeedFrom(dailySeed) === challenge.fairSeed.)
     seed: map.boardSeed != null ? fairSeedFrom(map.boardSeed) : undefined
   });
+  fairSeatsRef.current = fairMap.fairStats?.ourSeatCount ?? null;
 
   // Re-entering a locked day: reinstall the submitted districts onto the
   // (identical, deterministic) board instead of offering a fresh one.
@@ -440,7 +447,7 @@ export default function GameApp() {
     // has no grey left, so reading it there would zero the undecided readout.
     const rawShares = getPopulationShares(map.populationMap);
     const greyShare = rawShares.grey ?? 0;
-    const targetSeats = targetSeatCount(rawShares[effectiveParty] * (1 - greyShare / 100), nd);
+    const targetSeats = targetSeatCount(rawShares[effectiveParty] * (1 - greyShare / 100), nd, fairSeatsRef.current);
     const decidedMap = completion.revealedMap ?? map.populationMap; // grey resolved
     const swing = swingRobustness(decidedMap, map.districts, nd, effectiveParty, { targetSeats });
     const breaks = greyShare > 0.01
@@ -896,6 +903,7 @@ export default function GameApp() {
               playerParty={effectiveParty}
               isThreeParty={config.isThreeParty}
               onExpand={() => { if (statsCollapsed) toggleStats(); }}
+              fairSeats={fairMap.fairStats?.ourSeatCount ?? null}
             />
           )}
         </div>
@@ -915,6 +923,7 @@ export default function GameApp() {
             isThreeParty={config.isThreeParty}
             constraints={legalConstraints.constraints}
             fairCompactness={fairMap.fairStats?.compactness?.average ?? null}
+            fairSeats={fairMap.fairStats?.ourSeatCount ?? null}
           />
           </CollapsiblePanel>
         )}
