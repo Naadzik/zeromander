@@ -41,7 +41,12 @@ export default function GameStats({
   onToggleUnassigned,
   showUnassignedCounties,
   isThreeParty = false,
-  constraints
+  constraints,
+  // Plan-average compactness of this board's party-blind map, when computed
+  // (the daily computes it eagerly; sandbox only at completion). Anchors the
+  // litigation gauge's shape factor to THIS board's achievable compactness
+  // instead of a fixed threshold.
+  fairCompactness = null
 }) {
   const ourLabel = PARTY[playerParty].label;
   const ourColor = PARTY[playerParty].cssColor;
@@ -65,7 +70,9 @@ export default function GameStats({
       ourPopPercent: round1(electorateShare),
       assigned: core.assigned,
       mapTotalPop: core.mapTotalPop,
-      compactness: Math.round(core.compactness.average * 100),
+      // null until a first district is drawn — a blank board has no shape to
+      // score, and the tile shows "—" instead of a fake 0%.
+      compactness: core.compactness.average == null ? null : Math.round(core.compactness.average * 100),
       targetSeats: targetSeatCount(electorateShare, numDistricts),
       districtStats: core.districtStats
     };
@@ -95,6 +102,7 @@ export default function GameStats({
     const community = communityRepresentation(populationMap, districts, numDistricts);
     const litigation = litigationRisk({
       compactness: core.compactness.average,
+      fairCompactness,
       gap: core.gap.gap,
       asymmetry: core.asymmetry.asymmetry,
       worstDeviationPct: dev.worstDeviationPct,
@@ -126,7 +134,7 @@ export default function GameStats({
       asymmetryBlueSeat: core.asymmetry.blueSeatPercent,
       districtStats: core.districtStats
     };
-  }, [populationMap, districts, numDistricts, playerParty, isThreeParty]);
+  }, [populationMap, districts, numDistricts, playerParty, isThreeParty, fairCompactness]);
 
   const violations = useMemo(
     () => constraints ? checkConstraintViolations(populationMap, districts, numDistricts, constraints) : null,
@@ -266,8 +274,8 @@ export default function GameStats({
       <div className="metrics-grid">
         <div className="metric-card">
           <div className="metric-label">Compactness <MetricInfo metric="compactness" /></div>
-          <div className="metric-value">{stats.compactness}%</div>
-          <div className="metric-desc">Polsby-Popper (higher = rounder)</div>
+          <div className="metric-value">{stats.compactness == null ? '—' : `${stats.compactness}%`}</div>
+          <div className="metric-desc">100% = a perfect square (chunky beats snaky)</div>
         </div>
 
         {!isThreeParty && (

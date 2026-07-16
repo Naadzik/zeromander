@@ -23,7 +23,7 @@ export function useFairMap({ populationMap, counties, numDistricts, gridSize, pl
     setIsComputing(true);
     const rng = createRng(typeof seed === 'number' ? seed : randomSeed());
     const districts = generateFairMap(populationMap, counties, numDistricts, gridSize, rng);
-    const core = computeCoreStats(populationMap, districts, numDistricts, playerParty, isThreeParty);
+    const core = computeCoreStats(populationMap, districts, numDistricts, playerParty, isThreeParty, counties);
     setFairDistricts(districts);
     setFairStats(core);
     setIsComputing(false);

@@ -21,7 +21,14 @@ function StatColumn({ title, populationMap, counties, districts, coreStats, numD
       {!isThreeParty && (
         <StatRow label="Efficiency Gap" value={`${Math.round(coreStats.gap.gap)}%`} />
       )}
-      <StatRow label="Compactness" value={`${Math.round(coreStats.compactness.average * 100)}%`} />
+      <StatRow label="Compactness" value={coreStats.compactness.average == null ? '—' : `${Math.round(coreStats.compactness.average * 100)}%`} />
+      {coreStats.cutEdges && (
+        // County borders the plan cuts — the discrete compactness measure.
+        // Side-by-side with the neutral column, this IS the normalized
+        // comparison: fewer cut borders than the neutral map = cleaner lines
+        // than a party-blind process needed on this exact board.
+        <StatRow label="County borders cut" value={coreStats.cutEdges.cut} />
+      )}
     </div>
   );
 }

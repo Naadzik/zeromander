@@ -65,7 +65,7 @@ Standard wasted-votes formulation:
 
 ### Compactness (`metrics.js`)
 
-Polsby-Popper: `(4π × area) / perimeter²`, capped at 1. Area is cell count; perimeter is number of external cell edges (cells whose neighbor is out-of-grid or in a different district).
+Grid isoperimetric quotient: `(16 × area) / perimeter²`, capped at 1. Area is cell count; perimeter is number of external cell edges (cells whose neighbor is out-of-grid or in a different district). On a rook grid `perimeter ≥ 4√area` (Harary & Harborth 1976), so the score tops out at exactly 1 for perfect squares — this is Polsby-Popper's `4πA/P²` rescaled by `4/π`, because the circle normalization caps at π/4 ≈ 0.785 on cell geometry (a square, not a circle, is the grid optimum). Plan average is over drawn districts only (`null` when none). Companion: `calculateCutEdges(districts, counties)` counts adjacent county pairs assigned to different districts (the county dual graph — counties are the unit players assign), shown against the neutral map's count.
 
 ## Drag-to-select
 

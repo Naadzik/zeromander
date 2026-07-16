@@ -59,13 +59,13 @@ Measures how "unfair" the districting is (Stephanopoulos & McGhee, 2015).
 - Wasted votes = votes beyond 50% needed to win + ALL votes in losing districts
 - Gap = |your wasted − their wasted| / total votes cast × 100
 
-### Compactness % (Polsby-Popper)
-How "round" and regular your districts are.
-- **100% = perfect circle**
+### Compactness % (grid-adjusted Polsby-Popper)
+How chunky vs. snaky your districts are (area vs. boundary length).
+- **100% = perfect square** — the roundest shape a cell map allows
 - **0% = extremely snaking/irregular**
-- **Typical goal**: > 50% (somewhat compact)
+- **Typical range**: the party-blind neutral map lands ~30–45% on this geometry; below ~25% reads as contorted
 
-**Why it matters**: More compact districts are easier to defend as non-partisan.
+**Why it matters**: Contorted shapes are the classic visible symptom of a gerrymander — a safeguard, not a guarantee.
 
 ### Competitiveness %
 Percentage of districts that are close/contested.

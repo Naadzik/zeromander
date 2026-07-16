@@ -10,9 +10,26 @@
 // / Gill v. Whitford level) rather than a naive 0–1 read.
 const clamp01 = v => Math.min(1, Math.max(0, v));
 
-export function litigationRisk({ compactness = 0.3, gap = 0, asymmetry = 0, worstDeviationPct = 0, communityDilution = null } = {}) {
+// Shape risk, relative to the party-blind map when one is in scope: a plan is
+// "contorted" when it scores well below what neutral line-drawing achieves ON
+// THIS BOARD (risk 0 at 90% of the neutral score, 1.0 at 40% of it). The
+// neutral map itself can never trip its own gauge by construction — a fixed
+// absolute threshold couldn't promise that: across 120 days the neutral
+// plan-average spans ~0.14–0.55, so tail boards cross any fixed line with zero
+// gerrymandering. The absolute ramp survives only as the fallback for when no
+// neutral score exists (sandbox mid-game), anchored to the neutral 120-day
+// means (~0.37–0.41). `compactness == null` = nothing drawn = nothing to sue.
+function compactnessRisk(compactness, fairCompactness) {
+  if (compactness == null) return 0;
+  if (fairCompactness != null && fairCompactness > 0) {
+    return clamp01((0.9 * fairCompactness - compactness) / (0.5 * fairCompactness));
+  }
+  return clamp01((0.35 - compactness) / 0.20);
+}
+
+export function litigationRisk({ compactness = null, fairCompactness = null, gap = 0, asymmetry = 0, worstDeviationPct = 0, communityDilution = null } = {}) {
   const factors = [
-    { label: 'contorted districts', risk: clamp01((0.30 - compactness) / 0.18), weight: 0.25 },
+    { label: 'contorted districts', risk: compactnessRisk(compactness, fairCompactness), weight: 0.25 },
     { label: 'large efficiency gap', risk: clamp01((gap - 7) / 13), weight: 0.30 },
     { label: 'seats far from votes', risk: clamp01((asymmetry - 10) / 25), weight: 0.20 },
     { label: 'unequal populations', risk: clamp01((worstDeviationPct - 8) / 12), weight: 0.15 },

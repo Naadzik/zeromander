@@ -5,9 +5,9 @@ export const METRIC_DESCRIPTIONS = {
     source: 'Stephanopoulos & McGhee, "Partisan Gerrymandering and the Efficiency Gap", 82 U. Chi. L. Rev. 831 (2015)'
   },
   compactness: {
-    title: 'Compactness (Polsby-Popper)',
-    body: 'How "round" a district is, on a 0–100% scale where 100% is a perfect circle. Snaking, irregular districts score low. Compact districts are harder to gerrymander.',
-    source: 'Polsby & Popper, "The Third Criterion: Compactness as a Procedural Safeguard Against Partisan Gerrymandering" (1991)'
+    title: 'Compactness (grid-adjusted Polsby-Popper)',
+    body: 'Compares each district\'s area to its boundary length, on a 0–100% scale where 100% is a perfect square — the roundest shape a cell map allows. Snaking, contorted districts score low; the party-blind neutral map typically lands around 30–45% on this geometry, so judge against that, not against 100%. Contorted shapes are the classic visible symptom of a gerrymander — a safeguard, not a guarantee: tidy-looking maps can still be badly skewed.',
+    source: 'Polsby & Popper (1991), rescaled for grid geometry; the area-vs-perimeter idea is Cox\'s isoperimetric quotient (1927); discrete measures for grid settings per Duchin & Tenner'
   },
   competitiveness: {
     title: 'Competitiveness',

@@ -11,7 +11,8 @@ import { getGridSize, totalPopulation } from './formatUtils.js';
 import {
   calculateCompactness,
   calculateCompetitiveness,
-  calculatePartisanAsymmetry
+  calculatePartisanAsymmetry,
+  calculateCutEdges
 } from './metrics.js';
 
 export const round1 = v => Math.round(v * 10) / 10;
@@ -30,7 +31,10 @@ export function targetSeatCount(ourPopPercent, numDistricts) {
 
 // Single source of truth for all game metrics — used by the live stats panel
 // and by the end-of-game modal, so the two can never disagree.
-export function computeCoreStats(populationMap, districts, numDistricts, playerParty, isThreeParty) {
+// `counties` is optional (trailing, additive): when provided, the county
+// dual-graph cut-edges count joins the core — callers that don't have the
+// county grid in scope simply don't get it.
+export function computeCoreStats(populationMap, districts, numDistricts, playerParty, isThreeParty, counties = null) {
   const gridSize = getGridSize(populationMap);
   const mapTotalPop = totalPopulation(populationMap);
   const assigned = allDistrictsAssigned(districts, numDistricts);
@@ -60,6 +64,12 @@ export function computeCoreStats(populationMap, districts, numDistricts, playerP
     core.gap = calculateEfficiencyGap(populationMap, districts, numDistricts);
     core.competitiveness = calculateCompetitiveness(populationMap, districts, numDistricts);
     core.asymmetry = calculatePartisanAsymmetry(populationMap, districts, numDistricts);
+  }
+
+  // Party-free, so computed for every mode. Only when the caller has the
+  // county grid — the metric is defined on county adjacency, not cells.
+  if (counties && counties.length > 0) {
+    core.cutEdges = calculateCutEdges(districts, counties);
   }
 
   return core;

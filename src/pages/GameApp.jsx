@@ -427,8 +427,8 @@ export default function GameApp() {
 
   const playerCoreStats = useMemo(() => {
     if (!completion.gameComplete) return null;
-    return computeCoreStats(effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty);
-  }, [completion.gameComplete, effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty]);
+    return computeCoreStats(effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty, map.counties);
+  }, [completion.gameComplete, effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty, map.counties]);
 
   // Durability report — sandbox 2-party opt-in. Stress-tests the finished map
   // against a national swing AND against how the undecideds might break, using
@@ -914,6 +914,7 @@ export default function GameApp() {
             showUnassignedCounties={showUnassignedCounties}
             isThreeParty={config.isThreeParty}
             constraints={legalConstraints.constraints}
+            fairCompactness={fairMap.fairStats?.compactness?.average ?? null}
           />
           </CollapsiblePanel>
         )}
