@@ -137,11 +137,31 @@ const V2 = {
   D0: 31,
   GAMMA: 1.9,
   DIM_EDGE: 1.35,   // dim-seam belt extent, unchanged from v1
-  // A3 — the continuous political gradient's ramp width, in units of the
-  // fitted city radius. ⚠️ PLAYTEST DIAL (0.10–0.20): wider = broader
-  // competitive-suburb band. Tuned by feel before the era freezes.
-  W_SUBURB: 0.15
+  // A3 — the continuous political gradient. At polarization 100 (every
+  // in-game board) the anchors evaluate to BASE±SPAN: city 55+30 = 85% blue,
+  // rural 30−25 = 5%. PLAYTEST DECISION (2026-07-17): the city side and the
+  // 0.15 suburb ramp keep the spec's density-divide calibration, but the
+  // rural floor matches V1's countryside — the 15% literature figure made
+  // the map read as noise ("A's cities, V1's countryside"). The 25–35%
+  // rural-county reality is a VOTE-share figure anyway; a cell mixture is a
+  // stricter thing, and 5% is the legibility call, disclosed in methodology.
+  W_SUBURB: 0.15,
+  PCITY_BASE: 55,
+  PCITY_SPAN: 30,
+  PRURAL_BASE: 30,
+  PRURAL_SPAN: 25
 };
+
+// Dev/preview tuning hook for the anchor-comparison harness ONLY: mutates the
+// v2 dials in place so a variant gallery can render the REAL generator under
+// candidate anchors instead of a drifting reimplementation. Never call this
+// from app code — a tuned generator produces boards no other player can
+// reproduce. Returns a snapshot so the harness can restore.
+export function __tuneV2(overrides = {}) {
+  const before = { ...V2 };
+  Object.assign(V2, overrides);
+  return before;
+}
 
 // Multi-octave sine warp; `phase` gives each city its own outline.
 function naturalWarp(x, y, phase) {
@@ -229,8 +249,8 @@ function naturalDensityMidV2(u, party) {
 function blueSharePct(u, polarization, modelVersion) {
   const polarizationFactor = polarization / 100;
   if (modelVersion >= 2) {
-    const pCity = 55 + 30 * polarizationFactor;
-    const pRural = 30 - 15 * polarizationFactor;
+    const pCity = V2.PCITY_BASE + V2.PCITY_SPAN * polarizationFactor;
+    const pRural = V2.PRURAL_BASE - V2.PRURAL_SPAN * polarizationFactor;
     const sigma = 1 / (1 + Math.exp(-(1 - u) / V2.W_SUBURB));
     return pRural + (pCity - pRural) * sigma;
   }
