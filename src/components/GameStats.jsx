@@ -185,7 +185,10 @@ export default function GameStats({
       {currentDistrict > 0 && (
         <div className="stat-block">
           <div className="stat-label">District {currentDistrict}</div>
-          <div className="stat-value ticker-number">{currentDistrictPop} votes</div>
+          {/* Residents, not votes: the parity number counts PEOPLE, and
+              undecideds count toward it while casting no vote until the
+              reveal — calling it "votes" lied whenever grey was present. */}
+          <div className="stat-value ticker-number">{currentDistrictPop} residents</div>
           <div className="capacity-bar">
             <div
               className="capacity-fill"
@@ -197,13 +200,18 @@ export default function GameStats({
             ></div>
           </div>
           <div className="capacity-range">
-            Range: {minPopulation}-{maxPopulation} votes (±{PARITY_AID_PCT}%)
+            Range: {minPopulation}-{maxPopulation} residents (±{PARITY_AID_PCT}%)
           </div>
           {stats.districtStats[currentDistrict - 1] && (
             <div className="district-votes">
               <div><PartyIcon party="blue" /> Urban Union: {stats.districtStats[currentDistrict - 1].blue}</div>
               <div><PartyIcon party="red" /> Heartland Alliance: {stats.districtStats[currentDistrict - 1].red}</div>
               {isThreeParty && <div style={{ color: 'var(--green-party)' }}><PartyIcon party="green" /> Farmers Coalition: {stats.districtStats[currentDistrict - 1].green}</div>}
+              {!isThreeParty && (stats.classified?.[currentDistrict - 1]?.greyPop ?? 0) > 0 && (
+                <div style={{ color: 'var(--grey-party)' }}>
+                  <Icon name="undecided" size={12} /> Undecided: {stats.classified[currentDistrict - 1].greyPop}
+                </div>
+              )}
             </div>
           )}
         </div>

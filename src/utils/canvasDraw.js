@@ -66,8 +66,11 @@ export function fillCells(ctx, grid, matches, cellSize, fillStyle) {
   }
 }
 
-// Winner per assigned district: party index 0 (blue), 1 (red) or 2 (green).
-// Ties: blue beats red and green; green must strictly beat both.
+// Winner per assigned district: party index 0 (blue), 1 (red), 2 (green) —
+// or 3 (grey) when the district holds NO decided votes at all (an all-
+// undecided district leads nowhere; the old tie-bucket painted it blue, the
+// exact else-bucket-over-party-ints trap this codebase bans). Decided ties:
+// blue beats red and green; green must strictly beat both.
 export function computeDistrictWinners(partyMap, densityMap, districts) {
   const gridSize = partyMap.length;
   const voteCounts = {};
@@ -86,7 +89,8 @@ export function computeDistrictWinners(partyMap, densityMap, districts) {
   }
   const winners = {};
   for (const [id, votes] of Object.entries(voteCounts)) {
-    if (votes.blue >= votes.red && votes.blue >= votes.green) winners[id] = 0;
+    if (votes.blue + votes.red + votes.green === 0) winners[id] = 3; // all undecided
+    else if (votes.blue >= votes.red && votes.blue >= votes.green) winners[id] = 0;
     else if (votes.green > votes.blue && votes.green > votes.red) winners[id] = 2;
     else winners[id] = 1;
   }
