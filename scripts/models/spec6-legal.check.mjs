@@ -20,10 +20,16 @@
 // districts only) and the strict Bartlett majority for opportunity districts.
 
 import { litigationRisk } from '../../src/utils/litigation.js';
-import { computePopulationDeviation } from '../../src/utils/legalConstraints.js';
+import { computePopulationDeviation, PARITY_AID_PCT, GATE_RANGE_PCT } from '../../src/utils/legalConstraints.js';
 import { communityRepresentation } from '../../src/utils/community.js';
+import { buildDailyBoards } from '../lib/board.mjs';
+import { generateFairMap } from '../../src/utils/fairMapGenerator.js';
+import { fairSeedFrom } from '../../src/utils/dailyChallenge.js';
+import { createRng } from '../../src/utils/rng.js';
 
 export const spec = 'Spec 6 — forum-channel legal layer';
+
+const ANCHORS = ['2026-07-02', '2026-07-07', '2026-07-08', '2026-07-16'];
 
 // Board with per-district populations set exactly: one row per district,
 // `width` cells, density packed to hit the requested population.
@@ -139,6 +145,38 @@ export function run({ assert }) {
   assert.ok('T5: clean map → both dials < 25 ("low")',
     t5.federal.score < 25 && t5.state.score < 25,
     `federal ${t5.federal.score}, state ${t5.state.score}`);
+
+  // ── THE FAIRNESS INVARIANT: the baseline obeys the player's own gate ────
+  //
+  // The party-blind map is what the player is scored against, so it must pass
+  // the rule the player must pass. It did NOT when the range gate shipped:
+  // the fair-map generator's balance pass stopped at ±10% per district (the
+  // OLD rule), leaving ranges of 14–18% — the baseline was presumptively
+  // unconstitutional and the gate looked unreachable to players. Fixed at the
+  // source (fairMapGenerator's BALANCE_TOLERANCE = 4%).
+  //
+  // This also makes the ±5% drawing aid honest rather than decorative: it is
+  // sufficient (max +5 / min −5 = a 10% range, so all-green ⇒ the gate
+  // passes) AND achievable, which these boards demonstrate.
+  assert.ok('the aid is sufficient by construction: 2 × aid ≤ gate',
+    2 * PARITY_AID_PCT <= GATE_RANGE_PCT,
+    `±${PARITY_AID_PCT}% per district ⇒ range ≤ ${2 * PARITY_AID_PCT}% ≤ gate ${GATE_RANGE_PCT}%`);
+
+  for (const date of ANCHORS) {
+    const built = buildDailyBoards(date);
+    for (const tier of ['small', 'full']) {
+      const b = built[tier];
+      const N = b.config.numDistricts;
+      const plan = generateFairMap(b.pop, b.counties, N, b.config.gridSize, createRng(fairSeedFrom(b.seed)));
+      const gate = computePopulationDeviation(b.pop, plan, N, GATE_RANGE_PCT);
+      const aid = computePopulationDeviation(b.pop, plan, N, PARITY_AID_PCT);
+      assert.ok(`${date} ${tier}: the party-blind baseline passes the gate it sets for the player`,
+        gate.rangePct <= GATE_RANGE_PCT,
+        `range ${gate.rangePct}% ≤ ${GATE_RANGE_PCT}%`);
+      assert.ok(`${date} ${tier}: and holds every district inside the ±${PARITY_AID_PCT}% aid — the aid is reachable`,
+        aid.pass, `worst district ${aid.worstDeviationPct}%`);
+    }
+  }
 
   // ── Bartlett strict majority ────────────────────────────────────────────
   // A district where the community is EXACTLY half cannot elect on its own

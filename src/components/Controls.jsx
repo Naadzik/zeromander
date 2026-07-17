@@ -172,7 +172,7 @@ export default function Controls({
           {constraints.populationDeviation.enabled && (
             <>
               <div className="control-group">
-                <label>Threshold: ±{constraints.populationDeviation.thresholdPct}% (base is ±10%)</label>
+                <label>Threshold: ±{constraints.populationDeviation.thresholdPct}% (tightens the ±10% draw cap)</label>
                 <input
                   type="range"
                   min="1"

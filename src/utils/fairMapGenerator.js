@@ -143,6 +143,22 @@ function totalSquaredDeviation(districtPop, numDistricts, targetPop) {
   return sum;
 }
 
+// How close to the ideal the swap pass drives every district before it calls
+// the map balanced. This is a STOPPING criterion, not a legal rule, and it
+// must stay well inside the completion gate: the gate is the overall RANGE
+// ≤ 10% (Brown v. Thomson), and a per-district tolerance of t guarantees a
+// range ≤ 2t — so 4% keeps the neutral map's own spread under 8%, safely
+// legal, with margin for the last unit that can't be swapped.
+//
+// It was 10%, which silently made the baseline unfair once the gate became
+// the range test: the pass stopped the instant each district was within
+// ±10%, leaving spreads of 14–18% (measured) — the neutral map FAILED the
+// rule the player must satisfy, and no achievable per-district band could be
+// shown as sufficient. Measured at 4%: neutral spreads fall to 3.2–6.6% and
+// 145 of 150 ensemble members put every district inside ±5% (the drawing
+// aid), so the aid is honest guidance rather than a permanent red mark.
+const BALANCE_TOLERANCE = 0.04;
+
 // Moves single units across district boundaries wherever doing so reduces the
 // overall population imbalance, only when the donor district stays connected
 // afterward — never trades contiguity away to improve population balance.
@@ -156,7 +172,7 @@ function boundarySwapPass(districts, cellsByUnit, unitDistrict, unitNeighbors, p
 
     let withinTolerance = true;
     for (let d = 1; d <= numDistricts; d++) {
-      if (Math.abs(districtPop[d] - targetPop) > targetPop * 0.1) { withinTolerance = false; break; }
+      if (Math.abs(districtPop[d] - targetPop) > targetPop * BALANCE_TOLERANCE) { withinTolerance = false; break; }
     }
     if (withinTolerance) break;
 
@@ -305,7 +321,10 @@ export function generateFairMap(populationMap, counties, numDistricts, gridSize,
     }
   }
 
-  boundarySwapPass(districts, cellsByUnit, unitDistrict, unitNeighbors, popByUnit, numSeeds, targetPop, gridSize, 300);
+  // 1200 attempts, not 300: the tighter BALANCE_TOLERANCE needs more swaps to
+  // converge, and each attempt is cheap (one boundary scan, applied only when
+  // the donor district stays connected).
+  boundarySwapPass(districts, cellsByUnit, unitDistrict, unitNeighbors, popByUnit, numSeeds, targetPop, gridSize, 1200);
 
   return districts;
 }

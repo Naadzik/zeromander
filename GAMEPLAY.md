@@ -25,7 +25,7 @@
 3. **Click again**: Removes the county from the district
 4. **Rules**:
    - Districts must stay **contiguous** (connected)
-   - District populations must stay near-equal: the map completes when the **spread between the biggest and smallest district is within 10%** of an equal share (the courts' state-legislative line). While painting, each district shows a ±10% band as a guide — a district outside it can never pass the spread test.
+   - District populations must stay near-equal: the map completes when the **spread between the biggest and smallest district is within 10%** of an equal share (the courts' state-legislative line). While painting, each district shows a **±5% band** — keep every district inside it and the spread is guaranteed to pass.
    - You can't remove a county if it disconnects the district
 
 ### Winning
@@ -87,7 +87,7 @@ Two optional sources of uncertainty (2-party maps only) make thin-margin gerryma
 
 ### Undecided Voters (grey areas)
 - A configurable share of the population (recommended ~8%) is **undecided** — grey on the map.
-- They **count toward district population** (±10% parity) but **cast no votes** while you draw. All live numbers show decided votes only.
+- They **count toward district population** (parity counts people, not voters) but **cast no votes** while you draw. All live numbers show decided votes only.
 - A district is a **tossup (?)** when its undecided population exceeds the current leader's margin — the reveal could flip it. The seat bar shows tossups as a hatched segment.
 - On election night, grey **neighborhoods break together**: each contiguous cluster leans roughly like the decided area around it (undecideds in a blue city lean blue), but with real variance — a cluster can badly underperform or overperform its surroundings. You can't count on them; you can only build cushions.
 

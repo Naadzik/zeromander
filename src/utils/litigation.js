@@ -69,8 +69,9 @@ function compactnessRisk(compactness, fairCompactness) {
 
 // Mean–median flag thresholds: the 95th ("amber") and 99th ("red") percentiles
 // of |MM| across 220 of this game's OWN party-blind neutral maps per board
-// size (scripts/calibrate-mm.mjs, run 2026-07-17, v1-era generator, splits
-// swept over the daily's 38–48% band; re-run at the Spec 5 era change).
+// size (scripts/calibrate-mm.mjs, re-run 2026-07-17 after the fair-map
+// BALANCE_TOLERANCE fix, splits swept over the daily's 38–48% band; re-run
+// again at the Spec 5 era change).
 // Literature-scale thresholds do not transfer here: neutral maps on this
 // game's deliberately clustered geography carry mean |MM| ≈ 5.5pp with p95
 // ≈ 14pp — the urban party self-packs in cities (Chen & Rodden's
@@ -79,9 +80,9 @@ function compactnessRisk(compactness, fairCompactness) {
 // between configs use the nearest (sandbox's 40-district extreme reads the
 // 12-district constants — coarse, disclosed).
 const MM_THRESHOLDS = {
-  8: { amber: 13.72, red: 18.45 },
-  10: { amber: 14.23, red: 20.43 },
-  12: { amber: 15.44, red: 17.35 },
+  8: { amber: 14.29, red: 18.37 },
+  10: { amber: 13.13, red: 20.09 },
+  12: { amber: 15.37, red: 17.69 },
 };
 
 function mmThresholdsFor(numDistricts) {

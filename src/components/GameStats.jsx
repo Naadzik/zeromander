@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { getDistrictPopulation, classifyDistricts } from '../utils/gameLogic'
 import { computeCoreStats, round1, targetSeatCount } from '../utils/computeGameStats'
-import { checkConstraintViolations, computePopulationDeviation } from '../utils/legalConstraints'
+import { checkConstraintViolations, computePopulationDeviation, PARITY_AID_PCT, GATE_RANGE_PCT } from '../utils/legalConstraints'
 import { litigationRisk } from '../utils/litigation'
 import { communityRepresentation } from '../utils/community'
 import { PARTY } from '../utils/partyConfig'
@@ -158,7 +158,7 @@ export default function GameStats({
 
   // The completion gate's own quantity, shown unconditionally in Legal
   // Requirements: the overall RANGE, (max − min)/ideal over drawn districts.
-  // Per-district ±10% marks elsewhere stay necessary-condition aids, but a
+  // Per-district ±5% marks elsewhere are the sufficient drawing aid, but a
   // map completes on range ≤ 10% — this line is what explains a blocked
   // lock-in (+9%/−9% districts all show ✓ yet spread 18% fails the gate).
   const spread = useMemo(
@@ -172,8 +172,8 @@ export default function GameStats({
   );
 
   const targetPopulation = stats.mapTotalPop / numDistricts;
-  const minPopulation = Math.ceil(targetPopulation * 0.9);
-  const maxPopulation = Math.ceil(targetPopulation * 1.1);
+  const minPopulation = Math.ceil(targetPopulation * (1 - PARITY_AID_PCT / 100));
+  const maxPopulation = Math.ceil(targetPopulation * (1 + PARITY_AID_PCT / 100));
 
   return (
     <div className="stats-panel">
@@ -194,7 +194,7 @@ export default function GameStats({
             ></div>
           </div>
           <div className="capacity-range">
-            Range: {minPopulation}-{maxPopulation} votes (±10%)
+            Range: {minPopulation}-{maxPopulation} votes (±{PARITY_AID_PCT}%)
           </div>
           {stats.districtStats[currentDistrict - 1] && (
             <div className="district-votes">
@@ -394,10 +394,10 @@ export default function GameStats({
               <span className="constraint-status-icon">{violations.contiguity.pass ? '✓' : '✗'}</span>
               <span>Contiguity</span>
             </div>
-            <div className="constraint-status-row" data-pass={spread.rangePct <= 10}>
-              <span className="constraint-status-icon">{spread.rangePct <= 10 ? '✓' : '✗'}</span>
+            <div className="constraint-status-row" data-pass={spread.rangePct <= GATE_RANGE_PCT}>
+              <span className="constraint-status-icon">{spread.rangePct <= GATE_RANGE_PCT ? '✓' : '✗'}</span>
               <span>
-                Population spread {spread.rangePct}% (biggest − smallest; the 10% line is the courts&apos; limit)
+                Population spread {spread.rangePct}% (biggest − smallest; the {GATE_RANGE_PCT}% line is the courts&apos; limit)
               </span>
             </div>
             {violations.populationDeviation && (

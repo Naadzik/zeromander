@@ -38,13 +38,19 @@ export function ensembleTarget(gridSize) {
   return gridSize >= 100 ? 15 : 25;
 }
 
-// A candidate is accepted iff it obeys the SAME rules that bind the player:
-// every district within ±10% of ideal population (two-sided, the completion
-// gate) and exactly numDistricts non-empty districts. Unfiltered baselines
-// violate the parity rule ~1.7% of the time — a baseline allowed to break a
+// A candidate is accepted iff it obeys the SAME rule that binds the player:
+// the completion gate — overall population range ≤ 10% (Brown v. Thomson) —
+// and exactly numDistricts non-empty districts. A baseline allowed to break a
 // rule the player cannot is not a fair baseline.
+//
+// This filter tracks the GATE, so it moved with it: it used to read the
+// per-district ±10% test, which the gate no longer is. That mattered more
+// than a filter tweak — under the old generator, whose swap pass stopped at
+// ±10% per district, neutral maps carried 14–18% ranges and would ALL have
+// failed here. The fix is upstream (fairMapGenerator's BALANCE_TOLERANCE),
+// and this filter is the assertion that it worked.
 function isAccepted(populationMap, districts, numDistricts) {
-  if (!computePopulationDeviation(populationMap, districts, numDistricts, 10).pass) return false;
+  if (computePopulationDeviation(populationMap, districts, numDistricts, 10).rangePct > 10) return false;
   const present = new Set();
   for (let y = 0; y < districts.length; y++) {
     for (let x = 0; x < districts[y].length; x++) {
@@ -72,16 +78,16 @@ export function generateNeutralEnsemble(populationMap, counties, numDistricts, g
     } else {
       rejected.push({
         ...member,
-        worstDeviationPct: computePopulationDeviation(populationMap, districts, numDistricts, 10).worstDeviationPct,
+        rangePct: computePopulationDeviation(populationMap, districts, numDistricts, 10).rangePct,
       });
     }
   }
 
-  // Degenerate fallback (never observed on real configs): if the filter
-  // starved the ensemble, top up with the least-imbalanced rejects rather
-  // than return an empty baseline.
+  // Degenerate fallback: if the filter starved the ensemble, top up with the
+  // least-imbalanced rejects rather than return an empty baseline. Ranked by
+  // the gate's own quantity (range), matching what the filter rejected on.
   if (accepted.length < nTarget && rejected.length > 0) {
-    rejected.sort((a, b) => a.worstDeviationPct - b.worstDeviationPct);
+    rejected.sort((a, b) => a.rangePct - b.rangePct);
     while (accepted.length < nTarget && rejected.length > 0) accepted.push(rejected.shift());
     accepted.sort((a, b) => a.seedIndex - b.seedIndex);
   }

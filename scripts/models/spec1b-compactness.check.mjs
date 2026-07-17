@@ -40,10 +40,10 @@ const plan = (fn, G) => Array.from({ length: G }, (_, y) => Array.from({ length:
 // so asserted exactly. Board generation v2 (Spec 5) re-rolls these: regenerate
 // alongside the v2 determinism anchors when that era opens.
 const NEUTRAL_V1 = {
-  '2026-07-02': { small: { iq: 0.49, cut: 121 }, full: { iq: 0.37, cut: 242 } },
-  '2026-07-07': { small: { iq: 0.31, cut: 162 }, full: { iq: 0.26, cut: 305 } },
-  '2026-07-08': { small: { iq: 0.47, cut: 133 }, full: { iq: 0.20, cut: 373 } },
-  '2026-07-16': { small: { iq: 0.51, cut: 104 }, full: { iq: 0.34, cut: 287 } },
+  '2026-07-02': { small: { iq: 0.50, cut: 120 }, full: { iq: 0.31, cut: 281 } },
+  '2026-07-07': { small: { iq: 0.29, cut: 166 }, full: { iq: 0.27, cut: 301 } },
+  '2026-07-08': { small: { iq: 0.46, cut: 137 }, full: { iq: 0.20, cut: 387 } },
+  '2026-07-16': { small: { iq: 0.44, cut: 123 }, full: { iq: 0.30, cut: 314 } },
 };
 
 export function run({ assert }) {

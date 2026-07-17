@@ -34,12 +34,12 @@ export const spec = 'Spec 2 — neutral ensemble baseline';
 // boards, forever.
 const REFERENCE = {
   '2026-07-08': {
-    small: { median: 4, min: 2, max: 4, n: 25, ghostIdx: 0, histogram: { 2: 3, 3: 9, 4: 13 } },
-    full: { median: 5, min: 3, max: 6, n: 25, ghostIdx: 2, histogram: { 3: 1, 4: 5, 5: 17, 6: 2 } },
+    small: { median: 3, min: 2, max: 4, n: 25, ghostIdx: 1, histogram: { 2: 2, 3: 11, 4: 12 } },
+    full: { median: 5, min: 3, max: 6, n: 25, ghostIdx: 2, histogram: { 3: 2, 4: 4, 5: 18, 6: 1 } },
   },
   '2026-07-16': {
-    small: { median: 3, min: 2, max: 5, n: 25, ghostIdx: 0, histogram: { 2: 3, 3: 18, 4: 3, 5: 1 } },
-    full: { median: 5, min: 3, max: 5, n: 25, ghostIdx: 0, histogram: { 3: 6, 4: 6, 5: 13 } },
+    small: { median: 3, min: 2, max: 5, n: 25, ghostIdx: 1, histogram: { 2: 3, 3: 12, 4: 8, 5: 2 } },
+    full: { median: 4, min: 3, max: 5, n: 25, ghostIdx: 2, histogram: { 3: 5, 4: 10, 5: 10 } },
   },
 };
 

@@ -1,5 +1,23 @@
 import { extractPopulationData, forEachCell, getCellPopulation, totalPopulation } from './formatUtils.js';
 
+// The live drawing aid: the per-district band shown while painting.
+//
+// It is HALF the completion gate on purpose. The gate is the overall range
+// ≤ 10% (max − min over ideal), which no per-district mark can express — a
+// player can hold every district inside ±10% and still be blocked at an 18%
+// spread, which is exactly the confusion this replaced. At ±5% the aid is
+// SUFFICIENT: max +5% and min −5% is a 10% range, so all-green guarantees the
+// map completes. It slightly over-warns (a +7%/−3% map passes the gate with a
+// red mark), and that direction is the safe one — it can only push a player
+// toward a legal map, never let them believe an illegal one is fine.
+//
+// Achievable, not aspirational: the party-blind generator lands every
+// district inside this band on 145 of 150 measured ensemble maps.
+export const PARITY_AID_PCT = 5;
+
+// The completion gate: the doctrinal overall-range test (Brown v. Thomson).
+export const GATE_RANGE_PCT = 10;
+
 // Shared by the real-time draw cap (base 10%, or a stricter hard-mode threshold)
 // and the end-of-game constraint check (any configured thresholdPct).
 //

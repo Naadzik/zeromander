@@ -54,18 +54,18 @@ function rowBoard(blueCounts, width) {
 // plus its mean–median and tied-election seats.
 const NEUTRAL_V1 = {
   '2026-07-08': {
-    small: { party: 'red', fairSeats: 4, target: 5, mm: -1.29, bias50: 4 },
-    full: { party: 'red', fairSeats: 3, target: 4, mm: 2.40, bias50: 6 },
+    small: { party: 'red', fairSeats: 4, target: 5, mm: -0.45, bias50: 4 },
+    full: { party: 'red', fairSeats: 3, target: 4, mm: 2.22, bias50: 6 },
   },
   '2026-07-16': {
-    small: { party: 'red', fairSeats: 3, target: 4, mm: -0.95, bias50: 4 },
-    full: { party: 'red', fairSeats: 5, target: 6, mm: -1.51, bias50: 5 },
+    small: { party: 'red', fairSeats: 4, target: 5, mm: 2.54, bias50: 4 },
+    full: { party: 'red', fairSeats: 5, target: 6, mm: -2.24, bias50: 5 },
   },
 };
 
 // First 30 |MM| values of the calibrate-mm.mjs N=8 schedule — reproducing
 // them pins the calibration pipeline (same seeds, same generator, same MM).
-const MINI_CALIB_SHA = '91993c80f06dd64492e31fd7a5afcf77612e1fb9ac0a09f61da0e705163eb7c2';
+const MINI_CALIB_SHA = 'ec0eb076e2759e755318dbc9a3973f419843998a8f2426bcd3d7699ad171b8f2';
 
 export function run({ assert }) {
   // ── Hand-checkable example: blue packed into one 90% district ──────────

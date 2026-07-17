@@ -2,11 +2,12 @@ import { getDistrictStats } from '../../utils/gameLogic'
 import { getPopulationShares } from '../../utils/gameLogic'
 import { targetSeatCount } from '../../utils/computeGameStats'
 import { extractPopulationData, getCellPopulation } from '../../utils/formatUtils'
+import { PARITY_AID_PCT, GATE_RANGE_PCT } from '../../utils/legalConstraints'
 import { PARTY } from '../../utils/partyConfig'
 
 // "LATEST RETURNS" — the Broadsheet's agate column. Dense, typeset, live:
 // seat tally, target line, one agate row per district (click → highlight on
-// the plate) with its POPULATION against the ±10% parity bound — the reader
+// the plate) with its POPULATION against the parity bound — the reader
 // must be able to see exactly which district still blocks the presses —
 // plus the unclaimed-county link and any rejection notice from the desk.
 export default function ReturnsAgate({
@@ -40,8 +41,8 @@ export default function ReturnsAgate({
     }
   }
   const fair = totalPop / numDistricts;
-  const lo = Math.floor(fair * 0.9);
-  const hi = Math.ceil(fair * 1.1);
+  const lo = Math.floor(fair * (1 - PARITY_AID_PCT / 100));
+  const hi = Math.ceil(fair * (1 + PARITY_AID_PCT / 100));
   // 'empty' | 'light' (needs more people) | 'heavy' (too many) | 'ok'
   const parity = id => pops[id] === 0 ? 'empty' : pops[id] < lo ? 'light' : pops[id] > hi ? 'heavy' : 'ok';
   const outOfBounds = rows.filter(r => parity(r.id) === 'light' || parity(r.id) === 'heavy').length;
@@ -63,7 +64,7 @@ export default function ReturnsAgate({
   const fmt = n => Math.round(n).toLocaleString('en-US');
   const PARITY_MARK = { ok: '✓', light: '▽', heavy: '▲', empty: '' };
   const PARITY_TITLE = {
-    ok: 'Within the ±10% population bound',
+    ok: `Within the ±${PARITY_AID_PCT}% population bound`,
     light: `Under the bound — needs at least ${fmt(lo)} residents`,
     heavy: `Over the bound — at most ${fmt(hi)} residents`,
     empty: 'Not yet drawn',
@@ -83,9 +84,9 @@ export default function ReturnsAgate({
       </p>
       <p className="paper-agate-tally">
         Spread, biggest−smallest: <strong>{rangePct}%</strong> of an equal share
-        {rangePct > 10
-          ? <span className="paper-parity-alert"> · presses hold over 10%</span>
-          : <> · within the courts&apos; 10% line</>}
+        {rangePct > GATE_RANGE_PCT
+          ? <span className="paper-parity-alert"> · presses hold over {GATE_RANGE_PCT}%</span>
+          : <> · within the courts&apos; {GATE_RANGE_PCT}% line</>}
       </p>
       {/* Visible legend — the hover titles have no touch equivalent. */}
       <p className="paper-agate-foot paper-parity-legend">✓ within bound · ▽ needs residents · ▲ over</p>
