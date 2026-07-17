@@ -1,40 +1,28 @@
 import { extractPopulationData, getDistrictVotes } from './formatUtils.js';
 import { applySwingToVotes } from './gameLogic.js';
 import { resolveGreyPopulation } from './greyReveal.js';
+import {
+  drawNationalSwing, applyMidtermPenalty, MIDTERM_INDICES,
+  districtElasticity, drawDistrictSwings
+} from './swingModel.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const round1 = v => Math.round(v * 10) / 10;
 
-// Per-district winner (0 blue / 1 red) on `map` after `swingPct`, mirroring
+// Per-district winner (0 blue / 1 red) on `map` after the national swing plus
+// this district's own swing (elasticity + local noise), mirroring
 // calculateSeatsWithSwing's tie-break (blue must strictly win). Lets a caller
 // draw the seat map for a given election, not just tally the count.
-function districtWinners(populationMap, districts, numDistricts, swingPct) {
+function districtWinners(populationMap, districts, numDistricts, swingPct, districtSwings = null) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
   const winners = {};
   for (let d = 1; d <= numDistricts; d++) {
     const { blue, red } = getDistrictVotes(partyMap, densityMap, districts, d);
-    const swung = applySwingToVotes({ blue, red }, swingPct);
+    const localSwing = districtSwings ? (districtSwings[d] ?? 0) : 0;
+    const swung = applySwingToVotes({ blue, red }, swingPct + localSwing);
     winners[d] = swung.blue > swung.red ? 0 : 1;
   }
   return winners;
-}
-
-// ── Realistic national swing draw ────────────────────────────────────────
-// Most cycles are quiet — a couple of points either way; roughly one in seven
-// is a "wave" that sweeps 7–10 points in a single direction (1994/2008/2010).
-// Positive = toward blue, matching applySwingToVotes. Seeded entirely by the
-// passed rng, so a whole decade replays identically from one seed.
-const WAVE_PROB = 0.15;
-export function drawNationalSwing(rng) {
-  if (rng() < WAVE_PROB) {
-    const dir = rng() < 0.5 ? -1 : 1;
-    return round1(dir * (7 + rng() * 3)); // ±7–10
-  }
-  // Normal(0, 3.5) via Box–Muller, clamped so a calm year never rivals a wave.
-  const u1 = Math.max(1e-9, rng());
-  const u2 = rng();
-  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  return round1(clamp(z * 3.5, -6.5, 6.5));
 }
 
 // ── Urbanization drift ───────────────────────────────────────────────────
@@ -98,28 +86,50 @@ export function applyDrift(populationMap, step) {
 
 // ── The decade ───────────────────────────────────────────────────────────
 // Draw once, then play `elections` cycles two years apart. Each cycle stacks
-// accumulated urbanization drift and one national-swing draw onto the FIXED
-// districts, then scores them. This is where a map's durability shows: a greedy
-// map that wins big today can bleed seats as a wave lands or the ground shifts
-// under it, while a sturdier map holds. Pure given `rng`.
+// accumulated urbanization drift, one national-swing draw (with the midterm
+// penalty at midterm cadence), a fresh undecided break COUPLED to that swing,
+// and per-district elasticity + local noise onto the FIXED districts, then
+// scores them. This is where a map's durability shows: a greedy map that wins
+// big today can bleed seats as a wave lands or the ground shifts under it,
+// while a sturdier map holds. Pure given `rng`.
+//
+// FROZEN v2 DRAW ORDER (fixed arity per unit — a replay must never re-roll):
+// whParty (1 draw, midterms only; zero when off) → per election: national
+// swing (always 3) → grey resolution (2 + 2·clusters + cells; zero without
+// grey) → district swings (2 per district, ascending).
 export function runDecade(populationMap, districts, numDistricts, playerParty, rng, opts = {}) {
   const elections = opts.elections ?? 5;
   const startYear = opts.startYear ?? 2026;
   const yearsApart = opts.yearsApart ?? 2;
   const targetSeats = opts.targetSeats ?? (Math.floor(numDistricts / 2) + 1);
+  const midterms = opts.midterms ?? true;
+
+  // Who holds the White House shapes midterm cadence; drawn once per decade.
+  let whParty = midterms ? (rng() < 0.5 ? 'blue' : 'red') : null;
+
+  // Elasticity profile is a pure function of the baseline board + districts —
+  // computed once. (Drift shifts densities slightly across the decade; the
+  // baseline profile is the disclosed simplification: responsiveness is a
+  // standing property of the map's geography, not re-fitted per cycle.)
+  const elasticity = districtElasticity(populationMap, districts, numDistricts);
 
   const results = [];
   let heldMajority = 0, cumulativeOurSeats = 0;
   for (let i = 0; i < elections; i++) {
     const drifted = applyDrift(populationMap, i);
-    const nationalSwing = drawNationalSwing(rng);
+    let nationalSwing = drawNationalSwing(rng);
+    if (midterms && MIDTERM_INDICES.has(i)) {
+      nationalSwing = applyMidtermPenalty(nationalSwing, whParty);
+    }
     // Undecideds ("grey") break FRESH each cycle — a new clustered lean every
-    // election, on top of the national swing. No-grey boards pass through
-    // untouched (and consume no rng), so this is a no-op there.
-    const decided = resolveGreyPopulation(drifted, rng).revealedMap;
+    // election, COUPLED to the year's national environment (the same mood
+    // moves decideds and late deciders — the 2016 pattern). No-grey boards
+    // pass through untouched (and consume no rng), so this is a no-op there.
+    const decided = resolveGreyPopulation(drifted, rng, { nationalSwingPct: nationalSwing }).revealedMap;
+    const districtSwings = drawDistrictSwings(elasticity, numDistricts, nationalSwing, rng);
     // Per-district winners drive both the tally and the drawable seat map, so
     // the count and the rendered map can never disagree.
-    const winners = districtWinners(decided, districts, numDistricts, nationalSwing);
+    const winners = districtWinners(decided, districts, numDistricts, nationalSwing, districtSwings);
     let blue = 0, red = 0;
     for (let d = 1; d <= numDistricts; d++) (winners[d] === 0 ? blue++ : red++);
     const seats = { blue, red, swingPct: nationalSwing };
@@ -128,6 +138,14 @@ export function runDecade(populationMap, districts, numDistricts, playerParty, r
     if (won) heldMajority++;
     cumulativeOurSeats += ourSeats;
     results.push({ year: startYear + i * yearsApart, nationalSwing, seats, ourSeats, won, winners });
+
+    // After a presidential-cadence election (indices 1, 3), the White House
+    // flips if the year swung more than 2.5 points toward the opposition — a
+    // cheap deterministic proxy for losing the presidency.
+    if (midterms && !MIDTERM_INDICES.has(i)) {
+      const towardOpposition = whParty === 'blue' ? -nationalSwing : nationalSwing;
+      if (towardOpposition > 2.5) whParty = whParty === 'blue' ? 'red' : 'blue';
+    }
   }
 
   return {

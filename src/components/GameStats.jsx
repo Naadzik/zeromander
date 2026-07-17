@@ -105,7 +105,10 @@ export default function GameStats({
       blue: classified.filter(r => r.status === 'blue').length,
       red: classified.filter(r => r.status === 'red').length
     };
-    const tossups = classified.filter(r => r.status === 'tossup').length;
+    // Both tiers of doubt count as not-yet-banked: 'tossup' (realistic flip)
+    // and 'uncalled' (extreme break could still flip it) — together the same
+    // margin ≤ grey band as before, so the seat bar's "?" segment is stable.
+    const tossups = classified.filter(r => r.status === 'tossup' || r.status === 'uncalled').length;
     const ourSafe = playerParty === 'blue' ? safeSeats.blue : safeSeats.red;
 
     const dev = computePopulationDeviation(populationMap, districts, numDistricts, 10);
@@ -264,7 +267,7 @@ export default function GameStats({
           const underBounds = hasContent && district.total < minPopulation;
           const status = withinBounds ? 'ok' : overBounds ? 'over' : underBounds ? 'under' : 'empty';
           const classifiedRow = stats.classified?.[district.id - 1];
-          const isTossup = classifiedRow?.status === 'tossup' && hasContent;
+          const isTossup = (classifiedRow?.status === 'tossup' || classifiedRow?.status === 'uncalled') && hasContent;
 
           return (
             <div

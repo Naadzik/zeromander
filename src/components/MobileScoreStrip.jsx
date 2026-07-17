@@ -34,7 +34,8 @@ export default function MobileScoreStrip({
     } else {
       const classified = classifyDistricts(populationMap, districts, numDistricts);
       const ourSafe = classified.filter(r => r.status === playerParty).length;
-      tossups = classified.filter(r => r.status === 'tossup').length;
+      // tossup + uncalled: everything the undecideds could still take away.
+      tossups = classified.filter(r => r.status === 'tossup' || r.status === 'uncalled').length;
       const greyShare = core.shares.grey ?? 0;
       target = targetSeatCount((core.shares[playerParty] ?? 0) * (1 - greyShare / 100), numDistricts, fairSeats);
       seatLabel = `${ourSafe}/${numDistricts}`;

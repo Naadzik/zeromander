@@ -14,6 +14,17 @@ export function randomSeed() {
   return (Math.random() * 0xFFFFFFFF) >>> 0;
 }
 
+// Standard normal draw — cosine-form Box–Muller, consuming EXACTLY 2 rng
+// draws every call. The fixed arity is a determinism contract (see MODELSPECS
+// §0): polar/rejection sampling consumes a variable number of draws, which
+// would re-roll every draw after it on replay. Never "optimize" this into a
+// rejection method. The u1 floor guards log(0).
+export function normal(rng) {
+  const u1 = Math.max(1e-12, rng());
+  const u2 = rng();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
 // UTC calendar date string — the canonical key for a day's puzzle. UTC (not
 // local) so "Daily #N" is the same board worldwide at the same instant.
 export function utcDateString(date = new Date()) {

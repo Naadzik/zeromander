@@ -31,8 +31,8 @@ export const METRIC_DESCRIPTIONS = {
   },
   undecided: {
     title: 'Undecided Voters',
-    body: 'Grey areas hold voters who only make up their minds on election night — and whole neighborhoods break together, usually (but not always!) leaning like the area around them. They count toward district population, but cast no votes until the reveal. A district is a TOSSUP (?) when its undecided population is larger than the current leader\'s margin: the election could flip it. Build a cushion, or gamble.',
-    source: 'Game mechanic — models local turnout/persuasion uncertainty, the reason real mapmakers build safety margins instead of maximally efficient 51-49 districts'
+    body: 'Grey areas hold voters who only make up their minds on election night — whole neighborhoods break together, leaning half-way toward the area around them, with one nationwide mood pushing ALL of them the same direction at once (some years the late deciders break the same way everywhere — that is how "safe" maps shatter). They count toward district population but cast no votes until the reveal. A district shows TOSSUP (?) when the leader\'s margin is within what the undecideds could realistically move — half their number; a wider uncalled tier covers the mathematical extreme. Build a cushion, or gamble.',
+    source: 'Late deciders anchored at half strength to local fundamentals (Gelman & King 1993; Fournier et al. 2004; Panagopoulos 2016); the election-wide shock sized so a 2016-Wisconsin-style break (~59–30, AAPOR post-mortem) is a ≈2σ tail'
   },
   populationParity: {
     title: 'Population Parity',

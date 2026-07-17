@@ -61,18 +61,30 @@ export function getSeatPercentage(seats, totalDistricts) {
   return totalDistricts > 0 ? (seats / totalDistricts) * 100 : 0;
 }
 
-// Risk-aware live classification (2-party): a district is a TOSSUP when its
-// undecided (grey) population is at least the current leader's margin — the
-// election-night break could flip it. With no grey on the map this reduces to
-// exact ties only, i.e. today's behavior.
+// Risk-aware live classification (2-party), two tiers of doubt (v2):
+//
+//   TOSSUP   — margin ≤ half the district's undecided population: a flip is
+//     REALISTIC. Under the v2 break model a cluster's lean deviates from its
+//     center by ~±0.25 in typical territory, so half the grey voters moving
+//     one way is the realistic break deviation.
+//   UNCALLED — margin ≤ the full undecided population: a flip is
+//     mathematically possible but would take an extreme break (a cluster
+//     deep in hostile 90/10 turf can realistically reach ~0.8× its grey) —
+//     the AP's no-call spirit: the trailing side could still catch up.
+//
+// With no grey on the map both tiers reduce to exact ties, i.e. the frozen
+// daily behavior. Consumers count `tossup` OR `uncalled` as not-yet-banked —
+// never let 'uncalled' fall into an else-bucket as a safe seat.
 export function classifyDistricts(populationMap, districts, numDistricts) {
   const { partyMap, densityMap } = extractPopulationData(populationMap);
   const rows = [];
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
     const { blue, red, greyPop } = getDistrictVotes(partyMap, densityMap, districts, districtId);
+    const margin = Math.abs(blue - red);
     let status;
     if (blue + red + greyPop === 0) status = 'empty';
-    else if (Math.abs(blue - red) <= greyPop) status = 'tossup';
+    else if (margin <= 0.5 * greyPop) status = 'tossup';
+    else if (margin <= greyPop) status = 'uncalled';
     else status = blue > red ? 'blue' : 'red';
     rows.push({ id: districtId, blue, red, greyPop, status });
   }

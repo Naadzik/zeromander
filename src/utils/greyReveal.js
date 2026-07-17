@@ -1,21 +1,53 @@
 import { extractPopulationData, GREY } from './formatUtils.js';
+import { normal } from './rng.js';
 
-// Election-night resolution of the undecided (grey) population.
+// Election-night resolution of the undecided (grey) population — v2 model.
 //
 // Clustered leans, not per-cell coin flips: each contiguous grey cluster
 // draws ONE lean and its cells resolve around it. Independent per-cell 50/50
 // flips would average out to nothing on any sizable cluster — correlation is
 // what makes a big grey cluster a real risk worth planning around.
 //
-// The lean is CONTEXT-AWARE: centered on the partisanship of the cluster's
-// decided neighborhood (cells within 2 of the cluster), ± up to 25 points of
-// noise, clamped to [10%, 90%]. So undecideds inside a blue city lean blue —
-// but can still badly underperform what the city would have voted without
-// them (the element of surprise), and occasionally overperform it.
+// Each cluster's lean = 50% + W_LOCAL·(neighborhood − 50%) + β + ε:
+//
+//   W_LOCAL = 0.5 — late deciders are anchored to their surroundings at HALF
+//     strength, not fully (v1 used the full neighborhood share). They are
+//     disproportionately weak partisans, "activated" toward local
+//     fundamentals but not all the way (Gelman & King 1993; Fournier et al.
+//     2004; Panagopoulos 2016 — the once-popular "incumbent rule" decayed
+//     after 1992).
+//   β ~ Normal(0, SIGMA_NAT) — drawn ONCE per election: the systematic
+//     "late deciders broke the same way EVERYWHERE" shock. v1 drew every
+//     cluster independently, which made the documented 2016 pattern
+//     (last-week deciders ~59–30 statewide, per the AAPOR post-mortem)
+//     literally impossible: independent clusters average out. σ = 7pp puts
+//     map-wide breaks at mean |break−50| ≈ 5.6pp with a 2016-Wisconsin-scale
+//     break as a ≈2σ tail — "historically, undecideds split about evenly"
+//     stays the central case.
+//   ε ~ Normal(0, SIGMA_CLUSTER) — per-cluster idiosyncrasy (local
+//     candidates, turnout). Combined cluster SD √(.07²+.08²) ≈ .106 — near
+//     the old ±25-uniform's SD (.144) but with normal tails: big breaks
+//     possible, no longer 40%-likely.
+//   Plus COUPLE × the national swing when the caller supplies one (decade
+//     mode): the same environment that moves decided voters moves late
+//     deciders — the 2016 pattern. Deterministic, no draw. The sandbox
+//     reveal passes no swing (its polling-error draw is a separate concept).
+//
+// DRAW ORDER IS FROZEN (fixed arity per unit, MODELSPECS §0): β first
+// (exactly 2 draws, once), then per cluster in row-major flood-fill order
+// exactly 2 draws (ε via cosine Box–Muller), then 1 draw per grey cell.
+// Budget: 2 + 2·clusters + greyCells. Zero draws when no grey exists.
 //
 // Pure: same map + same rng seed → same resolution. Returns a NEW populationMap
 // (original is never mutated) plus per-cluster info for display/animation.
-export function resolveGreyPopulation(populationMap, rng) {
+const W_LOCAL = 0.5;
+const SIGMA_NAT = 0.07;
+const SIGMA_CLUSTER = 0.08;
+const COUPLE = 0.5;
+const LEAN_MIN = 0.05;
+const LEAN_MAX = 0.95;
+
+export function resolveGreyPopulation(populationMap, rng, { nationalSwingPct = 0 } = {}) {
   const { partyMap, densityMap, communityMap } = extractPopulationData(populationMap);
   const gridSize = partyMap.length;
 
@@ -27,6 +59,10 @@ export function resolveGreyPopulation(populationMap, rng) {
     }
   }
   if (!hasGrey) return { revealedMap: populationMap, clusters: [] };
+
+  // The election-wide break shock: one draw for the whole night, shared by
+  // every cluster — plus the coupled share of the national swing (no draw).
+  const beta = normal(rng) * SIGMA_NAT + COUPLE * (nationalSwingPct / 100);
 
   const newParty = partyMap.map(row => [...row]);
 
@@ -75,8 +111,10 @@ export function resolveGreyPopulation(populationMap, rng) {
       }
       const baseline = (nBlue + nRed) > 0 ? nBlue / (nBlue + nRed) : 0.5;
 
-      // The cluster's lean: local context ± real surprise.
-      const lean = Math.min(0.9, Math.max(0.1, baseline + (rng() * 2 - 1) * 0.25));
+      // The cluster's lean: half-strength local anchor + the shared
+      // election-wide shock + this cluster's own surprise.
+      const center = 0.5 + W_LOCAL * (baseline - 0.5);
+      const lean = Math.min(LEAN_MAX, Math.max(LEAN_MIN, center + beta + normal(rng) * SIGMA_CLUSTER));
       let bluePop = 0, redPop = 0;
       for (const { x: cx, y: cy } of cells) {
         const toBlue = rng() < lean;

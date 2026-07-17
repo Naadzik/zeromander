@@ -6,11 +6,7 @@ import { isDistrictConnected } from '../utils/fairMapGenerator';
 import { resolveGreyPopulation } from '../utils/greyReveal';
 import { GREY } from '../utils/formatUtils';
 import { createRng, randomSeed } from '../utils/rng';
-
-// Uniform national swing: ±4%. Local uncertainty is no longer synthetic
-// per-district noise — it's the grey (undecided) population breaking in
-// clusters at the reveal.
-const MAX_SWING_PCT = 4;
+import { drawPollingError, districtElasticity, drawDistrictSwings } from '../utils/swingModel';
 
 function mapHasGrey(populationMap) {
   const party = populationMap?.party;
@@ -87,8 +83,14 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
     let revealed = null;
     let clusters = null;
     if ((electionUncertainty || hasGrey) && !isThreeParty) {
+      // Election night, v2 draw order (fixed arity per unit): polling error
+      // (2 draws, only with the uncertainty toggle) → grey resolution (zero
+      // draws without grey) → district swings (2 per district, uncertainty
+      // only). The sandbox's grey break is NOT coupled to the polling error —
+      // they model different things (late deciders vs. survey miss); the
+      // decade couples its break to the year's real national swing instead.
       const rng = createRng(randomSeed());
-      const swingPct = electionUncertainty ? (rng() * 2 - 1) * MAX_SWING_PCT : 0;
+      const swingPct = electionUncertainty ? drawPollingError(rng) : 0;
       if (hasGrey) {
         const resolution = resolveGreyPopulation(populationMap, rng);
         revealed = resolution.revealedMap;
@@ -96,7 +98,13 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
       } else {
         revealed = populationMap;
       }
-      const swungSeats = calculateSeatsWithSwing(revealed, districts, numDistricts, swingPct);
+      // With the surprise toggle on, districts also respond unevenly: density
+      // elasticity (rural swings harder than the urban core) plus ~2pp of
+      // local noise — the stochastic-uniform-swing tradition.
+      const districtSwings = electionUncertainty
+        ? drawDistrictSwings(districtElasticity(revealed, districts, numDistricts), numDistricts, swingPct, rng)
+        : null;
+      const swungSeats = calculateSeatsWithSwing(revealed, districts, numDistricts, swingPct, districtSwings);
       swing = {
         swingPct,
         seats: swungSeats,
