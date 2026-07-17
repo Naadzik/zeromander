@@ -36,8 +36,8 @@ export const METRIC_DESCRIPTIONS = {
   },
   populationParity: {
     title: 'Population Parity',
-    body: 'Each district must contain roughly the same population (within ±10% of the target) so that every vote carries equal weight.',
-    source: 'One person, one vote — Reynolds v. Sims (1964); ±10% reflects the practical threshold courts applied to state legislative maps'
+    body: 'Districts must hold near-equal numbers of people so every vote carries equal weight — the one rule with no partisan escape hatch. The real test is the OVERALL RANGE: the gap between your biggest and smallest district as a share of the ideal. Over 10%, a state legislative map is presumed unconstitutional; even under 10% you can lose if the deviations systematically serve one party. (Congressional maps face a far stricter near-zero rule — a 0.69% range has been struck down. Zeromander plays by the state-legislative rule.) The per-district ±10% band shown while painting is a guide; the completion gate is the range.',
+    source: 'Reynolds v. Sims (1964); Brown v. Thomson (1983) (the 10% range line); Cox v. Larios (2004) (under-10 is no safe harbor); Karcher v. Daggett (1983) (congressional near-zero)'
   },
   litigationRisk: {
     title: 'Litigation Risk — two courthouses',

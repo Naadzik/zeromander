@@ -156,6 +156,16 @@ export default function GameStats({
     };
   }, [populationMap, districts, numDistricts, playerParty, isThreeParty, fairCompactness, fairSeats, fairGapSeats, fairGapPct]);
 
+  // The completion gate's own quantity, shown unconditionally in Legal
+  // Requirements: the overall RANGE, (max − min)/ideal over drawn districts.
+  // Per-district ±10% marks elsewhere stay necessary-condition aids, but a
+  // map completes on range ≤ 10% — this line is what explains a blocked
+  // lock-in (+9%/−9% districts all show ✓ yet spread 18% fails the gate).
+  const spread = useMemo(
+    () => computePopulationDeviation(populationMap, districts, numDistricts, 10),
+    [populationMap, districts, numDistricts]
+  );
+
   const violations = useMemo(
     () => constraints ? checkConstraintViolations(populationMap, districts, numDistricts, constraints) : null,
     [populationMap, districts, numDistricts, constraints]
@@ -383,6 +393,12 @@ export default function GameStats({
             <div className="constraint-status-row" data-pass={violations.contiguity.pass}>
               <span className="constraint-status-icon">{violations.contiguity.pass ? '✓' : '✗'}</span>
               <span>Contiguity</span>
+            </div>
+            <div className="constraint-status-row" data-pass={spread.rangePct <= 10}>
+              <span className="constraint-status-icon">{spread.rangePct <= 10 ? '✓' : '✗'}</span>
+              <span>
+                Population spread {spread.rangePct}% (biggest − smallest; the 10% line is the courts&apos; limit)
+              </span>
             </div>
             {violations.populationDeviation && (
               <div className="constraint-status-row" data-pass={violations.populationDeviation.pass}>

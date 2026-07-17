@@ -58,6 +58,23 @@ export function run({ assert }) {
   assert.equal('range needs two drawn districts (0 until then, not a phantom spread)',
     computePopulationDeviation(blank.pop, blank.districts, 4, 10).rangePct, 0);
 
+  // THE GATE CHANGE: +9%/−9% districts each pass the old per-district ±10%
+  // test (v1 gate: pass === true) but spread 18% of ideal — presumptively
+  // unconstitutional under the most lenient real rule. The v2 completion
+  // gate (useGameCompletion) reads rangePct ≤ 10 and must block this map.
+  const nineNine = boardWithPops([1090, 910, 1000, 1000]);
+  const devNine = computePopulationDeviation(nineNine.pop, nineNine.districts, 4, 10);
+  assert.ok('+9/−9 map: v1 per-district gate passed it; v2 range gate blocks it',
+    devNine.pass === true && devNine.rangePct > 10,
+    `per-district pass=${devNine.pass} (old gate), rangePct=${devNine.rangePct}% > 10 (new gate blocks)`);
+  // And with the whole board assigned, range ≤ 10 IMPLIES every district
+  // within ±10 — the new gate is strictly tighter, never looser.
+  const tight = boardWithPops([1050, 950, 1000, 1000]);
+  const devTight = computePopulationDeviation(tight.pop, tight.districts, 4, 10);
+  assert.ok('range ≤ 10 implies the old per-district test too (strictly tighter, never looser)',
+    devTight.rangePct <= 10 && devTight.pass === true,
+    `rangePct=${devTight.rangePct}%, per-district pass=${devTight.pass}`);
+
   // ── Target 1: presumptively unconstitutional population spread ──────────
   const t1 = litigationRisk({ rangePct: 12, gapSeats: 0.2, fairGapSeats: 0.2, meanMedian: 1, numDistricts: 10, compactness: 0.4, fairCompactness: 0.4 });
   assert.ok('T1: 12% range → federal ≥ 90 (prima facie invalid, Brown v. Thomson)',

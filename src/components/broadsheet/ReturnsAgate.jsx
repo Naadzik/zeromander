@@ -46,6 +46,14 @@ export default function ReturnsAgate({
   const parity = id => pops[id] === 0 ? 'empty' : pops[id] < lo ? 'light' : pops[id] > hi ? 'heavy' : 'ok';
   const outOfBounds = rows.filter(r => parity(r.id) === 'light' || parity(r.id) === 'heavy').length;
 
+  // The completion gate's own quantity: the overall range, biggest − smallest
+  // over ideal (drawn districts only). Per-district marks above are necessary
+  // but not sufficient — the presses hold until the spread is within 10%.
+  const drawnPops = pops.slice(1).filter(pop => pop > 0);
+  const rangePct = drawnPops.length >= 2
+    ? Math.round((Math.max(...drawnPops) - Math.min(...drawnPops)) / fair * 1000) / 10
+    : 0;
+
   let ourSeats = 0;
   for (const r of rows) {
     if (r.winner === playerParty && r.total > 0) ourSeats++;
@@ -72,6 +80,12 @@ export default function ReturnsAgate({
       <p className="paper-agate-tally">
         Each district must hold <strong>{fmt(lo)}–{fmt(hi)}</strong> residents
         {outOfBounds > 0 && <span className="paper-parity-alert"> · {outOfBounds} outside the bound</span>}
+      </p>
+      <p className="paper-agate-tally">
+        Spread, biggest−smallest: <strong>{rangePct}%</strong> of an equal share
+        {rangePct > 10
+          ? <span className="paper-parity-alert"> · presses hold over 10%</span>
+          : <> · within the courts&apos; 10% line</>}
       </p>
       {/* Visible legend — the hover titles have no touch equivalent. */}
       <p className="paper-agate-foot paper-parity-legend">✓ within bound · ▽ needs residents · ▲ over</p>

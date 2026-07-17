@@ -25,7 +25,7 @@
 3. **Click again**: Removes the county from the district
 4. **Rules**:
    - Districts must stay **contiguous** (connected)
-   - Districts must have **±10% population variance** (shown as range)
+   - District populations must stay near-equal: the map completes when the **spread between the biggest and smallest district is within 10%** of an equal share (the courts' state-legislative line). While painting, each district shows a ±10% band as a guide — a district outside it can never pass the spread test.
    - You can't remove a county if it disconnects the district
 
 ### Winning
@@ -106,7 +106,7 @@ The election-night result — undecideds breaking, plus the national swing if en
 2. **Create "crescent" shaped districts** that connect voter clusters
 3. **Concentrate just enough** of your votes to win districts (not too many!)
 4. **Spread opposition** votes into districts you'll lose anyway
-5. **Check population bars** - stay within the ±10% range
+5. **Check population bars** - keep every district near the equal share; the completion gate is the biggest−smallest spread staying within 10%
 
 ### For Fair Districts
 

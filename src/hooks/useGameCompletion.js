@@ -23,13 +23,20 @@ function mapHasGrey(populationMap) {
   return false;
 }
 
-// The base ±10% completion gate is unaffected by constraint settings — even in
-// soft mode, a violating map must be allowed to complete so it can be struck down.
-// Contiguity, however, is a hard gate: draw-time enforcement should make a
+// The base completion gate is unaffected by constraint settings — even in
+// soft mode, a violating map must be allowed to complete so it can be struck
+// down. v2: the gate is the OVERALL RANGE ≤ 10% — (max − min)/ideal, the
+// actual Brown v. Thomson quantity — replacing the per-district ±10% test.
+// Strictly tighter: with the whole board assigned the mean district equals
+// the ideal, so range ≤ 10% implies every district within ±10%, but not vice
+// versa (a +9%/−9% map passed the old gate at an 18% range — presumptively
+// unconstitutional under the most lenient real rule). The draw-time +10%
+// per-district cap in useMapState remains the correct feasibility bound.
+// Contiguity is a hard gate as before: draw-time enforcement should make a
 // split district impossible, but a map with one must never count as finished.
 function areAllDistrictsValid(populationMap, districts, numDistricts) {
   if (!populationMap || districts.length === 0) return false;
-  if (!computePopulationDeviation(populationMap, districts, numDistricts, 10).pass) return false;
+  if (computePopulationDeviation(populationMap, districts, numDistricts, 10).rangePct > 10) return false;
   const gridSize = districts.length;
   for (let d = 1; d <= numDistricts; d++) {
     if (!isDistrictConnected(districts, d, gridSize)) return false;
