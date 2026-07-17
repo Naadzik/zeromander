@@ -18,6 +18,17 @@ export const PARITY_AID_PCT = 5;
 // The completion gate: the doctrinal overall-range test (Brown v. Thomson).
 export const GATE_RANGE_PCT = 10;
 
+// The draw-time population ceiling for one district — the ENFORCED side of
+// the aid band: painting may never push a district past +PARITY_AID_PCT% of
+// ideal, so the capacity bar can never exceed the range it displays (the
+// mismatch players actually hit: band said 807–892, the old +10% cap allowed
+// 894). One formula, shared by the paint guard and every display surface —
+// they must never disagree again. `thresholdPct` exists for the sandbox's
+// strict-mode override.
+export function drawCapPopulation(totalPop, numDistricts, thresholdPct = PARITY_AID_PCT) {
+  return Math.ceil((totalPop / numDistricts) * (1 + thresholdPct / 100));
+}
+
 // Shared by the real-time draw cap (base 10%, or a stricter hard-mode threshold)
 // and the end-of-game constraint check (any configured thresholdPct).
 //

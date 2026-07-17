@@ -20,7 +20,7 @@
 // districts only) and the strict Bartlett majority for opportunity districts.
 
 import { litigationRisk } from '../../src/utils/litigation.js';
-import { computePopulationDeviation, PARITY_AID_PCT, GATE_RANGE_PCT } from '../../src/utils/legalConstraints.js';
+import { computePopulationDeviation, drawCapPopulation, PARITY_AID_PCT, GATE_RANGE_PCT } from '../../src/utils/legalConstraints.js';
 import { communityRepresentation } from '../../src/utils/community.js';
 import { buildDailyBoards } from '../lib/board.mjs';
 import { generateFairMap } from '../../src/utils/fairMapGenerator.js';
@@ -161,6 +161,18 @@ export function run({ assert }) {
   assert.ok('the aid is sufficient by construction: 2 × aid ≤ gate',
     2 * PARITY_AID_PCT <= GATE_RANGE_PCT,
     `±${PARITY_AID_PCT}% per district ⇒ range ≤ ${2 * PARITY_AID_PCT}% ≤ gate ${GATE_RANGE_PCT}%`);
+
+  // The band's ceiling is ENFORCED at paint time, and the enforcement formula
+  // must equal the displayed one exactly — the band once said 807–892 while
+  // the old +10% cap let the district reach 894 (player-reported).
+  {
+    const totalPop = 17123, districts = 10;
+    const displayedMax = Math.ceil((totalPop / districts) * (1 + PARITY_AID_PCT / 100));
+    assert.equal('draw cap == the displayed band maximum (one formula, no drift)',
+      drawCapPopulation(totalPop, districts), displayedMax);
+    assert.equal('strict-mode override substitutes its own threshold',
+      drawCapPopulation(totalPop, districts, 3), Math.ceil((totalPop / districts) * 1.03));
+  }
 
   for (const date of ANCHORS) {
     const built = buildDailyBoards(date);

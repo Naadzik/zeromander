@@ -5,6 +5,7 @@ import { createRng, randomSeed } from '../utils/rng';
 import { isCountyAdjacentToDistrict } from '../utils/gameLogic';
 import { isDistrictConnected } from '../utils/fairMapGenerator';
 import { extractPopulationData, getCellPopulation, totalPopulation } from '../utils/formatUtils';
+import { PARITY_AID_PCT, drawCapPopulation } from '../utils/legalConstraints';
 import { useUndoRedo } from './useUndoRedo';
 
 function findFirstCell(grid, value) {
@@ -129,10 +130,16 @@ export function useMapState(config, constraints, options = {}) {
       countyPopulation += getCellPopulation(densityMap, y, x);
 
     const combinedPopulation = currentPopulation + countyPopulation;
+    // The draw cap IS the displayed aid band (±5% by default): painting can
+    // never push a district past the range the capacity bar shows — the two
+    // used to disagree (band ±5%, cap +10%), which let a "full" district
+    // quietly take one more county and read over its own printed maximum.
+    // The sandbox's strict hard mode still substitutes its own threshold —
+    // an explicit experiment knob, labeled as replacing the default cap.
     const popConstraint = constraints?.populationDeviation;
     const usingStrictCap = popConstraint?.enabled && popConstraint.mode === 'hard';
-    const deviationPct = usingStrictCap ? popConstraint.thresholdPct : 10;
-    const maxPopulation = Math.ceil((totalPopulation(populationMap) / numDistricts) * (1 + deviationPct / 100));
+    const deviationPct = usingStrictCap ? popConstraint.thresholdPct : PARITY_AID_PCT;
+    const maxPopulation = drawCapPopulation(totalPopulation(populationMap), numDistricts, deviationPct);
 
     const withinCap = combinedPopulation <= maxPopulation;
     const isContiguous = isCountyAdjacentToDistrict(newDistricts, counties, countyId, currentDistrict);
@@ -153,10 +160,12 @@ export function useMapState(config, constraints, options = {}) {
       return newDistricts;
     }
 
-    if (!withinCap && usingStrictCap) {
+    if (!withinCap) {
+      // Always explain a cap rejection — a silently dead tap reads as a bug
+      // (the old base cap rejected without a word; only strict mode spoke).
       rejectionRef.current = {
         reason: 'population-cap',
-        message: `Blocked: District ${currentDistrict} would exceed the ±${deviationPct}% population limit.`
+        message: `Blocked: District ${currentDistrict} is at its population ceiling (max ${maxPopulation.toLocaleString('en-US')}, ±${deviationPct}%). Grow another district, or take counties from this one.`
       };
     }
 

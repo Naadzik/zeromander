@@ -25,7 +25,7 @@
 3. **Click again**: Removes the county from the district
 4. **Rules**:
    - Districts must stay **contiguous** (connected)
-   - District populations must stay near-equal: the map completes when the **spread between the biggest and smallest district is within 10%** of an equal share (the courts' state-legislative line). While painting, each district shows a **±5% band** — keep every district inside it and the spread is guaranteed to pass.
+   - District populations must stay near-equal: the map completes when the **spread between the biggest and smallest district is within 10%** of an equal share (the courts' state-legislative line). Each district shows a **±5% band, and the top of it is enforced** — painting a county that would push a district past +5% is blocked outright, so overfilling is impossible and balancing the small districts is the whole puzzle.
    - You can't remove a county if it disconnects the district
 
 ### Winning

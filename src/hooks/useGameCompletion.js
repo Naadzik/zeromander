@@ -26,8 +26,9 @@ function mapHasGrey(populationMap) {
 // Strictly tighter: with the whole board assigned the mean district equals
 // the ideal, so range ≤ 10% implies every district within ±10%, but not vice
 // versa (a +9%/−9% map passed the old gate at an 18% range — presumptively
-// unconstitutional under the most lenient real rule). The draw-time +10%
-// per-district cap in useMapState remains the correct feasibility bound.
+// unconstitutional under the most lenient real rule). The draw-time cap in
+// useMapState enforces the ±5% aid band, so any paintable full map passes
+// this gate's population test by construction.
 // Contiguity is a hard gate as before: draw-time enforcement should make a
 // split district impossible, but a map with one must never count as finished.
 function areAllDistrictsValid(populationMap, districts, numDistricts) {
