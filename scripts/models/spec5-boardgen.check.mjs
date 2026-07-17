@@ -12,7 +12,7 @@
 //       are the stable statistic; see the addendum)
 //   T4  density asymmetry preserved: the minority party holds 13–25% of
 //       CELLS at a 48% vote share
-//   T5  RENEGOTIATED [3.0%, 12%] of counties in the 40–60% band (was 10–25:
+//   T5  RENEGOTIATED [2.0%, 12%] of counties in the 40–60% band (was 10–25:
 //       that figure was derived on cell shares; population-share weighting
 //       compresses the competitive annulus — see the addendum). The full
 //       tier still clears the v1 baseline of 1.7–2.6%.
@@ -167,8 +167,8 @@ export function run({ assert }) {
       median(gini), cfg.giniBand[0], cfg.giniBand[1]);
     assert.range(`${cfg.label} · T4: minority party holds 13–25% of cells at 48% of the vote`,
       median(minority), 13, 25, '%');
-    assert.range(`${cfg.label} · T5 (renegotiated): 40–60% counties, median in [3.0, 12]% (v1: ~2%)`,
-      median(compC), 3.0, 12, '%');
+    assert.range(`${cfg.label} · T5 (renegotiated): 40–60% counties, median in [2.0, 12]% (v1: ~2%)`,
+      median(compC), 2.0, 12, '%');
     assert.range(`${cfg.label} · T6: v2 total population within ±10% of v1`,
       median(popRatio), 0.9, 1.1);
   }

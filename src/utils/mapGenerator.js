@@ -149,7 +149,13 @@ const V2 = {
   PCITY_BASE: 55,
   PCITY_SPAN: 30,
   PRURAL_BASE: 30,
-  PRURAL_SPAN: 25
+  PRURAL_SPAN: 25,
+  // Corrective share passes never peel blue beyond this normalized distance —
+  // so the countryside keeps the sparse blue specks the party roll gave it
+  // (no county is ever 100% one party). Higher = more competitive suburbs
+  // survive the peel but less deep-rural blue; lower = the reverse. Tuned to
+  // hold both the ~5% rural anchor and the competitive-county target.
+  PROTECT_U: 1.35
 };
 
 // Dev/preview tuning hook for the anchor-comparison harness ONLY: mutates the
@@ -371,6 +377,12 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
     for (let i = cells.length - 1; i >= 0 && blueMid / totalMid > targetShare; i--) {
       const { x, y } = cells[i];
       if (partyMap[y][x] !== 0) continue;
+      // v2: never peel deep-rural blue. Those sparse specks are the "no
+      // countryside is 100% one party" texture; the far-first peel used to
+      // strip them to ~1% (well under the 5% anchor) at underdog splits. They
+      // are low-density, so the suburb ring below absorbs the correction with
+      // negligible extra cells. v1 keeps the original far-first strip (frozen).
+      if (v2 && uOf[y][x] >= V2.PROTECT_U) continue;
       const u = uOf[y][x];
       blueMid -= densityMidAt(u, 0);
       totalMid += densityMidAt(u, 1) - densityMidAt(u, 0);
@@ -408,6 +420,7 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
     for (let i = cells.length - 1; i >= 0 && bluePop / totalPop > targetShare && guard-- > 0; i--) {
       const { x, y } = cells[i];
       if (partyMap[y][x] !== 0) continue;
+      if (v2 && uOf[y][x] >= V2.PROTECT_U) continue; // protect deep-rural blue (see pass 1)
       const oldD = densityMap[y][x];
       const newD = densityAt(uOf[y][x], 1, rng);
       partyMap[y][x] = 1;
