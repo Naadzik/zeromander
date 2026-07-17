@@ -156,28 +156,42 @@ export function run({ assert }) {
       const gauge = litigationRisk({ gapSeats: got.gapSeats, fairGapSeats: got.gapSeats, numDistricts: n });
       assert.ok(
         `${date} ${tier}: neutral map never trips its own EG gauge`,
-        !gauge.drivers.includes('efficiency gap beyond baseline'),
-        `|EG| ${got.gap.toFixed(2)}% (${got.gapSeats.toFixed(2)} seats), drivers: [${gauge.drivers.join(', ') || 'none'}]`
+        !gauge.state.drivers.includes('efficiency gap beyond baseline'),
+        `|EG| ${got.gap.toFixed(2)}% (${got.gapSeats.toFixed(2)} seats), state drivers: [${gauge.state.drivers.join(', ') || 'none'}]`
       );
     }
   }
 
-  // Ramp shape: flags at half a stolen seat beyond baseline, saturates at two.
+  // Ramp shape: flags at half a stolen seat beyond baseline, saturates at
+  // two. The EG carries half the state channel's weight, so fully saturated
+  // it reads state ≥ 45 even with skew and shape silent.
   const rel = (p, f) => litigationRisk({ gapSeats: p, fairGapSeats: f, numDistricts: 10 });
-  assert.ok('EG risk 0 within half a seat of baseline; 1.0 at two beyond',
-    rel(1.6, 1.27).drivers.length === 0 &&
-    !rel(1.6, 1.27).drivers.includes('efficiency gap beyond baseline') &&
-    rel(3.27, 1.27).score >= 60,
-    `Δ0.33 seats → [${rel(1.6, 1.27).drivers.join(', ') || 'none'}]; Δ2.0 seats → score ${rel(3.27, 1.27).score}`);
+  assert.ok('EG risk 0 within half a seat of baseline; saturated at two beyond',
+    rel(1.6, 1.27).state.drivers.length === 0 &&
+    rel(3.27, 1.27).state.drivers.includes('efficiency gap beyond baseline') &&
+    rel(3.27, 1.27).state.score >= 45,
+    `Δ0.33 seats → [${rel(1.6, 1.27).state.drivers.join(', ') || 'none'}]; Δ2.0 seats → state ${rel(3.27, 1.27).state.score}`);
+
+  // The excess is DIRECTIONAL, not raw distance (caught live: a blank board,
+  // gap 0, read as lawsuit exposure because it "differed" from a 1.1-seat
+  // baseline). Fairer-than-geography must never flag; flipping who geography
+  // favors counts at the full engineered magnitude.
+  assert.ok('a map FAIRER than geography (incl. a blank board) never flags',
+    rel(0, -1.27).state.score === 0 && rel(0.8, 1.27).state.score === 0,
+    `gap 0 vs baseline −1.27 → state ${rel(0, -1.27).state.score}; gap 0.8 vs 1.27 → ${rel(0.8, 1.27).state.score}`);
+  assert.ok('flipping who geography favors counts at full magnitude',
+    rel(-2.0, 1.3).state.drivers.includes('efficiency gap beyond baseline') &&
+    rel(-2.0, 1.3).state.score >= 45,
+    `gap −2.0 vs baseline +1.3 → state ${rel(-2.0, 1.3).state.score}`);
 
   // Fallback (no neutral in scope): onset sits just above the measured
   // neutral tail (~1.3 seat-equivalents), so a sandbox mid-game gauge can't
   // flag baseline geography as cheating.
   const fb = (g) => litigationRisk({ gapSeats: g, numDistricts: 10 });
   assert.ok('EG fallback: measured neutral tail (1.27 seats) does not flag',
-    !fb(1.27).drivers.includes('efficiency gap beyond baseline') &&
-    fb(2.5).drivers.includes('efficiency gap beyond baseline'),
-    `1.27 seats → [${fb(1.27).drivers.join(', ') || 'none'}]; 2.5 seats → flagged`);
+    !fb(1.27).state.drivers.includes('efficiency gap beyond baseline') &&
+    fb(2.5).state.drivers.includes('efficiency gap beyond baseline'),
+    `1.27 seats → [${fb(1.27).state.drivers.join(', ') || 'none'}]; 2.5 seats → flagged`);
 
   // ── Target 3 — the audit's headline ────────────────────────────────────
   assert.range(

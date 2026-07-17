@@ -111,14 +111,14 @@ export default function GameStats({
     const dev = computePopulationDeviation(populationMap, districts, numDistricts, 10);
     const community = communityRepresentation(populationMap, districts, numDistricts);
     const litigation = litigationRisk({
+      rangePct: dev.rangePct,
       compactness: core.compactness.average,
       fairCompactness,
       gapSeats: core.gap.gapSeats,
       fairGapSeats,
       meanMedian: core.meanMedian.valid ? core.meanMedian.mm : null,
       numDistricts,
-      worstDeviationPct: dev.worstDeviationPct,
-      communityDilution: community ? community.dilution : null
+      community
     });
 
     return {
@@ -335,12 +335,26 @@ export default function GameStats({
           </div>
         )}
 
+        {/* Two dials, two courthouses — the post-Rucho split IS the lesson:
+            federal courts hear population and VRA claims everywhere; the
+            partisan numbers are state-court-only, however lopsided the map. */}
         {!isThreeParty && stats.litigation && (
           <div className="metric-card">
-            <div className="metric-label">Litigation Risk <MetricInfo metric="litigationRisk" /></div>
-            <div className="metric-value" data-risk={stats.litigation.band}>{stats.litigation.score}</div>
+            <div className="metric-label">Federal Exposure <MetricInfo metric="litigationRisk" /></div>
+            <div className="metric-value" data-risk={stats.litigation.federal.band}>{stats.litigation.federal.score}</div>
             <div className="metric-desc">
-              {stats.litigation.band}{stats.litigation.drivers.length ? ` · ${stats.litigation.drivers[0]}` : ''}
+              {stats.litigation.federal.band}{stats.litigation.federal.drivers.length ? ` · ${stats.litigation.federal.drivers[0]}` : ''}
+            </div>
+          </div>
+        )}
+
+        {!isThreeParty && stats.litigation && (
+          <div className="metric-card">
+            <div className="metric-label">State-Court Exposure <MetricInfo metric="litigationRisk" /></div>
+            <div className="metric-value" data-risk={stats.litigation.state.band}>{stats.litigation.state.score}</div>
+            <div className="metric-desc">
+              {stats.litigation.state.band}{stats.litigation.state.drivers.length ? ` · ${stats.litigation.state.drivers[0]}` : ''}
+              {' — '}no federal court hears these (Rucho, 2019)
             </div>
           </div>
         )}

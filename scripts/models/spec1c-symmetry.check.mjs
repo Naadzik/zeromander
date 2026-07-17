@@ -138,8 +138,8 @@ export function run({ assert }) {
       // sits far below the amber percentile of its own distribution.
       const gauge = litigationRisk({ meanMedian: mm.mm, numDistricts: N });
       assert.ok(`${date} ${tier}: neutral map never trips the skew factor`,
-        !gauge.drivers.includes('skewed district distribution'),
-        `|MM| ${Math.abs(mm.mm).toFixed(2)}pp, drivers: [${gauge.drivers.join(', ') || 'none'}]`);
+        !gauge.state.drivers.includes('skewed district distribution'),
+        `|MM| ${Math.abs(mm.mm).toFixed(2)}pp, state drivers: [${gauge.state.drivers.join(', ') || 'none'}]`);
     }
   }
 
@@ -147,8 +147,8 @@ export function run({ assert }) {
   const below = litigationRisk({ meanMedian: 14.0, numDistricts: 10 });
   const above = litigationRisk({ meanMedian: -21.0, numDistricts: 10 });
   assert.ok('skew below amber does not flag; beyond red flags at full strength (sign-blind)',
-    !below.drivers.includes('skewed district distribution') && above.drivers.includes('skewed district distribution'),
-    `14.0pp → [${below.drivers.join(', ') || 'none'}]; |−21.0|pp → flagged`);
+    !below.state.drivers.includes('skewed district distribution') && above.state.drivers.includes('skewed district distribution'),
+    `14.0pp → [${below.state.drivers.join(', ') || 'none'}]; |−21.0|pp → flagged`);
 
   // ── Calibration pipeline reproduction (first 30 of 220 N=8 samples) ────
   const vals = [];

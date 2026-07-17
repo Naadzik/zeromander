@@ -40,9 +40,9 @@ export const METRIC_DESCRIPTIONS = {
     source: 'One person, one vote — Reynolds v. Sims (1964); ±10% reflects the practical threshold courts applied to state legislative maps'
   },
   litigationRisk: {
-    title: 'Litigation Risk',
-    body: 'A 0–100 estimate of how likely this map is to draw a court challenge, blending the signals lawsuits actually cite: contorted districts (compactness well below what a party-blind map achieves on this board), a large partisan efficiency gap, a skewed district distribution (mean–median beyond what party-blind maps produce), unequal district populations, and — when present — dilution of a protected community. It is a gauge, not a verdict — the game does not yet strike maps down.',
-    source: 'Composite of the metrics above; shape and skew thresholds are calibrated against this game\'s own party-blind maps, the efficiency-gap flag echoes ~7% (Whitford plaintiffs), population echoes the ±10% rule (Reynolds v. Sims)'
+    title: 'Litigation Risk — two courthouses',
+    body: 'Two dials because there are two forums. FEDERAL EXPOSURE covers the claims any federal court will hear, anywhere: unequal district populations (over a 10% spread between biggest and smallest, a state legislative map is presumed unconstitutional — and even under 10% you can lose if the skew serves one party) and, when a protected community exists, vote dilution and over-packing. STATE-COURT EXPOSURE covers the partisan numbers — efficiency gap, skewed districts, contorted shapes, each judged against this board\'s own party-blind maps. Since Rucho v. Common Cause (2019), NO federal court will hear those, however lopsided the map; whether anyone can sue depends on your state\'s constitution — Pennsylvania said yes (2018), North Carolina said yes (2022) then re-heard with new justices and said no (2023). The worst single claim drives each dial: a map dies to one good claim. A gauge, not a verdict.',
+    source: 'Brown v. Thomson (1983); Cox v. Larios (2004); Karcher v. Daggett (1983); Thornburg v. Gingles (1986); Allen v. Milligan (2023); Shaw v. Reno (1993); Cooper v. Harris (2017); Rucho v. Common Cause (2019). The dial weights and bands are our game heuristic; the signals and thresholds come from the cases.'
   },
   communityRepresentation: {
     title: 'Community Representation',

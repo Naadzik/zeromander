@@ -32,7 +32,11 @@ export function communityRepresentation(populationMap, districts, numDistricts) 
   for (let d = 1; d <= numDistricts; d++) {
     if (distTotal[d] === 0) continue;
     const conc = distComm[d] / distTotal[d];
-    if (conc >= 0.5) opportunityDistricts++;          // community can carry this seat
+    // STRICT majority (> 0.5): the Bartlett v. Strickland (2009) threshold —
+    // a community at exactly half cannot elect on its own votes. (Courts use
+    // citizen voting-age population; here everyone votes, so population
+    // stands in for CVAP — a disclosed simplification.)
+    if (conc > 0.5) opportunityDistricts++;
     maxConcentration = Math.max(maxConcentration, conc);
   }
 
@@ -44,5 +48,7 @@ export function communityRepresentation(populationMap, districts, numDistricts) 
     : maxConcentration >= 0.70 ? 'packed'
       : 'cracked';
 
-  return { opportunityDistricts, fairShare, sharePct: Math.round(share * 100), status, dilution };
+  // maxConcentration feeds the Shaw/Cooper over-packing channel: using the
+  // community far beyond a majority is also illegal (strict scrutiny).
+  return { opportunityDistricts, fairShare, sharePct: Math.round(share * 100), status, dilution, maxConcentration };
 }

@@ -88,10 +88,11 @@ export function run({ assert }) {
       // The relative-to-neutral gauge: the neutral map can never be named a
       // lawsuit driver on its own board. This is the property the fixed
       // absolute threshold could not deliver on tail boards.
+      // (state channel: shape enters the partisan claim as evidence)
       const gauge = litigationRisk({ compactness: iq, fairCompactness: iq });
       assert.ok(`${date} ${tier}: neutral map never trips its own shape gauge`,
-        !gauge.drivers.includes('contorted districts'),
-        `IQ ${iq.toFixed(2)}, drivers: [${gauge.drivers.join(', ') || 'none'}]`);
+        !gauge.state.drivers.includes('contorted districts'),
+        `IQ ${iq.toFixed(2)}, state drivers: [${gauge.state.drivers.join(', ') || 'none'}]`);
 
       // Neutral vs itself normalizes to exactly 1.0.
       assert.equal(`${date} ${tier}: CE_neutral/CE_neutral = 1`, ce.cut / ce.cut, 1);
