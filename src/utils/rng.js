@@ -46,6 +46,25 @@ export function dailySeed(date = new Date()) {
 // every already-shared "Daily #N".
 const LAUNCH_UTC = Date.UTC(2026, 6, 1); // 2026-07-01
 
+// The Beta (model v2) era boundary, mirroring the LAUNCH_UTC pattern: daily
+// boards dated on/after this generate under the v2 board model (rank-size
+// cities, Clark-exponential density, continuous political gradient); archive
+// dates before it regenerate under v1 rules FOREVER. Both rule sets freeze
+// the day Beta ships.
+//
+// ⚠️ SET THIS TO THE DEPLOY DATE WHEN THE BETA BRANCH MERGES (a mid-day flip
+// re-rolls a live daily; the value below is the development placeholder).
+// After deploy it is frozen like LAUNCH_UTC — moving it re-rolls every daily
+// on the wrong side of the line.
+export const MODEL_V2_UTC = Date.UTC(2026, 6, 17); // 2026-07-17 (placeholder)
+
+// Which board-model era a daily date belongs to. Challenge links carry the
+// version explicitly (`v=2`; absent = v1) because links have no date.
+export function boardModelVersion(date = new Date()) {
+  const utcMidnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  return utcMidnight >= MODEL_V2_UTC ? 2 : 1;
+}
+
 export function dailyNumber(date = new Date()) {
   const utcMidnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
   return Math.floor((utcMidnight - LAUNCH_UTC) / 86400000) + 1;

@@ -91,8 +91,15 @@ function rebalancePartyShare(partyMap, densityMap, cells, targetPop, partyId, ta
 // non-partisan "community of interest" (VRA layer) — a SEPARATE boolean overlay
 // grid, independent of party. Trailing param + zero rng when 0, so every board
 // that doesn't ask for a community is byte-identical to before.
-export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0, communityPercentage = 0) {
-  return generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage, communityPercentage);
+// `modelVersion`: 1 (default) = the pre-Beta natural model, frozen forever —
+// every archive daily and every challenge link without `v=2` replays it.
+// 2 = the Beta model (rank-size cities, Clark-exponential density, continuous
+// political gradient). BOTH eras share one code path with identical rng draw
+// COUNT and ORDER at every step — only the values differ — so each era's
+// boards are byte-stable under its own rules. The default is v1 on purpose:
+// an unversioned caller must never silently jump eras.
+export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, polarization = 50, rng = Math.random, greyPercentage = 0, communityPercentage = 0, modelVersion = 1) {
+  return generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage, communityPercentage, modelVersion);
 }
 
 // ---------- Natural board model ----------
@@ -109,8 +116,31 @@ export function generatePopulationMap(gridSize, bluePercentage, numCities = 4, p
 
 const NATURAL = {
   WARP_FULL_AT: 8,  // warp amplitude ramps 0→full over this raw distance
-  SIZE_MIN: 0.85,   // per-city footprint multiplier: 0.85–1.15
+  SIZE_MIN: 0.85,   // v1 per-city footprint multiplier: 0.85–1.15
   SIZE_SPAN: 0.3
+};
+
+// ── Model v2 constants (Beta era; see MODEL_V2_UTC in rng.js) ─────────────
+// Frozen once Beta ships — these define every v2-era board.
+const V2 = {
+  // A1 — rank-size city footprints: radius ∝ rank^(-1/2) so population ∝
+  // 1/rank (Auerbach 1913; Zipf 1949; Gabaix 1999). At 2–4 cities this is
+  // "rank-size-consistent heterogeneity", not an asymptotic law (Eeckhout
+  // 2004). S0 = 1.35 keeps the 4-city mean footprint ≈ v1's mean of 1.0.
+  S0: 1.35,
+  JITTER_MIN: 0.90,
+  JITTER_SPAN: 0.20,
+  // A2 — Clark's law (1951): density D(u) = D0·e^(−γu). γ=1.9/D0=31 is the
+  // honest ln-linear fit to v1's own tier midpoints (25/17/11/6) — the v2
+  // look continues v1's, now as a smooth gradient (binding correction: the
+  // spec body's 28·e^(−1.8u) undershot the first three tiers by 10–18%).
+  D0: 31,
+  GAMMA: 1.9,
+  DIM_EDGE: 1.35,   // dim-seam belt extent, unchanged from v1
+  // A3 — the continuous political gradient's ramp width, in units of the
+  // fitted city radius. ⚠️ PLAYTEST DIAL (0.10–0.20): wider = broader
+  // competitive-suburb band. Tuned by feel before the era freezes.
+  W_SUBURB: 0.15
 };
 
 // Multi-octave sine warp; `phase` gives each city its own outline.
@@ -122,7 +152,8 @@ function naturalWarp(x, y, phase) {
 
 // Warped effective distance to the nearest city. Amplitude scales with raw
 // distance, so downtown stays a solid disc while the fringe goes ragged.
-function naturalDist(citySeeds, x, y) {
+// Exported for the calibration harness (zero rng — pure geometry).
+export function naturalDist(citySeeds, x, y) {
   let best = Infinity;
   for (const s of citySeeds) {
     const dx = x - s.x, dy = y - s.y;
@@ -163,20 +194,99 @@ function naturalDensityMid(u, party) {
   return 2;
 }
 
-function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage, communityPercentage = 0) {
+// ── v2 density: Clark's negative-exponential law as a smooth gradient ─────
+// Blue inside the (extended) city: D = clamp(round(D0·e^(−γu)·m), 1, 30) with
+// one multiplicative jitter draw m ∈ [0.8, 1.2] — SAME one-draw arity as
+// every v1 branch, so the raster draw order is era-independent. Red keeps the
+// v1 dim belt (the seam IS the sparse edge); everything beyond 1.35 radii is
+// rural for both parties.
+function naturalDensityV2(u, party, rng) {
+  if (party !== 0) {
+    if (u < V2.DIM_EDGE) return 2 + Math.floor(rng() * 3); // dim belt
+    return 1 + Math.floor(rng() * 3);                       // rural
+  }
+  if (u >= V2.DIM_EDGE) return 1 + Math.floor(rng() * 3);   // rural blue speck
+  const m = V2.JITTER_MIN + (V2.JITTER_SPAN * 2) * rng();   // 0.80–1.20
+  return Math.min(30, Math.max(1, Math.round(V2.D0 * Math.exp(-V2.GAMMA * u) * m)));
+}
+
+function naturalDensityMidV2(u, party) {
+  if (party !== 0) return u < V2.DIM_EDGE ? 3 : 2;
+  if (u >= V2.DIM_EDGE) return 2;
+  return Math.min(30, Math.max(1, Math.round(V2.D0 * Math.exp(-V2.GAMMA * u))));
+}
+
+// ── Political share by normalized distance, per era ───────────────────────
+// v1: a hard step at the fitted edge (city% inside, rural% outside).
+// v2: a continuous logistic ramp — cells stay 100% one party (the rejected-
+// purple legibility decision holds); only the Bernoulli MIXTURE varies, so
+// COUNTY vote shares span a gradient and the suburbs become genuinely
+// competitive territory (the "density divide": Rodden 2019; Wilkinson 2019 —
+// city cores ~85% for the urban party at full polarization, deep rural ~15%,
+// no longer the indefensible 95/5).
+// Returns PERCENT (0–100), monotone non-increasing in u for both eras — the
+// share passes' near/far walk depends on that monotonicity.
+function blueSharePct(u, polarization, modelVersion) {
+  const polarizationFactor = polarization / 100;
+  if (modelVersion >= 2) {
+    const pCity = 55 + 30 * polarizationFactor;
+    const pRural = 30 - 15 * polarizationFactor;
+    const sigma = 1 / (1 + Math.exp(-(1 - u) / V2.W_SUBURB));
+    return pRural + (pCity - pRural) * sigma;
+  }
+  const cityBluePct = 50 + 45 * polarizationFactor;
+  const ruralBluePct = 15 - 10 * polarizationFactor;
+  return u < 1 ? cityBluePct : ruralBluePct;
+}
+
+// The political city boundary, fitted to the target share by bisection on the
+// deterministic density midpoints — ZERO rng draws, shared by the generator
+// and the calibration harness (exported so T2/T5 checks can recover u = d/T
+// without changing the generator's frozen return shape).
+export function fitUrbanEdge(dist, gridSize, bluePercentage, polarization, modelVersion = 1) {
+  const densityMidAt = modelVersion >= 2 ? naturalDensityMidV2 : naturalDensityMid;
+  const expectedShare = (T) => {
+    let blue = 0, total = 0;
+    for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < gridSize; x++) {
+        const u = dist[y][x] / T;
+        const p = blueSharePct(u, polarization, modelVersion) / 100;
+        blue += p * densityMidAt(u, 0);
+        total += p * densityMidAt(u, 0) + (1 - p) * densityMidAt(u, 1);
+      }
+    }
+    return blue / total;
+  };
+  const targetShare = bluePercentage / 100;
+  let lo = 0.5, hi = gridSize * 1.5;
+  for (let it = 0; it < 24; it++) {
+    const mid = (lo + hi) / 2;
+    if (expectedShare(mid) < targetShare) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization, rng, greyPercentage, communityPercentage = 0, modelVersion = 1) {
+  const v2 = modelVersion >= 2;
+  // Per-era density functions — every branch of both consumes exactly one
+  // draw per cell, so the raster draw order is identical across eras.
+  const densityAt = v2 ? naturalDensityV2 : naturalDensity;
+  const densityMidAt = v2 ? naturalDensityMidV2 : naturalDensityMid;
+
   const citySeeds = [];
   for (let i = 0; i < numCities; i++) {
     citySeeds.push({
       x: rng() * gridSize,
       y: rng() * gridSize,
       phase: rng() * Math.PI * 2,
-      size: NATURAL.SIZE_MIN + rng() * NATURAL.SIZE_SPAN
+      // Same 4th draw slot in both eras. v1: uniform 0.85–1.15. v2: rank-size
+      // footprints — city i's radius ∝ (i+1)^(-1/2), so populations scale
+      // ≈ 1/rank (city 0 is the metro), with a ±10% jitter.
+      size: v2
+        ? V2.S0 * Math.pow(i + 1, -0.5) * (V2.JITTER_MIN + V2.JITTER_SPAN * rng())
+        : NATURAL.SIZE_MIN + rng() * NATURAL.SIZE_SPAN
     });
   }
-
-  const polarizationFactor = polarization / 100;
-  const cityBluePct = 50 + 45 * polarizationFactor;
-  const ruralBluePct = 15 - 10 * polarizationFactor;
 
   // Distance field once (no rng).
   const dist = [];
@@ -187,37 +297,21 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
     }
   }
 
-  // Size the political city boundary to the TARGET SHARE up front (binary
-  // search on tier midpoints — zero rng): a fixed radius would overshoot at
-  // underdog splits and the share passes would then peel away exactly the dim
-  // suburb rings that display the density gradient. With T fitted, the passes
-  // only fine-tune the edge. Low targets → compact cities, high targets →
-  // honest sprawl — and since density tiers are u = d/T, the full bright→dim
-  // gradient fits inside the city either way.
-  const expectedShare = (T) => {
-    let blue = 0, total = 0;
-    for (let y = 0; y < gridSize; y++) {
-      for (let x = 0; x < gridSize; x++) {
-        const u = dist[y][x] / T;
-        const p = (u < 1 ? cityBluePct : ruralBluePct) / 100;
-        blue += p * naturalDensityMid(u, 0);
-        total += p * naturalDensityMid(u, 0) + (1 - p) * naturalDensityMid(u, 1);
-      }
-    }
-    return blue / total;
-  };
-  const targetShare = bluePercentage / 100;
-  let urbanEdge = 1; // any positive value works for the 0-city board (u = ∞)
-  if (citySeeds.length) {
-    let lo = 0.5, hi = gridSize * 1.5;
-    for (let it = 0; it < 24; it++) {
-      const mid = (lo + hi) / 2;
-      if (expectedShare(mid) < targetShare) lo = mid; else hi = mid;
-    }
-    urbanEdge = (lo + hi) / 2;
-  }
+  // Size the political city boundary to the TARGET SHARE up front (bisection
+  // on the deterministic midpoints — zero rng; shared with the harness): a
+  // fixed radius would overshoot at underdog splits and the share passes
+  // would then peel away exactly the dim suburb rings that display the
+  // density gradient. With T fitted, the passes only fine-tune the edge.
+  // v2's continuous P(blue|u) is monotone decreasing in u, so the fit and
+  // the passes' near/far walk work unchanged.
+  const urbanEdge = citySeeds.length
+    ? fitUrbanEdge(dist, gridSize, bluePercentage, polarization, modelVersion)
+    : 1; // any positive value works for the 0-city board (u = ∞)
+  const targetShare = bluePercentage / 100; // the share passes' goal
 
-  // Normalized distance field + party as a hard step on the fitted boundary.
+  // Normalized distance field + the party roll (one draw per cell, raster
+  // order, both eras): v1 rolls against the hard step, v2 against the
+  // continuous gradient — cells stay 100% one party either way.
   const partyMap = [];
   const uOf = [];
   for (let y = 0; y < gridSize; y++) {
@@ -226,7 +320,7 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
     for (let x = 0; x < gridSize; x++) {
       const u = dist[y][x] / urbanEdge;
       uOf[y][x] = u;
-      partyMap[y][x] = rng() * 100 < (u < 1 ? cityBluePct : ruralBluePct) ? 0 : 1;
+      partyMap[y][x] = rng() * 100 < blueSharePct(u, polarization, modelVersion) ? 0 : 1;
     }
   }
 
@@ -249,7 +343,7 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
   // Pass 1 — approximate the target share on tier midpoints (no rng spent).
   let blueMid = 0, totalMid = 0;
   for (const { x, y } of cells) {
-    const m = naturalDensityMid(uOf[y][x], partyMap[y][x]);
+    const m = densityMidAt(uOf[y][x], partyMap[y][x]);
     totalMid += m;
     if (partyMap[y][x] === 0) blueMid += m;
   }
@@ -258,8 +352,8 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
       const { x, y } = cells[i];
       if (partyMap[y][x] !== 0) continue;
       const u = uOf[y][x];
-      blueMid -= naturalDensityMid(u, 0);
-      totalMid += naturalDensityMid(u, 1) - naturalDensityMid(u, 0);
+      blueMid -= densityMidAt(u, 0);
+      totalMid += densityMidAt(u, 1) - densityMidAt(u, 0);
       partyMap[y][x] = 1;
     }
   } else {
@@ -267,8 +361,8 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
       const { x, y } = cells[i];
       if (partyMap[y][x] !== 1) continue;
       const u = uOf[y][x];
-      blueMid += naturalDensityMid(u, 0);
-      totalMid += naturalDensityMid(u, 0) - naturalDensityMid(u, 1);
+      blueMid += densityMidAt(u, 0);
+      totalMid += densityMidAt(u, 0) - densityMidAt(u, 1);
       partyMap[y][x] = 0;
     }
   }
@@ -279,7 +373,7 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
   for (let y = 0; y < gridSize; y++) {
     densityMap[y] = [];
     for (let x = 0; x < gridSize; x++) {
-      const v = naturalDensity(uOf[y][x], partyMap[y][x], rng);
+      const v = densityAt(uOf[y][x], partyMap[y][x], rng);
       densityMap[y][x] = v;
       totalPop += v;
       if (partyMap[y][x] === 0) bluePop += v;
@@ -295,7 +389,7 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
       const { x, y } = cells[i];
       if (partyMap[y][x] !== 0) continue;
       const oldD = densityMap[y][x];
-      const newD = naturalDensity(uOf[y][x], 1, rng);
+      const newD = densityAt(uOf[y][x], 1, rng);
       partyMap[y][x] = 1;
       densityMap[y][x] = newD;
       bluePop -= oldD;
@@ -306,7 +400,7 @@ function generateNaturalBoard(gridSize, bluePercentage, numCities, polarization,
       const { x, y } = cells[i];
       if (partyMap[y][x] !== 1) continue;
       const oldD = densityMap[y][x];
-      const newD = naturalDensity(uOf[y][x], 0, rng);
+      const newD = densityAt(uOf[y][x], 0, rng);
       partyMap[y][x] = 0;
       densityMap[y][x] = newD;
       bluePop += newD;

@@ -35,9 +35,9 @@ export function utcDate(dateString) {
 // need (see hashBoard).
 export function buildBoard(tier) {
   const { seed, config } = tier;
-  const { gridSize, bluePercentage, numCities, numCounties, greyPercentage = 0, communityPercentage = 0 } = config;
+  const { gridSize, bluePercentage, numCities, numCounties, greyPercentage = 0, communityPercentage = 0, modelVersion = 1 } = config;
   const rng = createRng(seed);
-  const pop = generatePopulationMap(gridSize, bluePercentage, numCities, 100, rng, greyPercentage, communityPercentage);
+  const pop = generatePopulationMap(gridSize, bluePercentage, numCities, 100, rng, greyPercentage, communityPercentage, modelVersion);
   let counties = generateCounties(gridSize, numCounties, rng);
   counties = rebalanceCountyPopulations(pop, counties, numCounties, 10, rng);
   return { pop, counties, seed, config };

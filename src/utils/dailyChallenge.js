@@ -1,4 +1,4 @@
-import { createRng, dailySeed, dailyNumber, utcDateString } from './rng.js';
+import { createRng, dailySeed, dailyNumber, utcDateString, boardModelVersion } from './rng.js';
 
 // "The Heist" daily challenge — everything about a day's puzzle is a pure
 // function of the UTC date, so every player worldwide gets the same board,
@@ -47,7 +47,12 @@ export function getDailyChallenge(date = new Date()) {
   const bluePercentage = party === 'blue' ? split : 100 - split;
   // No undecided voters in the daily: boards and the "seats stolen"
   // baseline must stay deterministic and comparable across all players.
-  const shared = { numTowns: 3, bluePercentage, greyPercentage: 0, targetSeatPercentage: 50 };
+  // The board-model era rides on the DATE (MODEL_V2_UTC): archive dates
+  // before the Beta cutover regenerate their v1 boards forever.
+  const shared = {
+    numTowns: 3, bluePercentage, greyPercentage: 0, targetSeatPercentage: 50,
+    modelVersion: boardModelVersion(date)
+  };
 
   return {
     date: utcDateString(date),

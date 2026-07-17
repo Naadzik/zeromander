@@ -89,7 +89,11 @@ const LESSON = {
   config: {
     difficulty: 'small', gridSize: 50, numDistricts: 3, numCounties: 15,
     numCities: 2, numTowns: 0, bluePercentage: 40, greyPercentage: 0,
-    targetSeatPercentage: 50, isThreeParty: false
+    targetSeatPercentage: 50, isThreeParty: false,
+    // Pinned to the v1 board model: seed 37 was SOLVER-verified on the v1
+    // generator (blob positions, margins, the coach's story all depend on
+    // it). Re-pick the seed under v2 at the Beta playtest gate, then bump.
+    modelVersion: 1
   }
 };
 
@@ -102,7 +106,10 @@ const COMMUNITY_SCENARIO = {
   config: {
     difficulty: 'medium', gridSize: 80, numDistricts: 10, numCounties: 475,
     numCities: 4, numTowns: 0, bluePercentage: 48, greyPercentage: 0,
-    communityPercentage: 20, targetSeatPercentage: 50, isThreeParty: false
+    communityPercentage: 20, targetSeatPercentage: 50, isThreeParty: false,
+    // Pinned to v1: seed 88 was chosen for its community/district geometry on
+    // the v1 generator. Re-verify (or re-pick) under v2 at the playtest gate.
+    modelVersion: 1
   }
 };
 
@@ -112,7 +119,8 @@ const COMMUNITY_SCENARIO = {
 const DECADE_CONFIG = {
   difficulty: 'medium', gridSize: 80, numDistricts: 10, numCounties: 475,
   numCities: 4, numTowns: 0, bluePercentage: 45, greyPercentage: 0,
-  communityPercentage: 0, targetSeatPercentage: 50, isThreeParty: false
+  communityPercentage: 0, targetSeatPercentage: 50, isThreeParty: false,
+  modelVersion: 2 // fresh board each visit — always the current era
 };
 
 // FNV-1a over the districts grid → a stable per-map fingerprint. Combined with
@@ -195,7 +203,11 @@ export default function GameApp() {
       numCities: int('ct', 4),
       numTowns: int('t', 3),
       party: p.get('p') === 'red' ? 'red' : 'blue',
-      goal: p.has('goal') ? int('goal', null) : null
+      goal: p.has('goal') ? int('goal', null) : null,
+      // Links carry no date, so the board-model era rides explicitly: absent
+      // `v` = a pre-Beta link = v1 forever (a replayed link must reproduce
+      // the exact board the sharer saw — the mandatory cutover-hole fix).
+      modelVersion: p.get('v') === '2' ? 2 : 1
     };
   }, [isDaily, location.search]);
 
@@ -226,7 +238,8 @@ export default function GameApp() {
               greyPercentage: duel.greyPercentage,
               communityPercentage: 0,
               targetSeatPercentage: 50,
-              isThreeParty: false
+              isThreeParty: false,
+              modelVersion: duel.modelVersion
             }
           : sandboxConfig;
 
@@ -481,7 +494,10 @@ export default function GameApp() {
       ct: String(config.numCities),
       t: String(config.numTowns),
       p: effectiveParty,
-      goal: String(stolen)
+      goal: String(stolen),
+      // The board-model era travels with the link — the recipient must get
+      // the sharer's exact board whichever era it came from.
+      v: String(config.modelVersion ?? 1)
     });
     return { stolen, url: `https://naadzik.github.io/zeromander/game?${params.toString()}` };
   }, [isDaily, config, completion.gameComplete, completion.gameStats, fairMap.fairStats, map.boardSeed, effectiveParty]);
