@@ -31,7 +31,7 @@
 }
 
 .body {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   padding: 40px 24px 80px;
 }
@@ -52,7 +52,127 @@
   margin: 0 0 8px;
 }
 
-.block { margin-top: 36px; }
+.claim {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent-blue, #4D9FFF);
+  background: rgba(77, 159, 255, 0.06);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text-secondary, #94A6C2);
+}
+
+/* Jump list — this page is long by design; let people land where they want. */
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 28px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color, rgba(148, 166, 194, 0.25));
+  border-radius: 3px;
+}
+
+.tocLink {
+  font-size: 0.82rem;
+  color: var(--accent-blue, #4D9FFF);
+  text-decoration: none;
+}
+
+.tocLink:hover { text-decoration: underline; }
+
+.block { margin-top: 36px; scroll-margin-top: 16px; }
+
+/* The two registers, visually distinct: plain words read as the game's voice,
+   the fine print as the reviewer-facing definition. */
+.plain {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--text-bright, #fff);
+}
+
+.plainLabel,
+.fineLabel {
+  display: block;
+  font-family: var(--font-ticker, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  color: var(--text-tertiary, #6b7a94);
+  margin-bottom: 4px;
+}
+
+.fine {
+  margin-top: 16px;
+  padding-left: 14px;
+  border-left: 2px solid rgba(148, 166, 194, 0.22);
+}
+
+.finePara {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 10px;
+  color: var(--text-dark, #C9D4E4);
+}
+
+.finePara:last-child { margin-bottom: 0; }
+
+.disclosure {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent-gold, #FFCB5C);
+  background: rgba(255, 203, 92, 0.05);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.sources {
+  margin: 14px 0 0;
+  font-size: 0.76rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--text-tertiary, #6b7a94);
+}
+
+/* Wide content must scroll inside its own box, never the page body. */
+.tableWrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(148, 166, 194, 0.14);
+  line-height: 1.5;
+}
+
+.table thead th {
+  font-family: var(--font-ticker, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--accent-gold, #FFCB5C);
+  border-bottom-color: rgba(148, 166, 194, 0.3);
+}
+
+.table tbody th {
+  font-weight: 700;
+  color: var(--text-bright, #fff);
+  width: 30%;
+}
+
+.table td { color: var(--text-dark, #C9D4E4); }
 
 .h2 {
   font-family: var(--font-ticker, 'Barlow Condensed', sans-serif);
@@ -66,34 +186,6 @@
 }
 
 .prose { font-size: 0.95rem; line-height: 1.6; margin: 0; }
-
-.metrics { margin: 0; }
-
-.metric {
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(148, 166, 194, 0.12);
-}
-
-.metricTitle {
-  font-weight: 700;
-  color: var(--text-bright, #fff);
-  margin-bottom: 4px;
-}
-
-.metricBody {
-  margin: 0 0 6px;
-  font-size: 0.9rem;
-  line-height: 1.55;
-  color: var(--text-dark, #C9D4E4);
-}
-
-.metricSource {
-  margin: 0;
-  font-size: 0.78rem;
-  font-style: italic;
-  color: var(--text-tertiary, #6b7a94);
-  line-height: 1.45;
-}
 
 .links { margin: 0; padding-left: 18px; }
 .links li { font-size: 0.9rem; line-height: 1.7; color: var(--text-dark, #C9D4E4); }
