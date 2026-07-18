@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { buildDailyBoards, hashBoard, utcDate } from './lib/board.mjs';
 import { getDailyChallenge } from '../src/utils/dailyChallenge.js';
-import { utcDateString } from '../src/utils/rng.js';
+import { utcDateString, boardModelVersion } from '../src/utils/rng.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REFS_PATH = join(HERE, 'determinism-refs.json');
@@ -42,7 +42,11 @@ if (args.has('--update')) {
   const boards = {};
   for (const date of Object.keys(refs.boards)) {
     const built = buildDailyBoards(date);
-    const entry = { party: built.party, dayNumber: built.dayNumber };
+    const entry = {
+      party: built.party,
+      dayNumber: built.dayNumber,
+      model: boardModelVersion(utcDate(date)),
+    };
     if (refs.boards[date]._note) entry._note = refs.boards[date]._note;
     for (const tier of TIERS) {
       entry[tier] = { seed: built[tier].seed, ...hashBoard(built[tier]) };
@@ -55,10 +59,11 @@ if (args.has('--update')) {
   process.exit(0);
 }
 
-console.log(bold(`\nDeterminism check ${dim(`(era ${refs.era})`)}\n`));
+console.log(bold('\nDeterminism check\n'));
 
 let failures = 0;
 let checked = 0;
+const perEra = {};
 
 for (const [date, expected] of Object.entries(refs.boards)) {
   const built = buildDailyBoards(date);
@@ -69,6 +74,17 @@ for (const [date, expected] of Object.entries(refs.boards)) {
   const meta = [];
   if (built.party !== expected.party) meta.push(`party ${built.party} != ${expected.party}`);
   if (built.dayNumber !== expected.dayNumber) meta.push(`dayNumber ${built.dayNumber} != ${expected.dayNumber}`);
+
+  // Which ERA a date belongs to is pinned per board, not per file. Anchors on
+  // both sides of MODEL_V2_UTC mean this catches the boundary MOVING — shift
+  // the constant and a date silently changes model, which re-rolls it just as
+  // surely as editing the generator. The hashes below would also fail, but
+  // this names the actual cause instead of leaving "population map changed".
+  const model = boardModelVersion(utcDate(date));
+  if (expected.model != null && model !== expected.model) {
+    meta.push(`model v${model} != v${expected.model} — MODEL_V2_UTC moved?`);
+  }
+
   if (meta.length) {
     failures++;
     console.log(`${red('FAIL')} ${date} ${red(meta.join(', '))}`);
@@ -89,7 +105,8 @@ for (const [date, expected] of Object.entries(refs.boards)) {
     const fullOk = actual.full === want.full;
 
     if (popOk && fullOk) {
-      console.log(`${green('ok')}   ${date} ${tier.padEnd(5)} ${dim(`seed ${want.seed}  ${actual.pop.slice(0, 12)}…`)}`);
+      perEra[model] = (perEra[model] || 0) + 1;
+      console.log(`${green('ok')}   ${date} ${dim(`v${model}`)} ${tier.padEnd(5)} ${dim(`seed ${want.seed}  ${actual.pop.slice(0, 12)}…`)}`);
       continue;
     }
 
@@ -136,4 +153,7 @@ if (failures > 0) {
   process.exit(1);
 }
 
-console.log(green(bold(`\n✓ ${checked} boards byte-identical\n`)));
+const eraSummary = Object.keys(perEra).sort()
+  .map(v => `${perEra[v]} v${v}`)
+  .join(', ');
+console.log(green(bold(`\n✓ ${checked} boards byte-identical (${eraSummary})\n`)));

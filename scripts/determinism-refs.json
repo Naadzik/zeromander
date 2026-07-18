@@ -17,15 +17,21 @@
     "Anchors span both tiers, both assigned parties (party sets bluePercentage, so",
     "blue and red days generate genuinely different boards) and several seeds.",
     "",
-    "era: 'v1' = the pre-Beta model. When Beta ships, v2-era anchors join this file",
-    "alongside these; BOTH eras must stay green forever (v1 boards are what the",
-    "archive and old challenge links replay)."
+    "`model` pins which board-model ERA a date belongs to (1 = pre-Beta, 2 = Beta,",
+    "the boundary being MODEL_V2_UTC in rng.js). It is asserted, not decorative:",
+    "moving that constant re-rolls every date that changes side just as surely as",
+    "editing the generator, and this makes the check name that cause directly.",
+    "BOTH eras must stay green forever — v1 is what the archive and every old",
+    "challenge link replay, v2 is every board from 2026-08-01 on.",
+    "",
+    "2026-07-31 and 2026-08-01 are deliberately adjacent: they are the last v1 day",
+    "and the first v2 day, so they fence the era boundary from both sides."
   ],
-  "era": "v1",
   "boards": {
     "2026-07-02": {
       "party": "red",
       "dayNumber": 2,
+      "model": 1,
       "small": {
         "seed": 2520545227,
         "pop": "b336d37d45c9b0f0c51ae988afffa9dc8a4334a133140db35b1b58afee59e46b",
@@ -40,6 +46,7 @@
     "2026-07-07": {
       "party": "blue",
       "dayNumber": 7,
+      "model": 1,
       "small": {
         "seed": 2503768756,
         "pop": "8391f308619f2bb4306044d9d0a4075c2e546b8707127ea9420f8b8f92b0faac",
@@ -52,9 +59,10 @@
       }
     },
     "2026-07-08": {
-      "_note": "The documented reference board. Its two `pop` hashes are the exact constants recorded in CLAUDE.md's determinism protocol — keep them identical in both places.",
       "party": "red",
       "dayNumber": 8,
+      "model": 1,
+      "_note": "The documented reference board. Its two `pop` hashes are the exact constants recorded in CLAUDE.md's determinism protocol — keep them identical in both places.",
       "small": {
         "seed": 2151442189,
         "pop": "6a58c8fb70c7cdbc32e8cfd070d976c8c71bd01aa165e8206164480cede874d5",
@@ -69,6 +77,7 @@
     "2026-07-16": {
       "party": "red",
       "dayNumber": 16,
+      "model": 1,
       "small": {
         "seed": 2218696810,
         "pop": "39fb736be921101d8bc49dd4cf109134e4d6aacaeb133464de40a3a4fa7b8a46",
@@ -78,6 +87,83 @@
         "seed": 3584015933,
         "pop": "8d3797e91d5c966b39976f0fbb78910e0ac93077ff81d84b09db779bbc3696f9",
         "full": "c6151ea36eeba7b4fb6ac109100830ae0cc6737bfff5c4c6708bce0f69a5147a"
+      }
+    },
+    "2026-07-31": {
+      "party": "blue",
+      "dayNumber": 31,
+      "model": 1,
+      "_note": "The LAST v1 day. Paired with 2026-08-01 to fence the era boundary — if MODEL_V2_UTC ever moves earlier, this one flips to v2 and fails.",
+      "small": {
+        "seed": 322652145,
+        "pop": "5f3cf74a27db87ec5a353bf1ca06a604fd8574fc897d04de3a2d467825d8070f",
+        "full": "5ce35427248cda0b0ca4ec42de289db738b0e11ad47c8f58efadfb216f14419b"
+      },
+      "full": {
+        "seed": 1117411750,
+        "pop": "594322131de1dbac6d29d2e1e1267d7e547ea91ec5bd70d9d83d100ac7a3a17c",
+        "full": "7396290059bf5124654b7c12090322c4840926e91d961f63036035aaa496085d"
+      }
+    },
+    "2026-08-01": {
+      "party": "red",
+      "dayNumber": 32,
+      "model": 2,
+      "_note": "The FIRST v2 day — the Beta cutover itself. If MODEL_V2_UTC moves later, this flips back to v1 and fails.",
+      "small": {
+        "seed": 362842421,
+        "pop": "a76ebdab6a93117afcace5ab3152620a50accb19c2f938c6a30a53c32ef074d7",
+        "full": "88e3cc3baa633704b9d0087a0758851d9a64e9ca59c98d17110c632a6337ec1e"
+      },
+      "full": {
+        "seed": 1140954978,
+        "pop": "dbeacc589fef2c722fcc52120cb0dda56daac68e04daca8fe3debfe75b22469b",
+        "full": "fcee87dc0e40131a25b9c7b6f994b5751b763eaba68bf3bc9a7fd775dd615a5a"
+      }
+    },
+    "2026-08-02": {
+      "party": "blue",
+      "dayNumber": 33,
+      "model": 2,
+      "small": {
+        "seed": 312511384,
+        "pop": "2b179c701684fb110236fd98591780c336af511a173987f9ebb0929beec8a8d0",
+        "full": "e4d3d9f8944c3a8efacb0e6f50c893aa50ce728ad45623b560a27f740f72d4dd"
+      },
+      "full": {
+        "seed": 1124177359,
+        "pop": "9b9f4fe289616215cef0fd3038866e3d19584d55182e9304d71a78b2408e08fc",
+        "full": "a87d23d9c0edfb9492aa60207c852ffa8743e19b877f97cbac8b499007acf6a1"
+      }
+    },
+    "2026-08-09": {
+      "party": "red",
+      "dayNumber": 40,
+      "model": 2,
+      "small": {
+        "seed": 497073581,
+        "pop": "297b22d69516601f3946d506e50f45e0004c199441e90f0c637b7d8afc27f2f4",
+        "full": "7260e96cb303528db7fde04ab012c488ca20b254b9ebe8f368aca257a3ae6354"
+      },
+      "full": {
+        "seed": 1275175930,
+        "pop": "cca78fbcd341191012fcff3a0d9271f19d7bff0469a71f1f7937591ceea494c2",
+        "full": "b7bb502d1846bbea6d2d1214943444efed8b7c920967bb79f3ec0c27dae100eb"
+      }
+    },
+    "2026-09-01": {
+      "party": "blue",
+      "dayNumber": 63,
+      "model": 2,
+      "small": {
+        "seed": 1449934588,
+        "pop": "10c5a0e0040100c367d77453a1a8b617e9250f0ab6a9aad13e7b48d0eded4bac",
+        "full": "79d24e2362e472afbc5e6a6e2002bcb9e4b11be88685f1e142363563985610fb"
+      },
+      "full": {
+        "seed": 130883755,
+        "pop": "fc8df6eab9ace040a7b4bb03df38a53b1dc655102f54493f27c999096dbed890",
+        "full": "964a950bb95acff6905420b9dd38ebbc86ef07969d00e15b6a7179e74deb0468"
       }
     }
   }

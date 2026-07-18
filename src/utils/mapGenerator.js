@@ -158,16 +158,13 @@ const V2 = {
   PROTECT_U: 1.35
 };
 
-// Dev/preview tuning hook for the anchor-comparison harness ONLY: mutates the
-// v2 dials in place so a variant gallery can render the REAL generator under
-// candidate anchors instead of a drifting reimplementation. Never call this
-// from app code — a tuned generator produces boards no other player can
-// reproduce. Returns a snapshot so the harness can restore.
-export function __tuneV2(overrides = {}) {
-  const before = { ...V2 };
-  Object.assign(V2, overrides);
-  return before;
-}
+// (A `__tuneV2` hook lived here during development — it mutated the dials
+// above in place so a side-by-side gallery could preview candidate anchors
+// against the REAL generator. It went out with the gallery at the Beta
+// freeze: the anchors above are now frozen, and a live export that rewrites
+// them is a loaded gun in a module whose whole contract is that every player
+// generates the same board. Restore both from git history if the anchors are
+// ever reopened.)
 
 // Multi-octave sine warp; `phase` gives each city its own outline.
 function naturalWarp(x, y, phase) {
