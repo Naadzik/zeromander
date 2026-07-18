@@ -80,20 +80,38 @@ function CollapsiblePanel({ title, side, collapsed, onToggle, children }) {
 const LESSON = {
   // Kept deliberately COARSE — one tap claims a whole county, so ~15 counties
   // means the whole heist is ~15 taps and finishes well inside 60 seconds (the
-  // old 90-county board took far longer and lost first-comers). Seed 37 chosen
-  // (solver-verified) so the taught pack+crack wins 2/3 with CONTIGUOUS,
-  // population-balanced districts and COMFORTABLE margins: two clear blue blobs
-  // (left + bottom-centre) each hold ~59–74% once carved, so a rough split
-  // still wins — a beginner can't easily fumble it.
-  seed: 37,
+  // old 90-county board took far longer and lost first-comers).
+  //
+  // Seed 542 is solver-verified against the v2 model on FOUR conditions, all
+  // of which a lesson seed has to meet at once:
+  //   1. The neutral ENSEMBLE median gives Urban Union exactly 1 seat — and
+  //      unanimously (all 25 members say 1), so "you stole a seat" is
+  //      unambiguous. This is the condition that matters most and the easiest
+  //      to get wrong: a seed can win on every legal map simply because its
+  //      geography already hands blue 2 seats, in which case the heist steals
+  //      nothing and the coach's claim is false. Checking the ensemble, not
+  //      the single pinned fair map, matters too — they disagree (one
+  //      candidate's pinned map said 1 while its ensemble median said 2, which
+  //      would have displayed "0 seats stolen").
+  //   2. A legal 2-seat map exists, and plenty of them: 18 of the 24 legal
+  //      partitions win. Legal here means BOTH the +5% per-district paint cap
+  //      and the ≤10% overall-range gate — under v2 the cap is enforced at
+  //      paint time, which is what broke the old seed.
+  //   3. Simulated beginners following the coach literally (pack the reddest,
+  //      then split the blue, with a sloppiness knob) win 88.6% of runs and
+  //      LOSE 0.0% — the remaining runs hit the cap or strand a district,
+  //      which the game blocks and the player simply corrects.
+  //   4. Comfortable margins (55.7% / 61.6%) and two legible blue cities in
+  //      red countryside, so a rough split still wins.
+  //
+  // The previous seed 37 does not survive the v2 model: it has 14 legal
+  // partitions and NONE of them win 2/3, so the lesson was unwinnable.
+  seed: 542,
   config: {
     difficulty: 'small', gridSize: 50, numDistricts: 3, numCounties: 15,
     numCities: 2, numTowns: 0, bluePercentage: 40, greyPercentage: 0,
     targetSeatPercentage: 50, isThreeParty: false,
-    // Pinned to the v1 board model: seed 37 was SOLVER-verified on the v1
-    // generator (blob positions, margins, the coach's story all depend on
-    // it). Re-pick the seed under v2 at the Beta playtest gate, then bump.
-    modelVersion: 1
+    modelVersion: 2
   }
 };
 
@@ -107,9 +125,15 @@ const COMMUNITY_SCENARIO = {
     difficulty: 'medium', gridSize: 80, numDistricts: 10, numCounties: 475,
     numCities: 4, numTowns: 0, bluePercentage: 48, greyPercentage: 0,
     communityPercentage: 20, targetSeatPercentage: 50, isThreeParty: false,
-    // Pinned to v1: seed 88 was chosen for its community/district geometry on
-    // the v1 generator. Re-verify (or re-pick) under v2 at the playtest gate.
-    modelVersion: 1
+    // Re-verified under v2 (seed kept — the geometry survived the model
+    // change). The scenario only teaches its trilemma if the community's fair
+    // share is actually DRAWABLE; litigation.js's channel B leans on that
+    // explicitly ("feasible share = fairShare ... only because the community
+    // is compact"). Under v2 the overlay is still two compact blobs at exactly
+    // 20% of population (fairShare 2), and a constructive solve reaches 2/2
+    // opportunity districts at −2.8% and +0.2% of ideal — inside the paint cap,
+    // and clear of the 70% Shaw/Cooper over-packing ceiling.
+    modelVersion: 2
   }
 };
 
