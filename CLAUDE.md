@@ -52,10 +52,17 @@ map" score must be comparable. A whole category of changes can silently break
 this. **Frozen (do not casually change):**
 
 - `LAUNCH_UTC` in `rng.js` (2026-07-01) — defines the "Daily #N" numbering.
+- `MODEL_V2_UTC` in `rng.js` (2026-08-01) — the board-model era boundary.
+  Moving it re-rolls every date that changes side, in either direction.
 - The seeded generation path: `mapGenerator.js`, `countyGenerator.js`,
   `fairMapGenerator.js`. The **RNG draw order is frozen** (city seeds → party
   roll → densities → corrective flips → grey blobs); reordering re-rolls every
-  past daily board.
+  past daily board. Both model eras share this order — a v2-only change must
+  not move a draw, or it re-rolls v1 too.
+- The neutral **ensemble**: `ENSEMBLE_INCREMENT`, `MAX_TRIES`, the seed
+  schedule, the acceptance rule, the lower-median definition and the ghost
+  selection in `neutralEnsemble.js`. "Seats stolen" is measured against the
+  median of 25 neutral maps — change any of these and every score shifts.
 - The neutral/"fair" map algorithm + its seed. The fair-map seed is pinned to
   the board seed via `fairSeedFrom(seed)` (daily AND sandbox/challenge) so
   "seats stolen" is comparable — don't unpin it.
@@ -67,7 +74,8 @@ this. **Frozen (do not casually change):**
 `npm run check:determinism`. It rebuilds frozen reference boards and fails if a
 byte moved; CI runs it on every push and it gates the deploy, so a board-rerolling
 change cannot reach the live site. Anchors live in `scripts/determinism-refs.json`
-(both tiers, both assigned parties, several seeds), and each board carries two
+(both eras, both tiers, both assigned parties, several seeds; each entry pins its
+`model`, and 2026-07-31/2026-08-01 fence the era boundary), and each board carries two
 hashes: `pop` = `sha256(populationMap)` — the documented protocol hash, still
 `SMALL 6a58c8fb70c7cdbc32e8cfd070d976c8c71bd01aa165e8206164480cede874d5` /
 `FULL 253ba49aec76db12dc35b9f097f2512dc2fd36bbe1ff9871c81205eee2543b84` for
@@ -92,17 +100,39 @@ silently in code.
 `generatePopulationMap`). `communityPercentage` is force-set to 0 in every
 daily/lesson/challenge branch so a sandbox toggle can't leak into a frozen board.
 
-## The board generator (the "natural" model)
+## The board generator — TWO frozen eras (v1 and v2/Beta)
 
-`generatePopulationMap` in `mapGenerator.js` is the unconditional 2-party board
-generator for every board (daily both tiers, sandbox, challenge, lesson). Its
-"natural" model: warped non-round cities, a **hard party step** (every cell is
-solidly one party — no purple/competitive suburbs, deliberately), with the
-gradient carried by **density**, not party. Cities feather into rural red via a
-"dim seam" (sparse density at the city edge), and two share passes land the
-displayed vote share within ~0.14pp of target (the UI says "X% of the vote", so
-it must stay honest). `generatePopulationMap3Party` shares only the *look* and
-keeps its own three-way model (sandbox-only, nothing frozen).
+`generatePopulationMap` in `mapGenerator.js` is the 2-party board generator for
+every board (daily both tiers, sandbox, challenge, lesson, scenarios). It takes
+a trailing `modelVersion` argument, **defaulting to 1 deliberately**, and one
+code path serves both eras with an identical rng draw count and order.
+
+- **Which era a board uses:** dailies from `MODEL_V2_UTC` (2026-08-01) onward
+  are v2; every earlier date stays v1 **forever** (that is what the archive and
+  old challenge links replay). `boardModelVersion(date)` decides. Challenge
+  links carry it explicitly as `v=2` (absent = v1) because a link has no date.
+  Sandbox and decade are always v2; the lesson and community scenario pin
+  `modelVersion: 2` in their configs.
+- **v1 (pre-Beta):** warped non-round cities and a **hard party step** — every
+  cell solidly one party, no competitive suburbs — with the gradient carried by
+  **density**, not party. Cities feather into rural red via a "dim seam".
+- **v2 (Beta):** rank-size city footprints, Clark-exponential density
+  (`D₀ 31`, `γ 1.9`), and a **continuous logistic political gradient**, so
+  competitive suburbs now exist as a cell mixture. Corrective share passes never
+  peel blue past `PROTECT_U` — the countryside keeps sparse blue specks, so no
+  county is ever 100% one party. The V2 dials are a frozen constants block; they
+  were chosen by eye against rendered boards and are **not** free parameters.
+
+Both eras run two share passes that land the displayed vote share within
+~0.14pp of target (the UI says "X% of the vote", so it must stay honest).
+`generatePopulationMap3Party` shares only the *look* and keeps its own
+three-way model (sandbox-only, nothing frozen).
+
+⚠️ The two eras are both live and both anchored. A change that "simplifies" the
+v1 path re-rolls every archived daily; a change to the v2 path re-rolls every
+daily from August 2026 on. `npm run check:determinism` guards both (18 boards,
+10 v1 + 8 v2) and additionally asserts each date's era, so moving
+`MODEL_V2_UTC` fails loudly rather than silently re-rolling boards.
 
 Insight that cost real time: **numeric tests can pass while the board looks
 wrong.** Always eyeball a rendered board, not just metrics. Feather with density,
