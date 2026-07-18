@@ -1,0 +1,104 @@
+/* The Beta cutover notice on the landing page (broadcast + print).
+   Token-driven throughout so the print edition inverts it for free — the
+   only edition that needs its own markup is the Broadsheet, which speaks in
+   the paper's voice and lives in broadsheet.css. */
+
+.beta-countdown {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-lg, 16px);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-md, 12px) var(--spacing-lg, 16px);
+  border: 1px solid var(--border-color, rgba(148, 166, 194, 0.25));
+  border-left: 3px solid var(--accent-gold, #FFCB5C);
+  border-radius: 3px;
+  background: rgba(255, 203, 92, 0.05);
+}
+
+/* The number, set like a scoreboard readout rather than body copy. */
+.beta-countdown__badge {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  border-radius: 3px;
+  background: var(--accent-gold, #FFCB5C);
+  color: var(--navy-950, #0B1424);
+}
+
+.beta-countdown__value {
+  font-family: var(--font-ticker, 'Barlow Condensed', sans-serif);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.beta-countdown__unit {
+  font-family: var(--font-ticker, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.62rem;
+  opacity: 0.75;
+}
+
+.beta-countdown__body { min-width: 0; }
+
+.beta-countdown__hed {
+  margin: 0 0 4px;
+  font-family: var(--font-ticker, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.92rem;
+  color: var(--accent-gold, #FFCB5C);
+}
+
+.beta-countdown__dek {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #94A6C2);
+}
+
+.beta-countdown__link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: var(--accent-blue, #4D9FFF);
+  text-decoration: none;
+}
+
+.beta-countdown__link:hover { text-decoration: underline; }
+
+/* On phones the badge sits above the copy — side by side would squeeze the
+   dek to a column two words wide.
+   Kept deliberately TIGHT here: this is a temporary notice sitting directly
+   above the primary "play today's board" CTA, so every pixel it takes is a
+   pixel of the actual game pushed below the fold. Smaller type, less padding,
+   and the badge on one line. */
+@media (max-width: 600px) {
+  .beta-countdown {
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  }
+
+  .beta-countdown__badge {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+    align-self: flex-start;
+    min-width: 0;
+    padding: 3px 8px;
+  }
+
+  .beta-countdown__value { font-size: 1rem; }
+  .beta-countdown__unit { font-size: 0.58rem; }
+  .beta-countdown__hed { font-size: 0.82rem; }
+  .beta-countdown__dek { font-size: 0.78rem; line-height: 1.45; }
+  .beta-countdown__link { font-size: 0.78rem; }
+}

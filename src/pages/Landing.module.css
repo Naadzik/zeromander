@@ -99,6 +99,16 @@
 }
 
 /* Hero: copy left, today's real board right */
+/* Sits between the masthead and the hero. Collapses to nothing after the
+   cutover — BetaCountdown returns null, and an empty strip must not leave a
+   band of padding behind, hence :empty. */
+.betaStrip {
+  padding: var(--spacing-lg) var(--spacing-lg) 0;
+  background: var(--navy-950);
+}
+
+.betaStrip:empty { display: none; }
+
 .hero {
   background:
     linear-gradient(115deg, var(--party-tint-blue) 0 46%, var(--party-tint-red) 54% 100%),

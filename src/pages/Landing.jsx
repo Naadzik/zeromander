@@ -6,6 +6,7 @@ import { getDailyChallenge } from '../utils/dailyChallenge'
 import { hasPlayedToday, currentStreak, bestStreak } from '../utils/dailyHistory'
 import { useUtcMidnightCountdown } from '../hooks/useUtcMidnightCountdown'
 import BroadsheetLanding from '../components/broadsheet/BroadsheetLanding'
+import BetaCountdown from '../components/BetaCountdown'
 import Icon from '../components/ui/Icons'
 import styles from './Landing.module.css'
 
@@ -75,6 +76,11 @@ export default function Landing() {
           </div>
         </div>
       </header>
+
+      {/* Beta cutover notice — self-retiring on the cutover date */}
+      <section className={styles.betaStrip}>
+        <BetaCountdown />
+      </section>
 
       {/* Hero: editorial split — copy left, today's real board right */}
       <section className={styles.hero}>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import DailySpecimen from '../DailySpecimen'
 import Icon from '../ui/Icons'
 import { useTheme, NEXT_LABEL } from '../../hooks/useTheme'
+import { useBetaCountdown, BETA_DATE_LABEL } from '../../hooks/useBetaCountdown'
 import '../../styles/broadsheet.css'
 
 // The Broadsheet edition's front page — a newspaper cover, not a marketing
@@ -10,6 +11,7 @@ import '../../styles/broadsheet.css'
 // Pure presentation; Landing.jsx owns the daily data, redirect, and streak.
 export default function BroadsheetLanding({ daily, dailyCta, dailyHref, lessonDone, streak, best, countdown }) {
   const { edition, cycleEdition } = useTheme();
+  const beta = useBetaCountdown();
   const dateline = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
@@ -31,6 +33,22 @@ export default function BroadsheetLanding({ daily, dailyCta, dailyHref, lessonDo
           </span>
         </div>
       </header>
+
+      {/* The cutover notice, set as a front-page stop-press rule. Same facts
+          as BetaCountdown, in the paper's voice; vanishes on the day. */}
+      {beta.active && (
+        <aside className="paper-front__bulletin">
+          <span className="paper-front__bulletin-slug">Stop Press</span>
+          <p className="paper-front__bulletin-body">
+            <strong>New presses arrive {BETA_DATE_LABEL} — in {beta.label}.</strong>{' '}
+            From that morning the maps are drawn on a new model: cities that thin out the way
+            real ones do, a countryside that isn't uniformly one colour, and a fairness
+            baseline struck from twenty-five neutral maps rather than one. Every back number
+            prints exactly as it did — no streak, no filed result and no shared link is
+            disturbed. <Link to="/methodology" className="paper-agate-link">See the full notice →</Link>
+          </p>
+        </aside>
+      )}
 
       {/* Lead story: headline + the day's real board as the front-page engraving */}
       <section className="paper-front__lead">

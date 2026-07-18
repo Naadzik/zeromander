@@ -631,6 +631,41 @@ html[data-edition='paper'] .paper-front__plate {
   border: 1px solid var(--text-bright);
 }
 
+/* Stop-press bulletin: the Beta cutover notice, set as a boxed late-news rule
+   above the lead. Double top-and-bottom rules are the paper's way of saying
+   "this was set after the page was made up". Self-retires with the component. */
+html[data-edition='paper'] .paper-front__bulletin {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-top: 3px double var(--text-bright);
+  border-bottom: 3px double var(--text-bright);
+}
+html[data-edition='paper'] .paper-front__bulletin-slug {
+  flex: 0 0 auto;
+  font-family: var(--paper-display, var(--font-ticker));
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border: 1px solid var(--text-bright);
+  white-space: nowrap;
+}
+html[data-edition='paper'] .paper-front__bulletin-body {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+@media (max-width: 600px) {
+  html[data-edition='paper'] .paper-front__bulletin {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  html[data-edition='paper'] .paper-front__bulletin-slug { align-self: flex-start; }
+}
+
 /* Method (three ruled columns), section index, and fine-print prose. */
 html[data-edition='paper'] .paper-front__method,
 html[data-edition='paper'] .paper-front__inside,
