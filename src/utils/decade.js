@@ -40,15 +40,35 @@ function districtWinners(populationMap, districts, numDistricts, swingPct, distr
 // all rules (Chen & Rodden, "Unintentional Gerrymandering," QJPS 2013): a party
 // can gain vote share over the decade yet lose ground in seats. Pure: same map
 // + same step → same result. `step` = elections since the map was drawn.
-const DRIFT_RATE = 0.035;  // ~7% peak metro gain over a 4-step (decade) run
-const DRIFT_PEAK = 1.6;    // growth peaks near 1.6× mean density (the suburbs)
-const DRIFT_FLOOR = 0.8;   // below 0.8× mean (remote rural) the trend is decline
+// v2 drift constants. DRIFT_RATE reduced 0.035 → 0.030 (Spec 7 B1): the
+// suburb-vs-deep-rural spread per decade eases ~14.5pp → ~12.4pp, nearer the
+// observed ~11pp (big-metro suburbs +10.2% [Frey/Brookings] vs nonmetro −0.6%
+// [USDA ERS], 2010–2020). Renormalization conserves the total, so only the
+// RELATIVE spread matters.
+const DRIFT_RATE = 0.030;
+// The hump's SCALE (renamed from DRIFT_PEAK — it is not the peak). Growth
+// peaks at r* = FLOOR + √(FLOOR² + SCALE²) = 0.8 + √(0.64 + 2.56) = 2.59×
+// mean — the inner-suburban ring (on a mean-3.4 board, density ~9), not the
+// 1.6 the old name implied.
+const DRIFT_SCALE = 1.6;
+const DRIFT_FLOOR = 0.8;   // below 0.8× mean (remote rural) the interior trend is decline
+
+// Edge expansion (Spec 7 B2 — the extensive margin): a fringe cell that would
+// normally DECLINE instead SPRAWLS if it sits beside existing development, so
+// the urbanized footprint grows outward, not just denser inside. Grounded in
+// spatially-correlated growth (Makse/Havlin/Stanley 1995), SLEUTH's dominant
+// edge-spread mode (Clarke/Hoppen/Gaydos 1997), and adjacency-dominated US
+// growth (Burchfield et al. 2006). Party of a sprawling cell is UNCHANGED
+// (rng-free) — disclosed simplification: real suburban newcomers diversify
+// composition (Frey), holding party fixed mechanically favors the metro party.
+const EDGE_NBR = 2.0;      // a neighbor at ≥2× mean ≈ suburb-grade (density ≥ ~7)
+const EDGE_RATE = 0.025;   // +10%/decade at the fringe — outpaces the ~7% interior peak
 
 // Per-step relative growth for a cell at density-to-mean ratio r — a rational
-// "hump": negative below the rural floor, peaking at the suburban ring, easing
-// for the densest core.
+// "hump": negative below the rural floor, peaking at the inner-suburban ring,
+// easing for the densest core.
 function growthPerStep(r) {
-  return DRIFT_RATE * (r - DRIFT_FLOOR) / (1 + (r / DRIFT_PEAK) ** 2);
+  return DRIFT_RATE * (r - DRIFT_FLOOR) / (1 + (r / DRIFT_SCALE) ** 2);
 }
 
 export function applyDrift(populationMap, step) {
@@ -62,14 +82,31 @@ export function applyDrift(populationMap, step) {
   const mean = count > 0 ? sum / count : 0;
   if (mean <= 0) return populationMap;
 
+  // Highest-density orthogonal neighbor of each cell, from the BASELINE map —
+  // the "is there development next door?" test for edge expansion. Computed
+  // once, before any cell drifts, so growth reads only the original board.
+  const nbrMax = (x, y) => {
+    let m = 0;
+    if (x > 0) m = Math.max(m, densityMap[y][x - 1]);
+    if (x < densityMap[y].length - 1) m = Math.max(m, densityMap[y][x + 1]);
+    if (y > 0) m = Math.max(m, densityMap[y - 1][x]);
+    if (y < gridSize - 1) m = Math.max(m, densityMap[y + 1][x]);
+    return m;
+  };
+
   const drifted = densityMap.map(row => [...row]);
   let origTotal = 0, newTotal = 0;
   for (let y = 0; y < gridSize; y++)
     for (let x = 0; x < densityMap[y].length; x++) {
       const d = densityMap[y][x];
+      const r = d / mean;
       origTotal += d;
-      // Clamped so no cell can invert or run away over the decade.
-      const factor = clamp(1 + step * growthPerStep(d / mean), 0.1, 3);
+      // A declining fringe cell (r < FLOOR) beside development sprawls instead;
+      // otherwise the interior hump. Linear accumulation (1 + step·g) differs
+      // from compounding (1+g)^step by <0.3pp at these magnitudes — kept.
+      const isSprawlFringe = r < DRIFT_FLOOR && nbrMax(x, y) >= EDGE_NBR * mean;
+      const growth = isSprawlFringe ? EDGE_RATE : growthPerStep(r);
+      const factor = clamp(1 + step * growth, 0.1, 3);
       drifted[y][x] = d * factor;
       newTotal += drifted[y][x];
     }
