@@ -755,7 +755,12 @@
    These blocks only ever shrink the chrome and the fixed hero; the body
    keeps whatever is left, so the result is always the biggest thing on
    screen. Keep a vh fallback before each dvh (project mobile invariant). */
-@media (max-height: 760px), (max-width: 600px) {
+/* 900, not 760. The first attempt used 760 and missed the screen it was
+   reported from: a 1509x815 laptop sat just above the line and got the full
+   chrome — 167px header, 251px footer, 47% of the result visible. 815 is an
+   ordinary laptop height, not an edge case. At 900 the compaction covers
+   laptops and leaves only genuinely tall monitors (1080p and up) roomy. */
+@media (max-height: 900px), (max-width: 600px) {
   .modal-content {
     max-height: 94vh;
     max-height: 94dvh;
@@ -806,22 +811,26 @@
   }
 }
 
-/* Short only — these buy back HEIGHT by spending WIDTH, so they apply when the
-   screen is short but still wide. On a narrow phone the opposite is true: a
-   full-width primary and a link on its own line are the right pattern there. */
-@media (max-height: 760px) and (min-width: 601px) {
-  .modal-methodology-link {
-    flex-basis: auto;
-  }
+/* Controls.css declares an UNSCOPED `.btn-primary { width: 100% }` that leaks
+   app-wide. `.modal-footer .btn-primary` overrides everything else about the
+   button — padding, colour, radius — but never declares width, so the leak won
+   and gave the primary action a row of its own.
 
-  /* Controls.css declares an UNSCOPED `.btn-primary { width: 100% }` that
-     leaks app-wide. `.modal-footer .btn-primary` overrides everything else
-     about the button but never declares width, so the 100% won and put the
-     primary action on a row of its own — three footer rows where one would do,
-     measured at 141px. Scoped back here rather than fixed at source, because
-     other surfaces may lean on that leak. */
+   This is NOT height-dependent: it is an accidental style being undone, and a
+   dialog footer wants its buttons inline at any height above phone width. It
+   was the single biggest cost in the expanded footer, which ran to four rows
+   and 251px. Phones keep the full-width primary, which is right there. */
+@media (min-width: 601px) {
   .modal-footer .btn-primary {
     width: auto;
+  }
+}
+
+/* Short and wide — buys back HEIGHT by spending WIDTH, so the reference link
+   stops claiming a row of its own. On a narrow phone the opposite is right. */
+@media (max-height: 900px) and (min-width: 601px) {
+  .modal-methodology-link {
+    flex-basis: auto;
   }
 }
 
