@@ -19,6 +19,24 @@ export function durabilityVerdict(adverse) {
   return 'Robust — it survives even a big wave.';
 }
 
+// The editorial tail for the closest-hold ("EDGE") line, scaled to the margin
+// it is describing. A district won by `marginPct` points of the two-party vote
+// flips on a uniform swing of about HALF that (the winner sits at 50+margin/2,
+// a swing of margin/2 pulls them to 50) — so a 1-point margin is a genuine
+// knife-edge while a 14-point margin is a wall. The line used to hardcode "a
+// wave barely bigger than a rounding error takes it back" for EVERY margin,
+// which read as absurd on a safe seat — a reported 14.5% hold called a
+// rounding error. Now the words match the number. Thresholds are on the
+// swing-to-flip (marginPct/2): <1pt, <2.5pt (a normal year), <5pt (a real
+// wave), and beyond.
+export function edgeVerdict(marginPct) {
+  const swingToFlip = marginPct / 2;
+  if (swingToFlip < 1) return 'a swing barely bigger than a rounding error takes it back.';
+  if (swingToFlip < 2.5) return 'a normal election-year swing could take it back.';
+  if (swingToFlip < 5) return 'it would take a real wave to dislodge.';
+  return 'comfortable enough to ride out a landslide.';
+}
+
 // Tiny seats-vs-national-swing sparkline for the durability panel.
 export function DurabilitySpark({ swing, numDistricts }) {
   const W = 220, H = 56, pad = 5;
@@ -305,13 +323,18 @@ export function AnatomyPanel({ stats }) {
       {anatomy.margins && (
         <p className="anatomy-line">
           <span className="anatomy-tag anatomy-tag--stat">SPREAD</span>
-          You win your seats by <strong>~{anatomy.margins.ourAvg} pts</strong> on average; they win theirs by <strong>~{anatomy.margins.theirAvg}</strong>. That gap is the whole trick.
+          You win your seats by <strong>~{anatomy.margins.ourAvg} pts</strong> on average; they win theirs by <strong>~{anatomy.margins.theirAvg}</strong>.{' '}
+          {anatomy.margins.theirAvg - anatomy.margins.ourAvg >= 8
+            ? 'That gap is the whole trick — your wins are lean, theirs are wasted landslides.'
+            : anatomy.margins.theirAvg - anatomy.margins.ourAvg >= 3
+              ? 'You win a little tighter than they do — a modest efficiency edge.'
+              : 'Your wins are no leaner than theirs — the seats came from where the lines fell, not from thinner margins.'}
         </p>
       )}
       {anatomy.tippingPoint && (
         <p className="anatomy-line">
           <span className="anatomy-tag anatomy-tag--stat">EDGE</span>
-          Your closest hold is <strong>D{anatomy.tippingPoint.id}</strong>, by just <strong>{nfmt(anatomy.tippingPoint.marginVoters)} voters ({pctFmt(anatomy.tippingPoint.marginPct)}%)</strong> — a wave barely bigger than a rounding error takes it back.
+          Your thinnest hold is <strong>D{anatomy.tippingPoint.id}</strong>, a <strong>{pctFmt(anatomy.tippingPoint.marginPct)}% margin</strong> ({nfmt(anatomy.tippingPoint.marginVoters)} voters) — {edgeVerdict(anatomy.tippingPoint.marginPct)}
         </p>
       )}
     </div>
