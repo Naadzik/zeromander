@@ -1,39 +1,48 @@
 import { Link } from 'react-router-dom'
-import { useBetaCountdown, BETA_DATE_LABEL } from '../hooks/useBetaCountdown'
+import { useBetaCountdown, BETA_DATE_LABEL, MODEL_DATE_LABEL, modelIsLive } from '../hooks/useBetaCountdown'
 import '../styles/BetaCountdown.css'
 
-// The countdown to the Beta board model (broadcast + print editions; the
-// Broadsheet renders its own bulletin in the paper's voice).
+// The countdown to the Beta launch (broadcast + print editions; the Broadsheet
+// renders its own bulletin in the paper's voice).
 //
-// Deliberately a NOTICE, not a hype banner. What is changing is the thing the
-// whole game is measured on, so the honest framing is "here is what changes,
-// here is what doesn't" — and the reassurance matters more than the tease:
+// The copy leads with what is ALREADY TRUE — the new map model is live — and
+// counts down to the launch as a date, not as the moment the maps change. That
+// distinction is the whole point: the model shipped on 2026-07-19, so a banner
+// still promising it "arrives August 1" would be describing something that
+// already happened, to players looking at the new boards while they read it.
+//
+// The reassurance stays, because it is the part that actually affects people:
 // past dailies keep regenerating under the old rules forever, so nobody's
-// history, streak or shared challenge link breaks on the first.
+// history, streak or shared challenge link broke.
 //
 // Renders nothing once the date passes (see useBetaCountdown).
 export default function BetaCountdown() {
   const { active, label, days } = useBetaCountdown();
   if (!active) return null;
 
+  // The maps and the launch land on different dates, so say which is true now.
+  const live = modelIsLive();
+
   return (
-    <aside className="beta-countdown" aria-label={`Beta board model arrives ${BETA_DATE_LABEL}`}>
+    <aside className="beta-countdown" aria-label={`Zeromander Beta launches ${BETA_DATE_LABEL}`}>
       <div className="beta-countdown__badge">
         <span className="beta-countdown__value">{label}</span>
         <span className="beta-countdown__unit">to Beta</span>
       </div>
       <div className="beta-countdown__body">
         <p className="beta-countdown__hed">
-          A new map model arrives {BETA_DATE_LABEL}
-          {days <= 1 ? ' — tomorrow' : ''}.
+          Beta launches {BETA_DATE_LABEL}
+          {days <= 1 ? ' — tomorrow' : ''}.{' '}
+          {live ? 'The new maps are already here.' : `The new maps arrive ${MODEL_DATE_LABEL}.`}
         </p>
         <p className="beta-countdown__dek">
-          Cities that thin out like real ones, countryside that isn't uniformly one colour,
-          and a fairness baseline drawn from 25 neutral maps instead of one. Earlier boards
-          keep their shape — your streak and shared links are untouched.
+          {live ? 'Every board is now drawn on' : `From ${MODEL_DATE_LABEL} every board is drawn on`}
+          {' '}the new model: cities that thin out like real ones, countryside that isn't
+          uniformly one colour, and a fairness baseline drawn from 25 neutral maps instead of
+          one. Earlier boards keep their shape — your streak and shared links are untouched.
         </p>
         <Link to="/methodology" className="beta-countdown__link">
-          What's changing, in full →
+          How the new maps work →
         </Link>
       </div>
     </aside>

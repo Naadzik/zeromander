@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import DailySpecimen from '../DailySpecimen'
 import Icon from '../ui/Icons'
 import { useTheme, NEXT_LABEL } from '../../hooks/useTheme'
-import { useBetaCountdown, BETA_DATE_LABEL } from '../../hooks/useBetaCountdown'
+import { useBetaCountdown, BETA_DATE_LABEL, MODEL_DATE_LABEL, modelIsLive } from '../../hooks/useBetaCountdown'
 import '../../styles/broadsheet.css'
 
 // The Broadsheet edition's front page — a newspaper cover, not a marketing
@@ -34,18 +34,28 @@ export default function BroadsheetLanding({ daily, dailyCta, dailyHref, lessonDo
         </div>
       </header>
 
-      {/* The cutover notice, set as a front-page stop-press rule. Same facts
-          as BetaCountdown, in the paper's voice; vanishes on the day. */}
+      {/* The launch notice, set as a front-page stop-press rule. Same facts as
+          BetaCountdown, in the paper's voice; vanishes on the day. Note it
+          reports the new presses as ALREADY RUNNING — they are — and counts
+          down only to the launch itself. */}
       {beta.active && (
         <aside className="paper-front__bulletin">
           <span className="paper-front__bulletin-slug">Stop Press</span>
           <p className="paper-front__bulletin-body">
-            <strong>New presses arrive {BETA_DATE_LABEL} — in {beta.label}.</strong>{' '}
-            From that morning the maps are drawn on a new model: cities that thin out the way
+            <strong>
+              {modelIsLive()
+                ? 'The new presses are running.'
+                : `The new presses roll ${MODEL_DATE_LABEL}.`}{' '}
+              Beta launches {BETA_DATE_LABEL} — in {beta.label}.
+            </strong>{' '}
+            {modelIsLive()
+              ? 'Every edition is now drawn on a new model:'
+              : `From ${MODEL_DATE_LABEL} every edition is drawn on a new model:`}{' '}
+            cities that thin out the way
             real ones do, a countryside that isn't uniformly one colour, and a fairness
             baseline struck from twenty-five neutral maps rather than one. Every back number
             prints exactly as it did — no streak, no filed result and no shared link is
-            disturbed. <Link to="/methodology" className="paper-agate-link">See the full notice →</Link>
+            disturbed. <Link to="/methodology" className="paper-agate-link">See how the new maps are drawn →</Link>
           </p>
         </aside>
       )}

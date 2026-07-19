@@ -52,14 +52,24 @@ const LAUNCH_UTC = Date.UTC(2026, 6, 1); // 2026-07-01
 // dates before it regenerate under v1 rules FOREVER. Both rule sets freeze
 // the day Beta ships.
 //
-// ⚠️ FROZEN — do not move. Dailies from 2026-08-01 onward are v2; every date
+// ⚠️ FROZEN — do not move. Dailies from 2026-07-20 onward are v2; every date
 // before it stays v1 forever. Shifting this line re-rolls every daily on the
 // wrong side of it, breaking boards players have already seen and every
-// challenge link that reproduces one. It is deliberately a FUTURE date at
-// merge: the era must flip at a UTC midnight, never mid-day underneath
-// someone's in-progress daily. Until it arrives the landing page counts down
-// to it (see BetaCountdown).
-export const MODEL_V2_UTC = Date.UTC(2026, 7, 1); // 2026-08-01
+// challenge link that reproduces one. It was set to the first UTC midnight
+// AFTER the Beta merge: the era must flip at a midnight, never mid-day
+// underneath someone's in-progress daily, and never at a date already past
+// (that would re-roll boards the live site had already served under v1).
+//
+// This value was briefly 2026-07-19 during the merge, until the UTC date
+// rolled over mid-session and made "tomorrow" today — Daily #19 was already
+// live under v1 by then. Check `date -u`, not the local clock, before
+// choosing this: the harm is silent and lands on whoever already played.
+//
+// NOT the "Beta launch" date the landing page counts down to. That is a
+// separate, purely promotional constant (BETA_LAUNCH_UTC in
+// hooks/useBetaCountdown.js) and the two are deliberately independent —
+// marketing dates move, and this one must never move with them.
+export const MODEL_V2_UTC = Date.UTC(2026, 6, 20); // 2026-07-20
 
 // Which board-model era a daily date belongs to. Challenge links carry the
 // version explicitly (`v=2`; absent = v1) because links have no date.

@@ -22,10 +22,14 @@
     "moving that constant re-rolls every date that changes side just as surely as",
     "editing the generator, and this makes the check name that cause directly.",
     "BOTH eras must stay green forever — v1 is what the archive and every old",
-    "challenge link replay, v2 is every board from 2026-08-01 on.",
+    "challenge link replay, v2 is every board from 2026-07-20 on.",
     "",
-    "2026-07-31 and 2026-08-01 are deliberately adjacent: they are the last v1 day",
-    "and the first v2 day, so they fence the era boundary from both sides."
+    "2026-07-19 and 2026-07-20 are deliberately adjacent: they are the last v1 day",
+    "and the first v2 day, so they fence the era boundary from both sides.",
+    "",
+    "NOTE: the era boundary is 2026-07-20 (MODEL_V2_UTC). It is NOT the 'Beta",
+    "launch' date the landing page counts down to (2026-08-01) — that one is",
+    "promotional and lives in hooks/useBetaCountdown.js. Do not reconcile them."
   ],
   "boards": {
     "2026-07-02": {
@@ -89,27 +93,75 @@
         "full": "c6151ea36eeba7b4fb6ac109100830ae0cc6737bfff5c4c6708bce0f69a5147a"
       }
     },
+    "2026-07-18": {
+      "party": "red",
+      "dayNumber": 18,
+      "model": 1,
+      "_note": "A real board the live site served under v1 before the cutover — it must never move.",
+      "small": {
+        "seed": 2520692324,
+        "pop": "bf455cd96dc90f3624215d3144e9cdfbae2428c3d0242254aa053f9e77573107",
+        "full": "e45655f0f063acf0d115aa963e3c620dae8309bf5d15e56e3a442d529f8e3b95"
+      },
+      "full": {
+        "seed": 3349129267,
+        "pop": "08ed52546905e20d93e34d5285552e45c489613de65eddcfb9163c37591f24eb",
+        "full": "4371a73decf0e9ab3b7de1c96532e734b646507440c6ebf3f280220157dbdd05"
+      }
+    },
+    "2026-07-19": {
+      "party": "blue",
+      "dayNumber": 19,
+      "model": 1,
+      "_note": "The LAST v1 day, and the last board served under v1 on the live site (Daily #19 ran under v1 for a full day before the cutover). Paired with 2026-07-20 to fence the era boundary — if MODEL_V2_UTC ever moves earlier, this flips to v2 and fails.",
+      "small": {
+        "seed": 2537470199,
+        "pop": "0eeb8f721f7a966224826005b1eaa2cb4a22d4c938f7d3c217b10ac771e499bb",
+        "full": "8873e4d45bc971a8197f1b0e00499f410359e709bf7272d3cfc91b78c09ffdf2"
+      },
+      "full": {
+        "seed": 3332351648,
+        "pop": "4af7692a4abe4287d2565b78023fc1cc020a3de159428953050ab28df4b4aa1d",
+        "full": "ebf58c47900c13228370f55d92a9298e9413eeeb788ea7f00d274841e7f81ef5"
+      }
+    },
+    "2026-07-20": {
+      "party": "red",
+      "dayNumber": 20,
+      "model": 2,
+      "_note": "The FIRST v2 day — the model cutover itself. If MODEL_V2_UTC moves later, this flips back to v1 and fails.",
+      "small": {
+        "seed": 1815678311,
+        "pop": "5d1dd070ff25f9f33f93eb4e39a854d6ebbc1207a466f1cb4dc18138a825a8ce",
+        "full": "8c7b46fcb1ee9143eb7d1c9441aaeadbb208ef95c16117f68b5511674be3b402"
+      },
+      "full": {
+        "seed": 1033376560,
+        "pop": "b35985de976a3267b1085d9935a5a46b4dd451974f62cd11adbf6689df870d5a",
+        "full": "a7fb851a8de52390548eb48f261a9232f1d00dfb3887fae93597f3110a9832a0"
+      }
+    },
     "2026-07-31": {
       "party": "blue",
       "dayNumber": 31,
-      "model": 1,
-      "_note": "The LAST v1 day. Paired with 2026-08-01 to fence the era boundary — if MODEL_V2_UTC ever moves earlier, this one flips to v2 and fails.",
+      "model": 2,
+      "_note": "Was a v1 anchor when the boundary sat at 2026-08-01; now a mid-era v2 board. Kept because a far-from-the-fence anchor is worth having.",
       "small": {
         "seed": 322652145,
-        "pop": "5f3cf74a27db87ec5a353bf1ca06a604fd8574fc897d04de3a2d467825d8070f",
-        "full": "5ce35427248cda0b0ca4ec42de289db738b0e11ad47c8f58efadfb216f14419b"
+        "pop": "9a31e0721ae8cbf474f415475608601ff409f1b12fed4e8c120a2da88d1978ff",
+        "full": "81a045d65923b57fea3cbbc9a95c58b5406ff80eb62428f06d0794c44e146675"
       },
       "full": {
         "seed": 1117411750,
-        "pop": "594322131de1dbac6d29d2e1e1267d7e547ea91ec5bd70d9d83d100ac7a3a17c",
-        "full": "7396290059bf5124654b7c12090322c4840926e91d961f63036035aaa496085d"
+        "pop": "633b49b5194f5ba673455832a6771142763d396c12032858cede91cfa4cf4a6a",
+        "full": "0f753162479631483e4850984745ee0b8e4585e3a7afd76a81f3cf3955269ab8"
       }
     },
     "2026-08-01": {
       "party": "red",
       "dayNumber": 32,
       "model": 2,
-      "_note": "The FIRST v2 day — the Beta cutover itself. If MODEL_V2_UTC moves later, this flips back to v1 and fails.",
+      "_note": "The promotional Beta launch date. Carries no model meaning — it is a plain v2 board, anchored because it is the day the launch points at.",
       "small": {
         "seed": 362842421,
         "pop": "a76ebdab6a93117afcace5ab3152620a50accb19c2f938c6a30a53c32ef074d7",

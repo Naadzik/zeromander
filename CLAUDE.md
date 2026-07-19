@@ -52,8 +52,10 @@ map" score must be comparable. A whole category of changes can silently break
 this. **Frozen (do not casually change):**
 
 - `LAUNCH_UTC` in `rng.js` (2026-07-01) — defines the "Daily #N" numbering.
-- `MODEL_V2_UTC` in `rng.js` (2026-08-01) — the board-model era boundary.
-  Moving it re-rolls every date that changes side, in either direction.
+- `MODEL_V2_UTC` in `rng.js` (2026-07-20) — the board-model era boundary.
+  Moving it re-rolls every date that changes side, in either direction. It is
+  NOT the "Beta launch" date the landing counts down to (2026-08-01, promotional
+  only, `BETA_LAUNCH_UTC` in `useBetaCountdown.js`) — keep the two independent.
 - The seeded generation path: `mapGenerator.js`, `countyGenerator.js`,
   `fairMapGenerator.js`. The **RNG draw order is frozen** (city seeds → party
   roll → densities → corrective flips → grey blobs); reordering re-rolls every
@@ -75,7 +77,7 @@ this. **Frozen (do not casually change):**
 byte moved; CI runs it on every push and it gates the deploy, so a board-rerolling
 change cannot reach the live site. Anchors live in `scripts/determinism-refs.json`
 (both eras, both tiers, both assigned parties, several seeds; each entry pins its
-`model`, and 2026-07-31/2026-08-01 fence the era boundary), and each board carries two
+`model`, and 2026-07-19/2026-07-20 fence the era boundary), and each board carries two
 hashes: `pop` = `sha256(populationMap)` — the documented protocol hash, still
 `SMALL 6a58c8fb70c7cdbc32e8cfd070d976c8c71bd01aa165e8206164480cede874d5` /
 `FULL 253ba49aec76db12dc35b9f097f2512dc2fd36bbe1ff9871c81205eee2543b84` for
@@ -107,7 +109,7 @@ every board (daily both tiers, sandbox, challenge, lesson, scenarios). It takes
 a trailing `modelVersion` argument, **defaulting to 1 deliberately**, and one
 code path serves both eras with an identical rng draw count and order.
 
-- **Which era a board uses:** dailies from `MODEL_V2_UTC` (2026-08-01) onward
+- **Which era a board uses:** dailies from `MODEL_V2_UTC` (2026-07-20) onward
   are v2; every earlier date stays v1 **forever** (that is what the archive and
   old challenge links replay). `boardModelVersion(date)` decides. Challenge
   links carry it explicitly as `v=2` (absent = v1) because a link has no date.
@@ -130,8 +132,8 @@ three-way model (sandbox-only, nothing frozen).
 
 ⚠️ The two eras are both live and both anchored. A change that "simplifies" the
 v1 path re-rolls every archived daily; a change to the v2 path re-rolls every
-daily from August 2026 on. `npm run check:determinism` guards both (18 boards,
-10 v1 + 8 v2) and additionally asserts each date's era, so moving
+daily from 2026-07-20 on. `npm run check:determinism` guards both (24 boards,
+12 v1 + 12 v2) and additionally asserts each date's era, so moving
 `MODEL_V2_UTC` fails loudly rather than silently re-rolling boards.
 
 Insight that cost real time: **numeric tests can pass while the board looks
