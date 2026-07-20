@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { getDistrictPopulation, classifyDistricts } from '../utils/gameLogic'
 import { computeCoreStats, round1, targetSeatCount } from '../utils/computeGameStats'
-import { checkConstraintViolations, computePopulationDeviation } from '../utils/legalConstraints'
+import { checkConstraintViolations, computePopulationDeviation, PARITY_AID_PCT, GATE_RANGE_PCT } from '../utils/legalConstraints'
 import { litigationRisk } from '../utils/litigation'
 import { communityRepresentation } from '../utils/community'
 import { PARTY } from '../utils/partyConfig'
@@ -41,7 +41,19 @@ export default function GameStats({
   onToggleUnassigned,
   showUnassignedCounties,
   isThreeParty = false,
-  constraints
+  constraints,
+  // Plan-average compactness of this board's party-blind map, when computed
+  // (the daily computes it eagerly; sandbox only at completion). Anchors the
+  // litigation gauge's shape factor to THIS board's achievable compactness
+  // instead of a fixed threshold.
+  fairCompactness = null,
+  // The neutral map's seat count for the player — drives the v2 target
+  // ("beat the neutral map by one"); null falls back to the proportional rule.
+  fairSeats = null,
+  // The neutral map's efficiency gap (signed seat-equivalents + unsigned %):
+  // anchors the litigation EG factor and the tile's baseline line.
+  fairGapSeats = null,
+  fairGapPct = null
 }) {
   const ourLabel = PARTY[playerParty].label;
   const ourColor = PARTY[playerParty].cssColor;
@@ -65,8 +77,13 @@ export default function GameStats({
       ourPopPercent: round1(electorateShare),
       assigned: core.assigned,
       mapTotalPop: core.mapTotalPop,
-      compactness: Math.round(core.compactness.average * 100),
-      targetSeats: targetSeatCount(electorateShare, numDistricts),
+      // null until a first district is drawn — a blank board has no shape to
+      // score, and the tile shows "—" instead of a fake 0%.
+      compactness: core.compactness.average == null ? null : Math.round(core.compactness.average * 100),
+      targetSeats: targetSeatCount(electorateShare, numDistricts, fairSeats),
+      // Which rule set the target — drives the caption under the seat bar.
+      targetFromNeutral: fairSeats != null,
+      fairSeats,
       districtStats: core.districtStats
     };
 
@@ -88,17 +105,23 @@ export default function GameStats({
       blue: classified.filter(r => r.status === 'blue').length,
       red: classified.filter(r => r.status === 'red').length
     };
-    const tossups = classified.filter(r => r.status === 'tossup').length;
+    // Both tiers of doubt count as not-yet-banked: 'tossup' (realistic flip)
+    // and 'uncalled' (extreme break could still flip it) — together the same
+    // margin ≤ grey band as before, so the seat bar's "?" segment is stable.
+    const tossups = classified.filter(r => r.status === 'tossup' || r.status === 'uncalled').length;
     const ourSafe = playerParty === 'blue' ? safeSeats.blue : safeSeats.red;
 
     const dev = computePopulationDeviation(populationMap, districts, numDistricts, 10);
     const community = communityRepresentation(populationMap, districts, numDistricts);
     const litigation = litigationRisk({
+      rangePct: dev.rangePct,
       compactness: core.compactness.average,
-      gap: core.gap.gap,
-      asymmetry: core.asymmetry.asymmetry,
-      worstDeviationPct: dev.worstDeviationPct,
-      communityDilution: community ? community.dilution : null
+      fairCompactness,
+      gapSeats: core.gap.gapSeats,
+      fairGapSeats,
+      meanMedian: core.meanMedian.valid ? core.meanMedian.mm : null,
+      numDistricts,
+      community
     });
 
     return {
@@ -113,17 +136,38 @@ export default function GameStats({
       blueSeats: round1((core.seats.blue / numDistricts) * 100),
       popPercent: round1(core.shares.blue),
       gap: round1(core.gap.gap),
-      blueWasted: core.gap.blueWasted,
-      redWasted: core.gap.redWasted,
+      gapFavors: core.gap.favors,
+      gapSeatsAbs: round1(Math.abs(core.gap.gapSeats)),
+      // The same board's party-blind gap — the fair comparison; null until
+      // the neutral map is computed (daily: eagerly; sandbox: at completion).
+      fairGap: fairGapSeats != null && fairGapPct != null ? round1(fairGapPct) : null,
+      // Wasted votes are people — the model carries the exact half-vote the
+      // winner's-surplus term can produce on odd district totals, the display
+      // shows whole voters.
+      blueWasted: Math.round(core.gap.blueWasted),
+      redWasted: Math.round(core.gap.redWasted),
       competitiveness: round1(core.competitiveness.percentage),
       competitiveCount: core.competitiveness.competitive,
       totalDistricts: core.competitiveness.total,
       asymmetry: round1(core.asymmetry.asymmetry),
       asymmetryBlueVote: core.asymmetry.blueVotePercent,
       asymmetryBlueSeat: core.asymmetry.blueSeatPercent,
+      // Signed pp toward the player; null (shown "—") until every district
+      // has two-party votes — the metric never guesses from a partial map.
+      meanMedian: core.meanMedian.valid ? round1(core.meanMedian.mm) : null,
       districtStats: core.districtStats
     };
-  }, [populationMap, districts, numDistricts, playerParty, isThreeParty]);
+  }, [populationMap, districts, numDistricts, playerParty, isThreeParty, fairCompactness, fairSeats, fairGapSeats, fairGapPct]);
+
+  // The completion gate's own quantity, shown unconditionally in Legal
+  // Requirements: the overall RANGE, (max − min)/ideal over drawn districts.
+  // Per-district ±5% marks elsewhere are the sufficient drawing aid, but a
+  // map completes on range ≤ 10% — this line is what explains a blocked
+  // lock-in (+9%/−9% districts all show ✓ yet spread 18% fails the gate).
+  const spread = useMemo(
+    () => computePopulationDeviation(populationMap, districts, numDistricts, 10),
+    [populationMap, districts, numDistricts]
+  );
 
   const violations = useMemo(
     () => constraints ? checkConstraintViolations(populationMap, districts, numDistricts, constraints) : null,
@@ -131,8 +175,8 @@ export default function GameStats({
   );
 
   const targetPopulation = stats.mapTotalPop / numDistricts;
-  const minPopulation = Math.ceil(targetPopulation * 0.9);
-  const maxPopulation = Math.ceil(targetPopulation * 1.1);
+  const minPopulation = Math.ceil(targetPopulation * (1 - PARITY_AID_PCT / 100));
+  const maxPopulation = Math.ceil(targetPopulation * (1 + PARITY_AID_PCT / 100));
 
   return (
     <div className="stats-panel">
@@ -141,7 +185,10 @@ export default function GameStats({
       {currentDistrict > 0 && (
         <div className="stat-block">
           <div className="stat-label">District {currentDistrict}</div>
-          <div className="stat-value ticker-number">{currentDistrictPop} votes</div>
+          {/* Residents, not votes: the parity number counts PEOPLE, and
+              undecideds count toward it while casting no vote until the
+              reveal — calling it "votes" lied whenever grey was present. */}
+          <div className="stat-value ticker-number">{currentDistrictPop} residents</div>
           <div className="capacity-bar">
             <div
               className="capacity-fill"
@@ -153,13 +200,18 @@ export default function GameStats({
             ></div>
           </div>
           <div className="capacity-range">
-            Range: {minPopulation}-{maxPopulation} votes (±10%)
+            Range: {minPopulation}-{maxPopulation} residents (±{PARITY_AID_PCT}%)
           </div>
           {stats.districtStats[currentDistrict - 1] && (
             <div className="district-votes">
               <div><PartyIcon party="blue" /> Urban Union: {stats.districtStats[currentDistrict - 1].blue}</div>
               <div><PartyIcon party="red" /> Heartland Alliance: {stats.districtStats[currentDistrict - 1].red}</div>
               {isThreeParty && <div style={{ color: 'var(--green-party)' }}><PartyIcon party="green" /> Farmers Coalition: {stats.districtStats[currentDistrict - 1].green}</div>}
+              {!isThreeParty && (stats.classified?.[currentDistrict - 1]?.greyPop ?? 0) > 0 && (
+                <div style={{ color: 'var(--grey-party)' }}>
+                  <Icon name="undecided" size={12} /> Undecided: {stats.classified[currentDistrict - 1].greyPop}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -185,7 +237,12 @@ export default function GameStats({
           target={stats.targetSeats}
         />
         <div className="target-label">
-          Target: {stats.targetSeats}/{numDistricts} seats <span className="target-hint">(+1 vs. your {stats.ourPopPercent}% vote share)</span>
+          Target: {stats.targetSeats}/{numDistricts} seats{' '}
+          <span className="target-hint">
+            {stats.targetFromNeutral
+              ? `(a party-blind map wins ${stats.fairSeats} — beat it by one)`
+              : `(+1 vs. your ${stats.ourPopPercent}% vote share)`}
+          </span>
         </div>
         {!isThreeParty && stats.greyShare > 0 && (
           <div className="target-label">
@@ -218,7 +275,7 @@ export default function GameStats({
           const underBounds = hasContent && district.total < minPopulation;
           const status = withinBounds ? 'ok' : overBounds ? 'over' : underBounds ? 'under' : 'empty';
           const classifiedRow = stats.classified?.[district.id - 1];
-          const isTossup = classifiedRow?.status === 'tossup' && hasContent;
+          const isTossup = (classifiedRow?.status === 'tossup' || classifiedRow?.status === 'uncalled') && hasContent;
 
           return (
             <div
@@ -250,6 +307,12 @@ export default function GameStats({
           <div className="stat-label">Efficiency Gap <MetricInfo metric="efficiencyGap" /></div>
           <div className="stat-value ticker-number">{stats.gap}%</div>
           <div className="gap-breakdown">
+            {stats.gapFavors !== 'none' && (
+              <div>favoring {PARTY[stats.gapFavors]?.label} · ≈{stats.gapSeatsAbs} seats</div>
+            )}
+            {stats.fairGap != null && (
+              <div>party-blind map here: {stats.fairGap}%</div>
+            )}
             <div>Blue wasted: {stats.blueWasted}</div>
             <div>Red wasted: {stats.redWasted}</div>
           </div>
@@ -263,8 +326,8 @@ export default function GameStats({
       <div className="metrics-grid">
         <div className="metric-card">
           <div className="metric-label">Compactness <MetricInfo metric="compactness" /></div>
-          <div className="metric-value">{stats.compactness}%</div>
-          <div className="metric-desc">Polsby-Popper (higher = rounder)</div>
+          <div className="metric-value">{stats.compactness == null ? '—' : `${stats.compactness}%`}</div>
+          <div className="metric-desc">100% = a perfect square (chunky beats snaky)</div>
         </div>
 
         {!isThreeParty && (
@@ -277,18 +340,42 @@ export default function GameStats({
 
         {!isThreeParty && (
           <div className="metric-card">
-            <div className="metric-label">Partisan Asymmetry <MetricInfo metric="asymmetry" /></div>
+            <div className="metric-label">Disproportionality <MetricInfo metric="asymmetry" /></div>
             <div className="metric-value">{stats.asymmetry}%</div>
-            <div className="metric-desc">|seats% - votes%|</div>
+            <div className="metric-desc">|seats% − votes%| — a seat bonus is normal</div>
+          </div>
+        )}
+
+        {!isThreeParty && (
+          <div className="metric-card">
+            <div className="metric-label">Mean–Median <MetricInfo metric="meanMedian" /></div>
+            <div className="metric-value">
+              {stats.meanMedian == null ? '—' : `${stats.meanMedian > 0 ? '+' : ''}${stats.meanMedian}pp`}
+            </div>
+            <div className="metric-desc">middle vs. average district — + leans your way</div>
+          </div>
+        )}
+
+        {/* Two dials, two courthouses — the post-Rucho split IS the lesson:
+            federal courts hear population and VRA claims everywhere; the
+            partisan numbers are state-court-only, however lopsided the map. */}
+        {!isThreeParty && stats.litigation && (
+          <div className="metric-card">
+            <div className="metric-label">Federal Exposure <MetricInfo metric="litigationRisk" /></div>
+            <div className="metric-value" data-risk={stats.litigation.federal.band}>{stats.litigation.federal.score}</div>
+            <div className="metric-desc">
+              {stats.litigation.federal.band}{stats.litigation.federal.drivers.length ? ` · ${stats.litigation.federal.drivers[0]}` : ''}
+            </div>
           </div>
         )}
 
         {!isThreeParty && stats.litigation && (
           <div className="metric-card">
-            <div className="metric-label">Litigation Risk <MetricInfo metric="litigationRisk" /></div>
-            <div className="metric-value" data-risk={stats.litigation.band}>{stats.litigation.score}</div>
+            <div className="metric-label">State-Court Exposure <MetricInfo metric="litigationRisk" /></div>
+            <div className="metric-value" data-risk={stats.litigation.state.band}>{stats.litigation.state.score}</div>
             <div className="metric-desc">
-              {stats.litigation.band}{stats.litigation.drivers.length ? ` · ${stats.litigation.drivers[0]}` : ''}
+              {stats.litigation.state.band}{stats.litigation.state.drivers.length ? ` · ${stats.litigation.state.drivers[0]}` : ''}
+              {' — '}no federal court hears these (Rucho, 2019)
             </div>
           </div>
         )}
@@ -317,6 +404,12 @@ export default function GameStats({
             <div className="constraint-status-row" data-pass={violations.contiguity.pass}>
               <span className="constraint-status-icon">{violations.contiguity.pass ? '✓' : '✗'}</span>
               <span>Contiguity</span>
+            </div>
+            <div className="constraint-status-row" data-pass={spread.rangePct <= GATE_RANGE_PCT}>
+              <span className="constraint-status-icon">{spread.rangePct <= GATE_RANGE_PCT ? '✓' : '✗'}</span>
+              <span>
+                Population spread {spread.rangePct}% (biggest − smallest; the {GATE_RANGE_PCT}% line is the courts&apos; limit)
+              </span>
             </div>
             {violations.populationDeviation && (
               <div className="constraint-status-row" data-pass={violations.populationDeviation.pass}>

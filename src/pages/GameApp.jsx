@@ -80,16 +80,38 @@ function CollapsiblePanel({ title, side, collapsed, onToggle, children }) {
 const LESSON = {
   // Kept deliberately COARSE — one tap claims a whole county, so ~15 counties
   // means the whole heist is ~15 taps and finishes well inside 60 seconds (the
-  // old 90-county board took far longer and lost first-comers). Seed 37 chosen
-  // (solver-verified) so the taught pack+crack wins 2/3 with CONTIGUOUS,
-  // population-balanced districts and COMFORTABLE margins: two clear blue blobs
-  // (left + bottom-centre) each hold ~59–74% once carved, so a rough split
-  // still wins — a beginner can't easily fumble it.
-  seed: 37,
+  // old 90-county board took far longer and lost first-comers).
+  //
+  // Seed 542 is solver-verified against the v2 model on FOUR conditions, all
+  // of which a lesson seed has to meet at once:
+  //   1. The neutral ENSEMBLE median gives Urban Union exactly 1 seat — and
+  //      unanimously (all 25 members say 1), so "you stole a seat" is
+  //      unambiguous. This is the condition that matters most and the easiest
+  //      to get wrong: a seed can win on every legal map simply because its
+  //      geography already hands blue 2 seats, in which case the heist steals
+  //      nothing and the coach's claim is false. Checking the ensemble, not
+  //      the single pinned fair map, matters too — they disagree (one
+  //      candidate's pinned map said 1 while its ensemble median said 2, which
+  //      would have displayed "0 seats stolen").
+  //   2. A legal 2-seat map exists, and plenty of them: 18 of the 24 legal
+  //      partitions win. Legal here means BOTH the +5% per-district paint cap
+  //      and the ≤10% overall-range gate — under v2 the cap is enforced at
+  //      paint time, which is what broke the old seed.
+  //   3. Simulated beginners following the coach literally (pack the reddest,
+  //      then split the blue, with a sloppiness knob) win 88.6% of runs and
+  //      LOSE 0.0% — the remaining runs hit the cap or strand a district,
+  //      which the game blocks and the player simply corrects.
+  //   4. Comfortable margins (55.7% / 61.6%) and two legible blue cities in
+  //      red countryside, so a rough split still wins.
+  //
+  // The previous seed 37 does not survive the v2 model: it has 14 legal
+  // partitions and NONE of them win 2/3, so the lesson was unwinnable.
+  seed: 542,
   config: {
     difficulty: 'small', gridSize: 50, numDistricts: 3, numCounties: 15,
     numCities: 2, numTowns: 0, bluePercentage: 40, greyPercentage: 0,
-    targetSeatPercentage: 50, isThreeParty: false
+    targetSeatPercentage: 50, isThreeParty: false,
+    modelVersion: 2
   }
 };
 
@@ -102,7 +124,16 @@ const COMMUNITY_SCENARIO = {
   config: {
     difficulty: 'medium', gridSize: 80, numDistricts: 10, numCounties: 475,
     numCities: 4, numTowns: 0, bluePercentage: 48, greyPercentage: 0,
-    communityPercentage: 20, targetSeatPercentage: 50, isThreeParty: false
+    communityPercentage: 20, targetSeatPercentage: 50, isThreeParty: false,
+    // Re-verified under v2 (seed kept — the geometry survived the model
+    // change). The scenario only teaches its trilemma if the community's fair
+    // share is actually DRAWABLE; litigation.js's channel B leans on that
+    // explicitly ("feasible share = fairShare ... only because the community
+    // is compact"). Under v2 the overlay is still two compact blobs at exactly
+    // 20% of population (fairShare 2), and a constructive solve reaches 2/2
+    // opportunity districts at −2.8% and +0.2% of ideal — inside the paint cap,
+    // and clear of the 70% Shaw/Cooper over-packing ceiling.
+    modelVersion: 2
   }
 };
 
@@ -112,7 +143,8 @@ const COMMUNITY_SCENARIO = {
 const DECADE_CONFIG = {
   difficulty: 'medium', gridSize: 80, numDistricts: 10, numCounties: 475,
   numCities: 4, numTowns: 0, bluePercentage: 45, greyPercentage: 0,
-  communityPercentage: 0, targetSeatPercentage: 50, isThreeParty: false
+  communityPercentage: 0, targetSeatPercentage: 50, isThreeParty: false,
+  modelVersion: 2 // fresh board each visit — always the current era
 };
 
 // FNV-1a over the districts grid → a stable per-map fingerprint. Combined with
@@ -195,7 +227,11 @@ export default function GameApp() {
       numCities: int('ct', 4),
       numTowns: int('t', 3),
       party: p.get('p') === 'red' ? 'red' : 'blue',
-      goal: p.has('goal') ? int('goal', null) : null
+      goal: p.has('goal') ? int('goal', null) : null,
+      // Links carry no date, so the board-model era rides explicitly: absent
+      // `v` = a pre-Beta link = v1 forever (a replayed link must reproduce
+      // the exact board the sharer saw — the mandatory cutover-hole fix).
+      modelVersion: p.get('v') === '2' ? 2 : 1
     };
   }, [isDaily, location.search]);
 
@@ -226,7 +262,8 @@ export default function GameApp() {
               greyPercentage: duel.greyPercentage,
               communityPercentage: 0,
               targetSeatPercentage: 50,
-              isThreeParty: false
+              isThreeParty: false,
+              modelVersion: duel.modelVersion
             }
           : sandboxConfig;
 
@@ -265,6 +302,11 @@ export default function GameApp() {
   // sandbox board without touching its config, party, or controls.
   const [decadeMode, setDecadeMode] = useState(false);
   const decadeActive = isDecade || decadeMode;
+  // Mirror of fairMap.fairStats.ourSeatCount for the v2 target ("beat the
+  // neutral map by one"). A ref because useFairMap sits BELOW this hook (its
+  // `enabled` reads completion.gameComplete); assigned right after useFairMap
+  // runs, read inside completion's computeStats at freeze/finalize time.
+  const fairSeatsRef = useRef(null);
   const completion = useGameCompletion({
     populationMap: map.populationMap,
     districts: map.districts,
@@ -274,7 +316,8 @@ export default function GameApp() {
     targetSeatPercentage: config.targetSeatPercentage,
     constraints: legalConstraints.constraints,
     electionUncertainty: (isDaily || isLesson || decadeActive) ? false : electionUncertainty,
-    manual: isDaily || decadeActive
+    manual: isDaily || decadeActive,
+    fairSeatsRef
   });
   gameCompleteRef.current = completion.gameComplete;
   // boardLocked = the daily's post-lock-in state (drives daily-specific UI);
@@ -417,6 +460,7 @@ export default function GameApp() {
     // (For the daily, fairSeedFrom(dailySeed) === challenge.fairSeed.)
     seed: map.boardSeed != null ? fairSeedFrom(map.boardSeed) : undefined
   });
+  fairSeatsRef.current = fairMap.fairStats?.ourSeatCount ?? null;
 
   // Re-entering a locked day: reinstall the submitted districts onto the
   // (identical, deterministic) board instead of offering a fresh one.
@@ -427,8 +471,8 @@ export default function GameApp() {
 
   const playerCoreStats = useMemo(() => {
     if (!completion.gameComplete) return null;
-    return computeCoreStats(effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty);
-  }, [completion.gameComplete, effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty]);
+    return computeCoreStats(effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty, map.counties);
+  }, [completion.gameComplete, effectiveMap, map.districts, config.numDistricts, effectiveParty, config.isThreeParty, map.counties]);
 
   // Durability report — sandbox 2-party opt-in. Stress-tests the finished map
   // against a national swing AND against how the undecideds might break, using
@@ -440,7 +484,7 @@ export default function GameApp() {
     // has no grey left, so reading it there would zero the undecided readout.
     const rawShares = getPopulationShares(map.populationMap);
     const greyShare = rawShares.grey ?? 0;
-    const targetSeats = targetSeatCount(rawShares[effectiveParty] * (1 - greyShare / 100), nd);
+    const targetSeats = targetSeatCount(rawShares[effectiveParty] * (1 - greyShare / 100), nd, fairSeatsRef.current);
     const decidedMap = completion.revealedMap ?? map.populationMap; // grey resolved
     const swing = swingRobustness(decidedMap, map.districts, nd, effectiveParty, { targetSeats });
     const breaks = greyShare > 0.01
@@ -458,8 +502,12 @@ export default function GameApp() {
     if (isDaily || config.isThreeParty) return null;
     if (!completion.gameComplete || !completion.gameStats || !fairMap.fairStats || map.boardSeed == null) return null;
     const stats = completion.gameStats;
-    const finalSeats = stats.swung?.ourSeatCount ?? stats.ourWins;
-    const stolen = finalSeats - fairMap.fairStats.ourSeatCount;
+    // The duel goal is defined on NOMINAL ("as drawn") seats for both sides:
+    // the baseline is unswung, so comparing a post-swing seat count against
+    // it made the goal depend on the sharer's election-night luck — and the
+    // recipient replays the same board with different luck. Nominal-vs-median
+    // is the same quantity for everyone.
+    const stolen = stats.ourWins - fairMap.fairStats.ourSeatCount;
     const params = new URLSearchParams({
       board: String(map.boardSeed),
       dif: config.difficulty,
@@ -470,7 +518,10 @@ export default function GameApp() {
       ct: String(config.numCities),
       t: String(config.numTowns),
       p: effectiveParty,
-      goal: String(stolen)
+      goal: String(stolen),
+      // The board-model era travels with the link — the recipient must get
+      // the sharer's exact board whichever era it came from.
+      v: String(config.modelVersion ?? 1)
     });
     return { stolen, url: `https://naadzik.github.io/zeromander/game?${params.toString()}` };
   }, [isDaily, config, completion.gameComplete, completion.gameStats, fairMap.fairStats, map.boardSeed, effectiveParty]);
@@ -561,7 +612,8 @@ export default function GameApp() {
       playerCore: { ourSeatCount: stats.ourWins, ourPopPercent: stats.allStats.ourPopPercent },
       fairCore: fairMap.fairStats,
       districtBreakdown: stats.allStats.districtBreakdown,
-      numDistricts: config.numDistricts
+      numDistricts: config.numDistricts,
+      ensemble: fairMap.fairStats.ensemble ?? null
     });
     // `districts` is a local-only extra so the locked map can be redrawn on
     // re-entry; buildDailyResult itself stays the clean backend-ready record.
@@ -896,6 +948,7 @@ export default function GameApp() {
               playerParty={effectiveParty}
               isThreeParty={config.isThreeParty}
               onExpand={() => { if (statsCollapsed) toggleStats(); }}
+              fairSeats={fairMap.fairStats?.ourSeatCount ?? null}
             />
           )}
         </div>
@@ -914,6 +967,10 @@ export default function GameApp() {
             showUnassignedCounties={showUnassignedCounties}
             isThreeParty={config.isThreeParty}
             constraints={legalConstraints.constraints}
+            fairCompactness={fairMap.fairStats?.compactness?.average ?? null}
+            fairSeats={fairMap.fairStats?.ourSeatCount ?? null}
+            fairGapSeats={fairMap.fairStats?.gap?.gapSeats ?? null}
+            fairGapPct={fairMap.fairStats?.gap?.gap ?? null}
           />
           </CollapsiblePanel>
         )}

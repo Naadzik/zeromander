@@ -63,6 +63,11 @@ export function useGameConfig(initialDifficulty = 'medium') {
     setIncludeCommunity,
     // A fixed 20% share when enabled → a fair share of ~2 seats to protect.
     communityPercentage: isThreeParty || !includeCommunity ? 0 : 20,
+    // Fresh sandbox boards always use the current (Beta/v2) board model —
+    // there is no old board to stay compatible with. Fixed-board modes
+    // (daily, archive, lesson, scenario, challenge links) override this with
+    // their own pinned era.
+    modelVersion: 2,
     targetSeatPercentage,
     applyDifficulty,
     maxDistricts: DIFFICULTY_SETTINGS[difficulty].maxDistricts

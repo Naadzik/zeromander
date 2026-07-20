@@ -2,25 +2,29 @@ import { useMemo } from 'react'
 import { classifyDistricts, getDistrictPopulation } from '../utils/gameLogic'
 import { computeCoreStats, targetSeatCount } from '../utils/computeGameStats'
 import { extractPopulationData, getCellPopulation } from '../utils/formatUtils'
+import { PARITY_AID_PCT } from '../utils/legalConstraints'
 import { PARTY } from '../utils/partyConfig'
 import '../styles/MobileScoreStrip.css'
 
 // The phone's always-visible scoreboard: one 44px row under the map so the
 // full stats panel can stay collapsed while playing. Three cells — seats vs
-// target, the district in hand with its ±10% parity read, and a map-wide
+// target, the district in hand with its parity read, and a map-wide
 // parity alert. Tapping it opens the full stats (dashboard: expands the
 // rail; paper: scrolls to the agate). Pure memo, no effects.
 export default function MobileScoreStrip({
   populationMap, districts, numDistricts, currentDistrict,
   playerParty, isThreeParty, onExpand, variant = 'dashboard',
+  // Neutral map's player seats (v2 target = beat it by one); null → fallback.
+  // Must match GameStats' target or the strip and the rail disagree.
+  fairSeats = null,
 }) {
   const data = useMemo(() => {
     if (!populationMap?.party && !populationMap?.length) return null;
     if (!districts?.length) return null;
     const core = computeCoreStats(populationMap, districts, numDistricts, playerParty, isThreeParty);
     const fair = core.mapTotalPop / numDistricts;
-    const lo = Math.floor(fair * 0.9);
-    const hi = Math.ceil(fair * 1.1);
+    const lo = Math.floor(fair * (1 - PARITY_AID_PCT / 100));
+    const hi = Math.ceil(fair * (1 + PARITY_AID_PCT / 100));
 
     // Seats: risk-aware for 2-party (safe seats + tossups), plain count 3-party.
     let seatLabel, tossups = 0, target;
@@ -30,9 +34,10 @@ export default function MobileScoreStrip({
     } else {
       const classified = classifyDistricts(populationMap, districts, numDistricts);
       const ourSafe = classified.filter(r => r.status === playerParty).length;
-      tossups = classified.filter(r => r.status === 'tossup').length;
+      // tossup + uncalled: everything the undecideds could still take away.
+      tossups = classified.filter(r => r.status === 'tossup' || r.status === 'uncalled').length;
       const greyShare = core.shares.grey ?? 0;
-      target = targetSeatCount((core.shares[playerParty] ?? 0) * (1 - greyShare / 100), numDistricts);
+      target = targetSeatCount((core.shares[playerParty] ?? 0) * (1 - greyShare / 100), numDistricts, fairSeats);
       seatLabel = `${ourSafe}/${numDistricts}`;
     }
 
@@ -55,7 +60,7 @@ export default function MobileScoreStrip({
       if (pops[id] > 0 && (pops[id] < lo || pops[id] > hi)) outOfBounds++;
 
     return { seatLabel, tossups, target, pop, parity, d, outOfBounds, allDrawn: pops.slice(1).every(p => p > 0) };
-  }, [populationMap, districts, numDistricts, currentDistrict, playerParty, isThreeParty]);
+  }, [populationMap, districts, numDistricts, currentDistrict, playerParty, isThreeParty, fairSeats]);
 
   if (!data) return null;
   const p = PARTY[playerParty];

@@ -67,10 +67,15 @@ export function analyzeMap(districtBreakdown, playerParty) {
 }
 
 // One dry, cited line placing an efficiency gap next to reality. Returns null
-// for small gaps (no need to editorialize a fair map).
-export function efficiencyGapContext(gapPct) {
+// for small gaps (no need to editorialize a fair map). Threshold attribution
+// matters: 7% was the Whitford PLAINTIFFS' proposed line (via Jackman's
+// expert analysis) — S&M's own proposals were 8% for state houses and two
+// seats for Congress — and every one of those numbers was calibrated on
+// ~99-seat legislatures, so the granularity caveat is part of the line.
+export function efficiencyGapContext(gapPct, numDistricts = 10) {
   const g = Math.abs(gapPct);
-  if (g >= 13) return '~13% is the efficiency gap that sent Wisconsin’s 2011 Assembly map to the Supreme Court (Gill v. Whitford, 2018).';
-  if (g >= 7) return 'Above ~7% is the range political scientists flag as a durable partisan advantage (Stephanopoulos & McGhee, 2015).';
+  const perSeat = Math.round(100 / numDistricts);
+  if (g >= 13) return `~13% is the efficiency gap that sent Wisconsin’s 2011 Assembly map to the Supreme Court (Gill v. Whitford, 2018) — though here one seat moves the gap by ~${perSeat} points, so judge against this board’s party-blind baseline, not statewide history.`;
+  if (g >= 7) return `Above ~7% is the line the Whitford plaintiffs proposed for real statewide maps — calibrated for 99-seat legislatures. Here one seat moves the gap by ~${perSeat} points, so judge against this board’s party-blind baseline instead.`;
   return null;
 }

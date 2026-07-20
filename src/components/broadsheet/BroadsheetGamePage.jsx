@@ -191,6 +191,7 @@ export default function BroadsheetGamePage({ session }) {
             isThreeParty={config.isThreeParty}
             variant="paper"
             onExpand={() => document.querySelector('.paper-agate-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            fairSeats={fairMap.fairStats?.ourSeatCount ?? null}
           />
           <figcaption className="paper-plate-caption">
             FIG. 1 — {config.numDistricts} districts, drawn by the reader. Hatch direction = party; engraving weight = population.
@@ -251,6 +252,7 @@ export default function BroadsheetGamePage({ session }) {
             onToggleUnassigned={view.onToggleUnassigned}
             lastRejection={map.lastRejection}
             greyPercentage={config.greyPercentage}
+            fairSeats={fairMap.fairStats?.ourSeatCount ?? null}
           />
           {!daily.isDaily && <PaperMapRoom sandbox={sandbox} />}
         </aside>

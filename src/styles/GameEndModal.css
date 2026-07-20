@@ -665,12 +665,40 @@
     padding: var(--spacing-xl);
   }
 
+  /* Stays TWO columns on a phone. Stacking them was costing ~200px and, worse,
+     meant the two seat counts could never be on screen together — and "7/10
+     against 3/10" is the entire comparison this modal exists to make. The
+     cards give up padding and type size instead; the numbers stay legible. */
   .results-grid {
-    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .result-card {
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+
+  .result-value {
+    font-size: 1.9rem;
+  }
+
+  .result-percentage {
+    font-size: 1.05rem;
   }
 
   .modal-footer {
     padding: var(--spacing-lg) var(--spacing-xl);
+  }
+}
+
+/* Below this the two columns really are too narrow for a party name, so the
+   stack comes back. Set at 360 rather than 380 deliberately: a 375pt iPhone
+   still gives each card ~133px, which holds "3 / 10" and a two-line party
+   name comfortably — and those are common enough that stacking them would
+   lose the side-by-side comparison for a large share of players. */
+@media (max-width: 359px) {
+  .results-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -708,5 +736,157 @@
   .modal-footer {
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
+  }
+}
+
+/* ── Short viewports: the chrome yields, never the result ─────────────────
+   Every breakpoint above keys off WIDTH, but the thing that runs out on a
+   results screen is HEIGHT. A wide-but-short window — a laptop with devtools
+   open, a phone in landscape, a split screen — matched none of them and got
+   full-size chrome: measured at 1000x515, a 167px header and a 189px footer
+   left the body 108px of a 610px result. The chrome took 77% of the modal,
+   18% of the result was visible, and the seat counts were sliced in half.
+
+   A portrait phone is the same problem from the other side: at 375x812 the
+   header ran 241px (a five-line message in FIXED chrome) and the footer 203px
+   across four rows, leaving 34% of the result visible. So the compaction is
+   keyed to EITHER dimension being tight, not to "mobile".
+
+   These blocks only ever shrink the chrome and the fixed hero; the body
+   keeps whatever is left, so the result is always the biggest thing on
+   screen. Keep a vh fallback before each dvh (project mobile invariant). */
+/* 900, not 760. The first attempt used 760 and missed the screen it was
+   reported from: a 1509x815 laptop sat just above the line and got the full
+   chrome — 167px header, 251px footer, 47% of the result visible. 815 is an
+   ordinary laptop height, not an edge case. At 900 the compaction covers
+   laptops and leaves only genuinely tall monitors (1080p and up) roomy. */
+@media (max-height: 900px), (max-width: 600px) {
+  .modal-content {
+    max-height: 94vh;
+    max-height: 94dvh;
+  }
+
+  .modal-header {
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+
+  .modal-header .modal-status-title {
+    font-size: 1.3rem;
+  }
+
+  .modal-header .modal-status-message {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .modal-body {
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  .modal-footer {
+    padding: var(--spacing-md) var(--spacing-xl);
+    gap: var(--spacing-sm);
+  }
+
+  /* The hero is fixed furniture at the top of the body; it competes with the
+     result for the same scarce pixels. */
+  .heist-hero {
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .heist-grid {
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+  }
+
+  .heist-streak {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .modal-body h3 {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+/* Controls.css declares an UNSCOPED `.btn-primary { width: 100% }` that leaks
+   app-wide. `.modal-footer .btn-primary` overrides everything else about the
+   button — padding, colour, radius — but never declares width, so the leak won
+   and gave the primary action a row of its own.
+
+   This is NOT height-dependent: it is an accidental style being undone, and a
+   dialog footer wants its buttons inline at any height above phone width. It
+   was the single biggest cost in the expanded footer, which ran to four rows
+   and 251px. Phones keep the full-width primary, which is right there. */
+@media (min-width: 601px) {
+  .modal-footer .btn-primary {
+    width: auto;
+  }
+}
+
+/* Short and wide — buys back HEIGHT by spending WIDTH, so the reference link
+   stops claiming a row of its own. On a narrow phone the opposite is right. */
+@media (max-height: 900px) and (min-width: 601px) {
+  .modal-methodology-link {
+    flex-basis: auto;
+  }
+}
+
+/* Narrow only — the two secondary actions were ONE pixel from fitting side by
+   side (312px needed against 311px available), so each took a full row and the
+   footer ran to four. Letting them flex closes that gap and returns a row of
+   the screen to the result. The primary keeps its own full-width row: it is
+   the action most people want, and it stays a comfortable tap target. */
+@media (max-width: 600px) {
+  /* Basis well under half the available width so the pair can never lose to
+     the gap the way the intrinsic widths did (140px + 140px + 8px gap against
+     287px available missed by a single pixel). They grow to fill the row. */
+  .modal-footer .btn-secondary {
+    flex: 1 1 120px;
+    min-width: 0;
+  }
+}
+
+@media (max-height: 600px) {
+  /* Full-bleed vertically: at this height the rounded card's own margins are
+     a luxury. Width stays capped so it reads as a sheet, not a stretched
+     dialog, on a short desktop window. */
+  .modal-content {
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .modal-header {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-bottom-width: 3px;
+  }
+
+  .modal-header .modal-status-title {
+    font-size: 1.15rem;
+  }
+
+  /* Flavour text, not the verdict — the title already carries the result, so
+     it gives up its lines first rather than the seat counts giving up theirs. */
+  .modal-header .modal-status-message {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.8rem;
+  }
+
+  .modal-body {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .modal-footer {
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+
+  .heist-share {
+    max-width: 280px;
   }
 }

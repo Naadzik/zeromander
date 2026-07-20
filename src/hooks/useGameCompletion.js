@@ -6,11 +6,7 @@ import { isDistrictConnected } from '../utils/fairMapGenerator';
 import { resolveGreyPopulation } from '../utils/greyReveal';
 import { GREY } from '../utils/formatUtils';
 import { createRng, randomSeed } from '../utils/rng';
-
-// Uniform national swing: ±4%. Local uncertainty is no longer synthetic
-// per-district noise — it's the grey (undecided) population breaking in
-// clusters at the reveal.
-const MAX_SWING_PCT = 4;
+import { drawPollingError, districtElasticity, drawDistrictSwings } from '../utils/swingModel';
 
 function mapHasGrey(populationMap) {
   const party = populationMap?.party;
@@ -23,13 +19,21 @@ function mapHasGrey(populationMap) {
   return false;
 }
 
-// The base ±10% completion gate is unaffected by constraint settings — even in
-// soft mode, a violating map must be allowed to complete so it can be struck down.
-// Contiguity, however, is a hard gate: draw-time enforcement should make a
+// The base completion gate is unaffected by constraint settings — even in
+// soft mode, a violating map must be allowed to complete so it can be struck
+// down. v2: the gate is the OVERALL RANGE ≤ 10% — (max − min)/ideal, the
+// actual Brown v. Thomson quantity — replacing the per-district ±10% test.
+// Strictly tighter: with the whole board assigned the mean district equals
+// the ideal, so range ≤ 10% implies every district within ±10%, but not vice
+// versa (a +9%/−9% map passed the old gate at an 18% range — presumptively
+// unconstitutional under the most lenient real rule). The draw-time cap in
+// useMapState enforces the ±5% aid band, so any paintable full map passes
+// this gate's population test by construction.
+// Contiguity is a hard gate as before: draw-time enforcement should make a
 // split district impossible, but a map with one must never count as finished.
 function areAllDistrictsValid(populationMap, districts, numDistricts) {
   if (!populationMap || districts.length === 0) return false;
-  if (!computePopulationDeviation(populationMap, districts, numDistricts, 10).pass) return false;
+  if (computePopulationDeviation(populationMap, districts, numDistricts, 10).rangePct > 10) return false;
   const gridSize = districts.length;
   for (let d = 1; d <= numDistricts; d++) {
     if (!isDistrictConnected(districts, d, gridSize)) return false;
@@ -42,7 +46,15 @@ function areAllDistrictsValid(populationMap, districts, numDistricts) {
 // `manual: true` (daily challenge) suppresses auto-completion: the hook only
 // tracks `isMapValid` so the player can keep optimizing, and the caller
 // decides when to `finalize()` — the one-shot "lock in heist" moment.
-export function useGameCompletion({ populationMap, districts, numDistricts, playerParty, difficulty, targetSeatPercentage, constraints, electionUncertainty, manual = false }) {
+// `fairSeatsRef`: ref holding the neutral map's seat count for the player,
+// when in scope — the v2 target is "beat the neutral map by one". A REF, not a
+// value, because the fair map hook sits below this one in GameApp (its
+// `enabled` reads gameComplete from here — circular as plain props). Read at
+// compute time: the daily computes its baseline eagerly so the ref is set
+// before finalize(); the sandbox only computes it after completion, so frozen
+// stats there use the proportional fallback (spec'd behavior, not an
+// accident). Same ref-mirror pattern as useMapState's addUnclaimedOnlyRef.
+export function useGameCompletion({ populationMap, districts, numDistricts, playerParty, difficulty, targetSeatPercentage, constraints, electionUncertainty, manual = false, fairSeatsRef = null }) {
   const [gameComplete, setGameComplete] = useState(false);
   const [gameStats, setGameStats] = useState(null);
   const [isMapValid, setIsMapValid] = useState(false);
@@ -72,8 +84,14 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
     let revealed = null;
     let clusters = null;
     if ((electionUncertainty || hasGrey) && !isThreeParty) {
+      // Election night, v2 draw order (fixed arity per unit): polling error
+      // (2 draws, only with the uncertainty toggle) → grey resolution (zero
+      // draws without grey) → district swings (2 per district, uncertainty
+      // only). The sandbox's grey break is NOT coupled to the polling error —
+      // they model different things (late deciders vs. survey miss); the
+      // decade couples its break to the year's real national swing instead.
       const rng = createRng(randomSeed());
-      const swingPct = electionUncertainty ? (rng() * 2 - 1) * MAX_SWING_PCT : 0;
+      const swingPct = electionUncertainty ? drawPollingError(rng) : 0;
       if (hasGrey) {
         const resolution = resolveGreyPopulation(populationMap, rng);
         revealed = resolution.revealedMap;
@@ -81,7 +99,13 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
       } else {
         revealed = populationMap;
       }
-      const swungSeats = calculateSeatsWithSwing(revealed, districts, numDistricts, swingPct);
+      // With the surprise toggle on, districts also respond unevenly: density
+      // elasticity (rural swings harder than the urban core) plus ~2pp of
+      // local noise — the stochastic-uniform-swing tradition.
+      const districtSwings = electionUncertainty
+        ? drawDistrictSwings(districtElasticity(revealed, districts, numDistricts), numDistricts, swingPct, rng)
+        : null;
+      const swungSeats = calculateSeatsWithSwing(revealed, districts, numDistricts, swingPct, districtSwings);
       swing = {
         swingPct,
         seats: swungSeats,
@@ -92,7 +116,10 @@ export function useGameCompletion({ populationMap, districts, numDistricts, play
       };
     }
 
-    const stats = buildEndGameStats(core, { playerParty, isThreeParty, numDistricts, constraintViolations, swing });
+    const stats = buildEndGameStats(core, {
+      playerParty, isThreeParty, numDistricts, constraintViolations, swing,
+      fairSeats: fairSeatsRef?.current ?? null
+    });
     return { stats, revealed: hasGrey ? revealed : null, clusters };
   }
 

@@ -1,7 +1,47 @@
 import { extractPopulationData, forEachCell, getCellPopulation, totalPopulation } from './formatUtils.js';
 
+// The live drawing aid: the per-district band shown while painting.
+//
+// It is HALF the completion gate on purpose. The gate is the overall range
+// ≤ 10% (max − min over ideal), which no per-district mark can express — a
+// player can hold every district inside ±10% and still be blocked at an 18%
+// spread, which is exactly the confusion this replaced. At ±5% the aid is
+// SUFFICIENT: max +5% and min −5% is a 10% range, so all-green guarantees the
+// map completes. It slightly over-warns (a +7%/−3% map passes the gate with a
+// red mark), and that direction is the safe one — it can only push a player
+// toward a legal map, never let them believe an illegal one is fine.
+//
+// Achievable, not aspirational: the party-blind generator lands every
+// district inside this band on 145 of 150 measured ensemble maps.
+export const PARITY_AID_PCT = 5;
+
+// The completion gate: the doctrinal overall-range test (Brown v. Thomson).
+export const GATE_RANGE_PCT = 10;
+
+// The draw-time population ceiling for one district — the ENFORCED side of
+// the aid band: painting may never push a district past +PARITY_AID_PCT% of
+// ideal, so the capacity bar can never exceed the range it displays (the
+// mismatch players actually hit: band said 807–892, the old +10% cap allowed
+// 894). One formula, shared by the paint guard and every display surface —
+// they must never disagree again. `thresholdPct` exists for the sandbox's
+// strict-mode override.
+export function drawCapPopulation(totalPop, numDistricts, thresholdPct = PARITY_AID_PCT) {
+  return Math.ceil((totalPop / numDistricts) * (1 + thresholdPct / 100));
+}
+
 // Shared by the real-time draw cap (base 10%, or a stricter hard-mode threshold)
 // and the end-of-game constraint check (any configured thresholdPct).
+//
+// Two quantities, because doctrine and gameplay measure differently:
+//   worstDeviationPct — the biggest single district's distance from ideal;
+//     what the per-district draw cap and parity aids read.
+//   rangePct — (max − min) / ideal over DRAWN districts: the OVERALL RANGE,
+//     THE doctrinal population-equality quantity (Brown v. Thomson's 10% test
+//     caps the spread between largest and smallest, not each district's
+//     distance from ideal). 0 until two districts are drawn — a range needs
+//     two endpoints. Note: with the whole board assigned, the mean district
+//     population IS the ideal, so range ≤ 10% implies every district within
+//     ±10% — the range test is the stricter one.
 export function computePopulationDeviation(populationMap, districts, numDistricts, thresholdPct) {
   const { densityMap } = extractPopulationData(populationMap);
   const target = totalPopulation(populationMap) / numDistricts;
@@ -15,14 +55,30 @@ export function computePopulationDeviation(populationMap, districts, numDistrict
 
   let worstDeviationPct = 0;
   let pass = true;
+  let drawnMin = Infinity, drawnMax = -Infinity, drawnCount = 0;
   for (let districtId = 1; districtId <= numDistricts; districtId++) {
     const pop = districtPops[districtId];
     if (pop < minPop || pop > maxPop) pass = false;
     const deviationPct = target > 0 ? Math.abs(pop - target) / target * 100 : 0;
     if (deviationPct > worstDeviationPct) worstDeviationPct = deviationPct;
+    if (pop > 0) {
+      drawnCount++;
+      if (pop < drawnMin) drawnMin = pop;
+      if (pop > drawnMax) drawnMax = pop;
+    }
   }
 
-  return { pass, worstDeviationPct: Math.round(worstDeviationPct * 10) / 10, minPop, maxPop };
+  const rangePct = (drawnCount >= 2 && target > 0)
+    ? (drawnMax - drawnMin) / target * 100
+    : 0;
+
+  return {
+    pass,
+    worstDeviationPct: Math.round(worstDeviationPct * 10) / 10,
+    rangePct: Math.round(rangePct * 10) / 10,
+    minPop,
+    maxPop
+  };
 }
 
 // Contiguity is enforced structurally by isCountyAdjacentToDistrict at draw time

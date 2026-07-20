@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "npm run check:determinism && npm run check:models",
+    "check:determinism": "node scripts/check-determinism.mjs",
+    "check:models": "node scripts/check-models.mjs"
   },
   "dependencies": {
     "react": "^18.2.0",

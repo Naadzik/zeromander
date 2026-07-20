@@ -19,7 +19,7 @@ const STEPS = [
   },
   {
     title: 'Step 4 — Win the round',
-    body: 'Once every county is assigned and each district\'s population is within ±10% of the target, you win if your seat share beats the target. Good luck, cartographer.'
+    body: 'Once every county is assigned and your districts are close enough in population — keep each inside its ±5% band and you are safe — you win if your seat share beats the target. Good luck, cartographer.'
   }
 ];
 

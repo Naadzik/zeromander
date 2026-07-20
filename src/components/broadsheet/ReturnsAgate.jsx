@@ -2,24 +2,28 @@ import { getDistrictStats } from '../../utils/gameLogic'
 import { getPopulationShares } from '../../utils/gameLogic'
 import { targetSeatCount } from '../../utils/computeGameStats'
 import { extractPopulationData, getCellPopulation } from '../../utils/formatUtils'
+import { PARITY_AID_PCT, GATE_RANGE_PCT } from '../../utils/legalConstraints'
 import { PARTY } from '../../utils/partyConfig'
 
 // "LATEST RETURNS" — the Broadsheet's agate column. Dense, typeset, live:
 // seat tally, target line, one agate row per district (click → highlight on
-// the plate) with its POPULATION against the ±10% parity bound — the reader
+// the plate) with its POPULATION against the parity bound — the reader
 // must be able to see exactly which district still blocks the presses —
 // plus the unclaimed-county link and any rejection notice from the desk.
 export default function ReturnsAgate({
   populationMap, districts, numDistricts, isThreeParty, playerParty,
   highlightedDistrict, onDistrictSelect, showUnassignedCounties, onToggleUnassigned,
   lastRejection, greyPercentage,
+  // Neutral map's player seats (v2 target = beat it by one); null → fallback.
+  // Must match the dashboard's target or the two editions disagree.
+  fairSeats = null,
 }) {
   if (!populationMap?.party && !populationMap?.length) return null;
   const rows = getDistrictStats(populationMap, districts, numDistricts, isThreeParty);
   const shares = getPopulationShares(populationMap);
   const greyShare = shares.grey ?? 0;
   const ourShare = (shares[playerParty] ?? 0) * (1 - greyShare / 100);
-  const target = targetSeatCount(ourShare, numDistricts);
+  const target = targetSeatCount(ourShare, numDistricts, fairSeats);
 
   // Population parity: one pass over the grid — per-district resident counts
   // (undecideds count as people even before they vote) + the state total.
@@ -37,11 +41,19 @@ export default function ReturnsAgate({
     }
   }
   const fair = totalPop / numDistricts;
-  const lo = Math.floor(fair * 0.9);
-  const hi = Math.ceil(fair * 1.1);
+  const lo = Math.floor(fair * (1 - PARITY_AID_PCT / 100));
+  const hi = Math.ceil(fair * (1 + PARITY_AID_PCT / 100));
   // 'empty' | 'light' (needs more people) | 'heavy' (too many) | 'ok'
   const parity = id => pops[id] === 0 ? 'empty' : pops[id] < lo ? 'light' : pops[id] > hi ? 'heavy' : 'ok';
   const outOfBounds = rows.filter(r => parity(r.id) === 'light' || parity(r.id) === 'heavy').length;
+
+  // The completion gate's own quantity: the overall range, biggest − smallest
+  // over ideal (drawn districts only). Per-district marks above are necessary
+  // but not sufficient — the presses hold until the spread is within 10%.
+  const drawnPops = pops.slice(1).filter(pop => pop > 0);
+  const rangePct = drawnPops.length >= 2
+    ? Math.round((Math.max(...drawnPops) - Math.min(...drawnPops)) / fair * 1000) / 10
+    : 0;
 
   let ourSeats = 0;
   for (const r of rows) {
@@ -52,7 +64,7 @@ export default function ReturnsAgate({
   const fmt = n => Math.round(n).toLocaleString('en-US');
   const PARITY_MARK = { ok: '✓', light: '▽', heavy: '▲', empty: '' };
   const PARITY_TITLE = {
-    ok: 'Within the ±10% population bound',
+    ok: `Within the ±${PARITY_AID_PCT}% population bound`,
     light: `Under the bound — needs at least ${fmt(lo)} residents`,
     heavy: `Over the bound — at most ${fmt(hi)} residents`,
     empty: 'Not yet drawn',
@@ -69,6 +81,12 @@ export default function ReturnsAgate({
       <p className="paper-agate-tally">
         Each district must hold <strong>{fmt(lo)}–{fmt(hi)}</strong> residents
         {outOfBounds > 0 && <span className="paper-parity-alert"> · {outOfBounds} outside the bound</span>}
+      </p>
+      <p className="paper-agate-tally">
+        Spread, biggest−smallest: <strong>{rangePct}%</strong> of an equal share
+        {rangePct > GATE_RANGE_PCT
+          ? <span className="paper-parity-alert"> · presses hold over {GATE_RANGE_PCT}%</span>
+          : <> · within the courts&apos; {GATE_RANGE_PCT}% line</>}
       </p>
       {/* Visible legend — the hover titles have no touch equivalent. */}
       <p className="paper-agate-foot paper-parity-legend">✓ within bound · ▽ needs residents · ▲ over</p>

@@ -25,7 +25,7 @@
 3. **Click again**: Removes the county from the district
 4. **Rules**:
    - Districts must stay **contiguous** (connected)
-   - Districts must have **±10% population variance** (shown as range)
+   - District populations must stay near-equal: the map completes when the **spread between the biggest and smallest district is within 10%** of an equal share (the courts' state-legislative line). Each district shows a **±5% band, and the top of it is enforced** — painting a county that would push a district past +5% is blocked outright, so overfilling is impossible and balancing the small districts is the whole puzzle.
    - You can't remove a county if it disconnects the district
 
 ### Winning
@@ -59,13 +59,13 @@ Measures how "unfair" the districting is (Stephanopoulos & McGhee, 2015).
 - Wasted votes = votes beyond 50% needed to win + ALL votes in losing districts
 - Gap = |your wasted − their wasted| / total votes cast × 100
 
-### Compactness % (Polsby-Popper)
-How "round" and regular your districts are.
-- **100% = perfect circle**
+### Compactness % (grid-adjusted Polsby-Popper)
+How chunky vs. snaky your districts are (area vs. boundary length).
+- **100% = perfect square** — the roundest shape a cell map allows
 - **0% = extremely snaking/irregular**
-- **Typical goal**: > 50% (somewhat compact)
+- **Typical range**: the party-blind neutral map lands ~30–45% on this geometry; below ~25% reads as contorted
 
-**Why it matters**: More compact districts are easier to defend as non-partisan.
+**Why it matters**: Contorted shapes are the classic visible symptom of a gerrymander — a safeguard, not a guarantee.
 
 ### Competitiveness %
 Percentage of districts that are close/contested.
@@ -87,7 +87,7 @@ Two optional sources of uncertainty (2-party maps only) make thin-margin gerryma
 
 ### Undecided Voters (grey areas)
 - A configurable share of the population (recommended ~8%) is **undecided** — grey on the map.
-- They **count toward district population** (±10% parity) but **cast no votes** while you draw. All live numbers show decided votes only.
+- They **count toward district population** (parity counts people, not voters) but **cast no votes** while you draw. All live numbers show decided votes only.
 - A district is a **tossup (?)** when its undecided population exceeds the current leader's margin — the reveal could flip it. The seat bar shows tossups as a hatched segment.
 - On election night, grey **neighborhoods break together**: each contiguous cluster leans roughly like the decided area around it (undecideds in a blue city lean blue), but with real variance — a cluster can badly underperform or overperform its surroundings. You can't count on them; you can only build cushions.
 
@@ -106,7 +106,7 @@ The election-night result — undecideds breaking, plus the national swing if en
 2. **Create "crescent" shaped districts** that connect voter clusters
 3. **Concentrate just enough** of your votes to win districts (not too many!)
 4. **Spread opposition** votes into districts you'll lose anyway
-5. **Check population bars** - stay within the ±10% range
+5. **Check population bars** - keep every district near the equal share; the completion gate is the biggest−smallest spread staying within 10%
 
 ### For Fair Districts
 

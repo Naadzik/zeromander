@@ -19,6 +19,24 @@ export function durabilityVerdict(adverse) {
   return 'Robust — it survives even a big wave.';
 }
 
+// The editorial tail for the closest-hold ("EDGE") line, scaled to the margin
+// it is describing. A district won by `marginPct` points of the two-party vote
+// flips on a uniform swing of about HALF that (the winner sits at 50+margin/2,
+// a swing of margin/2 pulls them to 50) — so a 1-point margin is a genuine
+// knife-edge while a 14-point margin is a wall. The line used to hardcode "a
+// wave barely bigger than a rounding error takes it back" for EVERY margin,
+// which read as absurd on a safe seat — a reported 14.5% hold called a
+// rounding error. Now the words match the number. Thresholds are on the
+// swing-to-flip (marginPct/2): <1pt, <2.5pt (a normal year), <5pt (a real
+// wave), and beyond.
+export function edgeVerdict(marginPct) {
+  const swingToFlip = marginPct / 2;
+  if (swingToFlip < 1) return 'a swing barely bigger than a rounding error takes it back.';
+  if (swingToFlip < 2.5) return 'a normal election-year swing could take it back.';
+  if (swingToFlip < 5) return 'it would take a real wave to dislodge.';
+  return 'comfortable enough to ride out a landslide.';
+}
+
 // Tiny seats-vs-national-swing sparkline for the durability panel.
 export function DurabilitySpark({ swing, numDistricts }) {
   const W = 220, H = 56, pad = 5;
@@ -97,7 +115,7 @@ export function anatomyData(stats) {
   const anatomy = !isThreeParty && stats.allStats?.districtBreakdown
     ? analyzeMap(stats.allStats.districtBreakdown, playerParty) : null;
   const gapContextLine = (!isThreeParty && stats.allStats)
-    ? efficiencyGapContext(stats.allStats.efficiencyGap) : null;
+    ? efficiencyGapContext(stats.allStats.efficiencyGap, stats.totalDistricts) : null;
   const votePct = stats.allStats?.ourPopPercent;
   const seatPct = stats.ourSeats;
   const seatBonus = (votePct != null && seatPct != null) ? Math.round(seatPct - votePct) : null;
@@ -137,7 +155,11 @@ export function buildShareText({ stats, daily, fairStats }) {
     `${ourLabel}: ${popPct}% votes → ${seatsPct}% seats`,
     seatGridString(stats.allStats?.districtBreakdown),
     stats.struckDown ? '⚖️ Struck down by court' : null,
-    fairStats ? `Neutral map: ${fairStats.ourSeatCount}/${stats.totalDistricts} seats` : null,
+    // v2 baseline: the median of the party-blind ensemble, with its range —
+    // "the typical neutral map", not one arbitrary draw.
+    fairStats?.ensemble
+      ? `Neutral maps: median ${fairStats.ensemble.median}/${stats.totalDistricts} seats (range ${fairStats.ensemble.min}–${fairStats.ensemble.max})`
+      : fairStats ? `Neutral map: ${fairStats.ourSeatCount}/${stats.totalDistricts} seats` : null,
     'naadzik.github.io/zeromander/'
   ].filter(Boolean).join('\n');
 }
@@ -198,11 +220,18 @@ export function DailyComparison({ daily, stats }) {
   const dailyResult = daily?.result ?? null;
   if (!dailyResult) return null;
   const stolen = dailyResult.seatsStolen;
+  // v2 records carry the ensemble context (median of n party-blind maps +
+  // their range); v1 records in stored history predate it — render the old
+  // single-map line for those, never invent a range.
+  const hasEnsemble = dailyResult.ensembleN != null;
   return (
     <div className="swing-comparison">
       <div className="stat-line">
-        <span><Icon name="scale" size={14} /> Neutral map ({ourLabel}):</span>
-        <strong>{dailyResult.neutralSeats}/{dailyResult.numDistricts} seats</strong>
+        <span><Icon name="scale" size={14} /> {hasEnsemble ? `Party-blind maps, median of ${dailyResult.ensembleN} (${ourLabel}):` : `Neutral map (${ourLabel}):`}</span>
+        <strong>
+          {dailyResult.neutralSeats}/{dailyResult.numDistricts} seats
+          {hasEnsemble ? ` (range ${dailyResult.neutralMin}–${dailyResult.neutralMax})` : ''}
+        </strong>
       </div>
       <div className="stat-line">
         <span><Icon name="spy" size={14} /> Seats stolen:</span>
@@ -294,13 +323,18 @@ export function AnatomyPanel({ stats }) {
       {anatomy.margins && (
         <p className="anatomy-line">
           <span className="anatomy-tag anatomy-tag--stat">SPREAD</span>
-          You win your seats by <strong>~{anatomy.margins.ourAvg} pts</strong> on average; they win theirs by <strong>~{anatomy.margins.theirAvg}</strong>. That gap is the whole trick.
+          You win your seats by <strong>~{anatomy.margins.ourAvg} pts</strong> on average; they win theirs by <strong>~{anatomy.margins.theirAvg}</strong>.{' '}
+          {anatomy.margins.theirAvg - anatomy.margins.ourAvg >= 8
+            ? 'That gap is the whole trick — your wins are lean, theirs are wasted landslides.'
+            : anatomy.margins.theirAvg - anatomy.margins.ourAvg >= 3
+              ? 'You win a little tighter than they do — a modest efficiency edge.'
+              : 'Your wins are no leaner than theirs — the seats came from where the lines fell, not from thinner margins.'}
         </p>
       )}
       {anatomy.tippingPoint && (
         <p className="anatomy-line">
           <span className="anatomy-tag anatomy-tag--stat">EDGE</span>
-          Your closest hold is <strong>D{anatomy.tippingPoint.id}</strong>, by just <strong>{nfmt(anatomy.tippingPoint.marginVoters)} voters ({pctFmt(anatomy.tippingPoint.marginPct)}%)</strong> — a wave barely bigger than a rounding error takes it back.
+          Your thinnest hold is <strong>D{anatomy.tippingPoint.id}</strong>, a <strong>{pctFmt(anatomy.tippingPoint.marginPct)}% margin</strong> ({nfmt(anatomy.tippingPoint.marginVoters)} voters) — {edgeVerdict(anatomy.tippingPoint.marginPct)}
         </p>
       )}
     </div>
@@ -374,9 +408,15 @@ export function DistrictBreakdownBars({ stats }) {
   );
 }
 
-export function DetailedStats({ stats }) {
+// `fairStats`: the neutral map's core stats when computed — anchors the gap
+// to the same board's party-blind baseline (the honest comparison; statewide
+// thresholds mislead at this district count).
+export function DetailedStats({ stats, fairStats = null }) {
   const isThreeParty = !!stats.isThreeParty;
   const { gapContextLine } = anatomyData(stats);
+  const favors = stats.allStats?.gapFavors;
+  const favorsLabel = favors && favors !== 'none' ? PARTY[favors]?.label : null;
+  const fairGapPct = fairStats?.gap ? Math.round(fairStats.gap.gap * 10) / 10 : null;
   return (
     <div className="detailed-stats">
       <h3>Detailed Statistics</h3>
@@ -402,8 +442,18 @@ export function DetailedStats({ stats }) {
           <h4>Efficiency Gap</h4>
           <div className="stat-line">
             <span>Gap:</span>
-            <strong>{stats.allStats.efficiencyGap}%</strong>
+            <strong>
+              {stats.allStats.efficiencyGap}%
+              {favorsLabel ? ` favoring ${favorsLabel}` : ''}
+              {stats.allStats.gapSeats != null ? ` (≈${stats.allStats.gapSeats} seats)` : ''}
+            </strong>
           </div>
+          {fairGapPct != null && (
+            <div className="stat-line">
+              <span>Party-blind map on this board:</span>
+              <strong>{fairGapPct}%</strong>
+            </div>
+          )}
           <div className="stat-line">
             <span><PartyIcon party="blue" /> Urban Union Wasted Votes:</span>
             <strong>{stats.allStats.blueWasted}</strong>
@@ -433,9 +483,21 @@ export function DetailedStats({ stats }) {
               <strong>{stats.allStats.competitiveCount}/{stats.totalDistricts}</strong>
             </div>
             <div className="stat-line">
-              <span>Partisan Asymmetry:</span>
+              <span>Disproportionality:</span>
               <strong>{stats.allStats.asymmetry}%</strong>
             </div>
+            {stats.allStats.meanMedian != null && (
+              <div className="stat-line">
+                <span>Mean–median (+ = your way):</span>
+                <strong>{stats.allStats.meanMedian > 0 ? '+' : ''}{stats.allStats.meanMedian}pp</strong>
+              </div>
+            )}
+            {stats.allStats.bias50Seats != null && (
+              <div className="stat-line">
+                <span>Seats in a tied election:</span>
+                <strong>{stats.allStats.bias50Seats}/{stats.totalDistricts}</strong>
+              </div>
+            )}
           </>
         )}
       </div>

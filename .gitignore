@@ -32,3 +32,12 @@ yarn-error.log*
 
 # Vite dev cache
 .vite/
+
+# Private planning documents — the audit, model specs, methodology redraft and
+# roadmap live in the working tree while the v2 ("Beta") work is underway, but
+# each is marked "not committed to the repository". Keep it that way: a stray
+# `git add -A` must never publish them.
+METHODOLOGYAUDIT.md
+METHODOLOGYPAGE.md
+MODELSPECS.md
+ZEROMANDERROADMAP.md

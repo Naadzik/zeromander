@@ -39,7 +39,7 @@ export default function PaperVerdictArticle({ stats, daily, fairStats, durabilit
       <DurabilityPanel durability={durability} />
 
       <Slug>The Precinct Ledger</Slug>
-      <DetailedStats stats={stats} />
+      <DetailedStats stats={stats} fairStats={fairStats} />
 
       <Slug>Notices</Slug>
       <div className="paper-notices">

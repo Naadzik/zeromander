@@ -66,8 +66,16 @@ export function fillCells(ctx, grid, matches, cellSize, fillStyle) {
   }
 }
 
-// Winner per assigned district: party index 0 (blue), 1 (red) or 2 (green).
-// Ties: blue beats red and green; green must strictly beat both.
+// Winner per assigned district: party index 0 (blue), 1 (red), 2 (green) — or
+// 3 (grey) when the seat is NOT YET DECIDED because undecided voters could
+// still take it. A district paints grey when the leader's margin is within
+// the district's undecided population (|blue − red| ≤ greyPop) — the same
+// "not banked" band the seat bar and the district-detail "?" already use, so
+// the map now agrees with them instead of flattering a 21-vote lead over 571
+// undecideds into a solid blue seat. All-undecided districts (no decided
+// votes) are the greyPop ≥ 0 = margin 0 case of the same rule. Post-reveal
+// the grey has resolved (greyPop 0), so this reduces to the plain winner with
+// blue-beats-red / green-strictly-wins tie-breaks — the frozen behavior.
 export function computeDistrictWinners(partyMap, densityMap, districts) {
   const gridSize = partyMap.length;
   const voteCounts = {};
@@ -75,18 +83,23 @@ export function computeDistrictWinners(partyMap, densityMap, districts) {
     for (let x = 0; x < gridSize; x++) {
       const d = districts[y][x];
       if (d > 0) {
-        if (!voteCounts[d]) voteCounts[d] = { blue: 0, red: 0, green: 0 };
+        if (!voteCounts[d]) voteCounts[d] = { blue: 0, red: 0, green: 0, grey: 0 };
         const density = densityMap ? densityMap[y][x] : 1;
         if (partyMap[y][x] === 0) voteCounts[d].blue += density;
         else if (partyMap[y][x] === 1) voteCounts[d].red += density;
         else if (partyMap[y][x] === 2) voteCounts[d].green += density;
-        // grey (3) is undecided — no vote until the reveal
+        else voteCounts[d].grey += density; // undecided — no vote until the reveal
       }
     }
   }
   const winners = {};
   for (const [id, votes] of Object.entries(voteCounts)) {
-    if (votes.blue >= votes.red && votes.blue >= votes.green) winners[id] = 0;
+    const decided = votes.blue + votes.red + votes.green;
+    // Undecided outnumber the two-party margin ⇒ the seat is a tossup; show it
+    // grey, not the current leader's color. (Guarded to 2-party boards: grey
+    // is forced to 0 in three-party mode, so this never mislabels a green win.)
+    if (decided === 0 || (votes.green === 0 && votes.grey >= Math.abs(votes.blue - votes.red))) winners[id] = 3;
+    else if (votes.blue >= votes.red && votes.blue >= votes.green) winners[id] = 0;
     else if (votes.green > votes.blue && votes.green > votes.red) winners[id] = 2;
     else winners[id] = 1;
   }

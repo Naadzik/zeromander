@@ -172,7 +172,7 @@ export default function Controls({
           {constraints.populationDeviation.enabled && (
             <>
               <div className="control-group">
-                <label>Threshold: ±{constraints.populationDeviation.thresholdPct}% (base is ±10%)</label>
+                <label>Threshold: ±{constraints.populationDeviation.thresholdPct}% (replaces the ±5% draw cap)</label>
                 <input
                   type="range"
                   min="1"
@@ -244,10 +244,10 @@ export default function Controls({
                 checked={electionUncertainty}
                 onChange={(e) => onElectionUncertaintyChange(e.target.checked)}
               />
-              National Swing (±4%)
+              Election-Night Surprise (polling error)
             </label>
             <span className="constraint-hint">
-              When you finish, a random nationwide swing of up to ±4% shifts every district at once — the election-night result decides win or lose, not the map as drawn. Local uncertainty comes from the undecided voters above.
+              When you finish, the real result misses the expected one the way polls miss elections — usually a point or two, occasionally ~4 — and rural districts swing harder than the urban core. The election-night result decides win or lose, not the map as drawn. Local uncertainty comes from the undecided voters above.
             </span>
           </div>
           <div className="control-group constraint-row">

@@ -5,6 +5,7 @@ import { createRng, randomSeed } from '../utils/rng';
 import { isCountyAdjacentToDistrict } from '../utils/gameLogic';
 import { isDistrictConnected } from '../utils/fairMapGenerator';
 import { extractPopulationData, getCellPopulation, totalPopulation } from '../utils/formatUtils';
+import { PARITY_AID_PCT, drawCapPopulation } from '../utils/legalConstraints';
 import { useUndoRedo } from './useUndoRedo';
 
 function findFirstCell(grid, value) {
@@ -21,7 +22,7 @@ function findFirstCell(grid, value) {
 // `options.locked` freezes the board: undo/redo (buttons AND keyboard
 // shortcuts) are disabled. Paint/click guards live at the GameApp level.
 export function useMapState(config, constraints, options = {}) {
-  const { difficulty, gridSize, numDistricts, numCounties, numCities, bluePercentage, greenPercentage, numTowns, greyPercentage = 0, communityPercentage = 0 } = config;
+  const { difficulty, gridSize, numDistricts, numCounties, numCities, bluePercentage, greenPercentage, numTowns, greyPercentage = 0, communityPercentage = 0, modelVersion = 1 } = config;
   const fixedSeed = options.seed;
 
   const [populationMap, setPopulationMap] = useState([]);
@@ -67,7 +68,7 @@ export function useMapState(config, constraints, options = {}) {
     const rng = createRng(effectiveSeed);
     const pop = difficulty === 'three-party'
       ? generatePopulationMap3Party(gridSize, bluePercentage, greenPercentage, numCities, numTowns, rng)
-      : generatePopulationMap(gridSize, bluePercentage, numCities, 100, rng, greyPercentage, communityPercentage);
+      : generatePopulationMap(gridSize, bluePercentage, numCities, 100, rng, greyPercentage, communityPercentage, modelVersion);
     installMap(pop, gridSize, numCounties, rng);
   }
 
@@ -76,7 +77,7 @@ export function useMapState(config, constraints, options = {}) {
   useEffect(() => {
     const timer = setTimeout(() => generateNewGame(), 150);
     return () => clearTimeout(timer);
-  }, [gridSize, bluePercentage, greenPercentage, numCities, numTowns, greyPercentage, communityPercentage, fixedSeed]);
+  }, [gridSize, bluePercentage, greenPercentage, numCities, numTowns, greyPercentage, communityPercentage, fixedSeed, modelVersion]);
 
   function applyCountyAction(prevDistricts, countyId, mode) {
     if (currentDistrict === 0) return null;
@@ -129,10 +130,16 @@ export function useMapState(config, constraints, options = {}) {
       countyPopulation += getCellPopulation(densityMap, y, x);
 
     const combinedPopulation = currentPopulation + countyPopulation;
+    // The draw cap IS the displayed aid band (±5% by default): painting can
+    // never push a district past the range the capacity bar shows — the two
+    // used to disagree (band ±5%, cap +10%), which let a "full" district
+    // quietly take one more county and read over its own printed maximum.
+    // The sandbox's strict hard mode still substitutes its own threshold —
+    // an explicit experiment knob, labeled as replacing the default cap.
     const popConstraint = constraints?.populationDeviation;
     const usingStrictCap = popConstraint?.enabled && popConstraint.mode === 'hard';
-    const deviationPct = usingStrictCap ? popConstraint.thresholdPct : 10;
-    const maxPopulation = Math.ceil((totalPopulation(populationMap) / numDistricts) * (1 + deviationPct / 100));
+    const deviationPct = usingStrictCap ? popConstraint.thresholdPct : PARITY_AID_PCT;
+    const maxPopulation = drawCapPopulation(totalPopulation(populationMap), numDistricts, deviationPct);
 
     const withinCap = combinedPopulation <= maxPopulation;
     const isContiguous = isCountyAdjacentToDistrict(newDistricts, counties, countyId, currentDistrict);
@@ -153,10 +160,12 @@ export function useMapState(config, constraints, options = {}) {
       return newDistricts;
     }
 
-    if (!withinCap && usingStrictCap) {
+    if (!withinCap) {
+      // Always explain a cap rejection — a silently dead tap reads as a bug
+      // (the old base cap rejected without a word; only strict mode spoke).
       rejectionRef.current = {
         reason: 'population-cap',
-        message: `Blocked: District ${currentDistrict} would exceed the ±${deviationPct}% population limit.`
+        message: `Blocked: District ${currentDistrict} is at its population ceiling (max ${maxPopulation.toLocaleString('en-US')}, ±${deviationPct}%). Grow another district, or take counties from this one.`
       };
     }
 
